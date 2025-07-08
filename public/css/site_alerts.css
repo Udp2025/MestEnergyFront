@@ -1,0 +1,225 @@
+ /* ============================================
+   Reset y estilos básicos
+============================================ */
+
+
+/* ============================================
+   Contenedor principal
+============================================ */
+.container {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: row-reverse; /* Coloca la sidebar a la derecha */
+  min-height: 100vh;
+  padding: 20px; 
+}
+/* ============================================
+   Sidebar (Barra lateral) en colores neutros
+============================================ */
+.sidebar {
+  width: 280px;
+    background-color: #fff7f2;
+    color: #2c3e50;
+    padding: 20px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.sidebar-header h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #333;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+}
+.menu {
+  list-style: none;
+  margin-bottom: 20px;
+}
+.menu-item {
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  margin-bottom: 7px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  color: #333;
+}
+.menu-item:hover {
+  background-color: #f0f0f0;
+}
+.menu-item.active {
+  background-color: #e6e6e6;
+  border-color: #ccc;
+}
+.menu-item .count {
+  background-color: #999;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 12px;
+  margin-left: 8px;
+  color: #fff;
+}
+/* ============================================
+   Sección de filtros
+============================================ */
+.filters h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #333;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+}
+.filter-group {
+  margin-bottom: 15px;
+}
+.filter-group label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+.filter-group select,
+.filter-group input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+.filter-group button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background-color: #337ab7;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.filter-group button:hover {
+  background-color: #286090;
+}
+/* ============================================
+   Contenido principal
+============================================ */
+.main-content {
+  flex: 1;
+  padding: 20px;
+}
+.main-header {
+  margin-bottom: 20px;
+}
+#searchInput {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+/* ============================================
+   Listado de alertas (tarjetas) – una por fila
+============================================ */
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.alert {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 20px;
+  transition: box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+.alert:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+/* Contenedor para los badges (recuadros de estado y severidad) */
+.badge-container {
+  display: inline-flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #fff;
+  text-transform: capitalize;
+}
+.badge.high { background-color: #d9534f; }
+.badge.medium { background-color: #f0ad4e; }
+.badge.low { background-color: #5cb85c; }
+.badge.open { background-color: #5bc0de; }
+.badge.closed { background-color: #777; }
+.alert h4 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+.alert p {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #666;
+}
+.alert .date {
+  font-size: 12px;
+  color: #999;
+  align-self: flex-end;
+}
+/* ============================================
+   Responsividad
+============================================ */
+@media (max-width: 768px) {
+  .container {
+      flex-direction: column;
+  }
+  .sidebar {
+      width: 100%;
+  }
+  .main-content {
+      padding: 15px;
+  }
+}
+ 
+/* === Resumen de Alertas del Sistema === */
+.alerts-summary {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.alerts-summary-title {
+  font-size: 2.5rem;
+  color: #d75a3a;
+  margin-bottom: 1.5rem;
+}
+.alerts-summary-cards {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+}
+.summary-card {
+  background-color: #fff7f2;
+  border-radius: 8px;
+  padding: 2rem 1.5rem;
+  width: 200px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.summary-card .number {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #d75a3a;
+}
+.summary-card .label {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  color: #a04a2a;
+}
+
+/* === Ajustes generales ya existentes === */
+/* (el resto de tu css continúa igual) */

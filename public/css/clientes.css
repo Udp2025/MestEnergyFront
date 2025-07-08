@@ -1,0 +1,58 @@
+/* Contenedor general */
+.clientes-contenedor {
+  background-color: #faf7f0; /* fondo suave */
+  color: #2c3e50;            /* texto base */
+}
+
+/* Título */
+.clientes-titulo {
+  color: #d75a3a;            /* rojizo */
+}
+
+/* Botón Crear Cliente */
+.btn-crear-cliente {
+  background-image: linear-gradient(135deg, #d75a3a, #ac4429);
+}
+
+/* Encabezado de tabla */
+.clientes-tabla thead th {
+  background-color: #d75a3a; /* rojizo */
+  color: #ffffff;
+}
+
+/* Filas hover */
+.clientes-tabla tbody tr:hover {
+  background-color: #fff4f0; /* muy tenue rojizo */
+}
+
+/* Links dentro de celdas */
+.clientes-tabla tbody td a {
+  color: #d75a3a;
+}
+
+/* Switch activado */
+.switch input:checked + .slider {
+  background-color: #d75a3a;
+}
+
+/* Dropdown-item icon */
+.dropdown-item i {
+  color: #d75a3a;
+}
+
+/* Botones primarios del modal */
+.btn-primary {
+  background-image: linear-gradient(135deg, #d75a3a, #ac4429);
+}
+
+/* Modal header editar */
+.modal-header.bg-primary {
+  background-color: #d75a3a;
+}
+
+/* Modal header crear */
+.modal-header.bg-success {
+  background-color: #d75a3a; /* reutilizamos rojizo */
+}
+
+

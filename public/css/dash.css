@@ -1,0 +1,131 @@
+/* General Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box; /* Garantiza que el padding y margen no afecten el tamaño total de los elementos */
+}
+
+html, body {
+    height: 100%;   /* Asegura que ocupe toda la altura */
+    margin: 0;      /* Elimina cualquier margen por defecto */
+    padding: 0;     /* Elimina cualquier padding por defecto */
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden; /* Evita el desbordamiento horizontal */
+}
+
+/* Dashboard Container */
+.energy-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;  /* Ocupa el 100% de la altura de la ventana */
+    width: 100%;
+}
+
+/* Header */
+.energy-header {
+    text-align: center;
+    padding: 20px 0;
+    background-color: #007bff;
+    color: white;
+    font-size: 1.5rem;
+}
+
+/* Dashboard Content Layout */
+.energy-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-grow: 1;  /* Ocupa el espacio restante */
+    padding: 20px;
+    gap: 20px;
+    overflow: hidden; /* Asegura que no haya desbordes */
+}
+
+/* Categories Section */
+.energy-categories-container {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    flex: 1;
+    max-width: 300px;
+    overflow-y: auto; /* Permite desplazamiento si hay demasiados elementos */
+}
+
+.energy-categories-container h3 {
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.energy-category-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.energy-category-list li {
+    margin-bottom: 8px; /* Ajusta el espacio entre elementos */
+    display: flex;
+    align-items: center;
+}
+
+.energy-category-list label {
+    margin-left: 8px;
+    font-size: 0.9rem;
+}
+
+/* Chart Container */
+.energy-chart-container {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    flex: 3;
+    overflow: hidden; /* Evita que el contenido se desborde */
+}
+
+/* Filter Options */
+.filter-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.filter-options select {
+    padding: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    margin-right: 10px;
+}
+
+.filter-options button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.filter-options button:hover {
+    background-color: #0056b3;
+}
+
+canvas {
+    max-width: 100%;
+    height: 400px;
+}
+
+/* Footer or extra sections if necessary */
+.energy-footer {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    margin-top: auto; /* Asegura que el pie de página se mantenga al final */
+}

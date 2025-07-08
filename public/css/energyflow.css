@@ -1,0 +1,120 @@
+     /* Reset y estilos globales */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #eef2f5;
+    }
+    /* Estructura del dashboard */
+    .dashboard {
+      display: flex;
+      height: 100vh;
+      flex-direction: row-reverse; /* Coloca la sidebar a la derecha */
+      min-height: 100vh;
+      padding: 20px; 
+      
+    }
+    /* Panel lateral (selección de sitios) */
+    .sidebar {
+      width: 250px;
+      background-color: rgba(255, 255, 255, 0.9);
+      color: #2c3e50;
+      padding: 20px;
+      border-radius: 8px;
+      border: 2px solid #000;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .sidebar h2 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      color: #333;
+    }
+    .sidebar select {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    /* Contenido principal */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Cabecera (título y filtros) */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      color: #444;
+    }
+    .filters {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .filters select,
+    .filters input[type="date"] {
+      padding: 8px 12px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    /* Sección del diagrama */
+    .diagram-section {
+      flex: 1;
+      margin: 20px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    /* Pie de página */
+    .footer {
+      background: #fff;
+      border-top: 1px solid #ddd;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .footer .datetime {
+      margin-right: 20px;
+      font-size: 14px;
+      color: #555;
+    }
+    .help-icon { cursor: pointer; }
+    .help-icon svg { display: block; }
+    /* Tooltip */
+    .tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      white-space: nowrap;
+      z-index: 10;
+    }
+    /* Clase para aplicar drop-shadow a los nodos (definido en SVG) */
+    .node {
+      filter: url(#drop-shadow);
+    }
+ 

@@ -1,0 +1,117 @@
+/* Estilos generales para la página */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Arial', sans-serif;
+}
+
+.area-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.area-title {
+    font-size: 36px;
+    font-weight: bold;
+    color: #343a40;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.area-subtitle {
+    font-size: 18px;
+    color: #6c757d;
+    margin-bottom: 40px;
+}
+
+/* Estilos para los botones */
+.area-btn-create,
+.area-btn-edit,
+.area-btn-delete {
+    font-size: 16px;
+    border-radius: 5px;
+    padding: 10px 20px;
+    transition: all 0.3s ease;
+}
+
+.area-btn-create {
+    background-color: #28a745;
+    color: white;
+}
+
+.area-btn-create:hover {
+    background-color: #218838;
+}
+
+.area-btn-edit {
+    background-color: #007bff;
+    color: white;
+}
+
+.area-btn-edit:hover {
+    background-color: #0056b3;
+}
+
+.area-btn-delete {
+    background-color: #dc3545;
+    color: white;
+}
+
+.area-btn-delete:hover {
+    background-color: #c82333;
+}
+
+/* Estilo para la tabla estilizada */
+.area-table {
+    width: 100%;
+    margin-top: 30px;
+    border-collapse: collapse;
+}
+
+.area-table th,
+.area-table td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 2px solid #ddd;
+    font-size: 16px;
+}
+
+.area-table th {
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+}
+
+.area-table td {
+    background-color: #ffffff;
+}
+
+.area-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+.area-table td .btn {
+    margin: 0 5px;
+}
+
+/* Estilos para los modales */
+.modal-content {
+    border-radius: 8px;
+    border: none;
+}
+
+.modal-header {
+    background-color: #007bff;
+    color: white;
+    font-size: 20px;
+    border-bottom: none;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    background-color: #f8f9fa;
+    border-top: none;
+}

@@ -1,0 +1,175 @@
+/* Contenedor principal */
+.custom-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    margin: 0 auto;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Títulos */
+.custom-title {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.custom-card h2 {
+    font-size: 20px;
+    color: #555;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 5px;
+}
+
+/* Tablas */
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    border: 2px solid #ccc; /* Borde más marcado */
+}
+
+.custom-table th,
+.custom-table td {
+    padding: 10px 15px;
+    text-align: left;
+    border: 1px solid #ccc;
+}
+
+.custom-table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+    color: #fffbfb;
+}
+
+.custom-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Botones */
+.custom-btn {
+    padding: 8px 12px;
+    font-size: 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.custom-btn:hover {
+    background-color: #e86805;
+    color: #fff;
+}
+
+.custom-btn-delete {
+    background-color: #d9534f;
+    color: #fff;
+}
+
+.custom-btn-delete:hover {
+    background-color: #c9302c;
+}
+
+.custom-btn-create {
+    background-color: #dc5d02;
+    color: #fff;
+    margin: 20px 0;
+}
+
+.custom-btn-create:hover {
+    background-color: #882121;
+}
+
+.custom-modal-content {
+    border: 2px solid #ff7300;
+    border-radius: 8px;
+}
+
+.custom-modal-header {
+    background-color: #ff6200;
+    color: #fff;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+/* Los botones close en el modal deben tener contraste */
+.custom-modal-header .btn-close {
+    filter: invert(1);
+}
+
+/* Formularios dentro de los modales */
+.modal-content h2 {
+    margin-top: 0;
+    font-size: 18px;
+    color: #333;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 10px;
+}
+
+.modal-content form label {
+    display: block;
+    margin: 10px 0 5px;
+    color: #555;
+}
+
+.modal-content form input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.modal-content form .custom-btn-close {
+    background-color: #6c757d;
+    color: #fff;
+}
+
+.modal-content form .custom-btn-close:hover {
+    background-color: #5a6268;
+}
+
+/* Grid para tarjetas */
+.custom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.custom-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+}
+
+/* Alertas */
+.alert {
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+/* Enlaces de FontAwesome */
+.custom-btn i {
+    margin-right: 5px;
+}
+
+.custom-btn:hover i {
+    transform: scale(1.1);
+    transition: 0.3s;
+}

@@ -1,0 +1,132 @@
+
+
+#heatmap-widget * {
+  box-sizing: border-box;
+}
+#heatmap-widget {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  height: 100vh;
+  background: rgb(255, 246, 237);
+  overflow: hidden;
+  flex-direction: row-reverse; /* Sidebar a la derecha */
+  min-height: 100vh;
+  padding: 20px;
+}
+.sidebar {
+  width: 280px;
+  background-color: rgb(255, 254, 250);
+  padding: 20px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.sidebar h3 {
+  margin: 0 0 10px;
+  font-size: 1.2em;
+  color: #333;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 5px;
+}
+.tree-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+.tree-node {
+  padding: 4px 0;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.95em;
+  color: #555;
+}
+.tree-node .toggle-icon {
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+  color: #888;
+}
+
+.text-main{
+    color: rgb(184, 73, 54) !important;
+}
+
+.tree-node .node-label {
+  vertical-align: middle;
+  color: rgb(184, 73, 54);
+}
+.tree-node.selected .node-label {
+  font-weight: bold;
+}
+.tree-children {
+  list-style: none;
+  padding-left: 16px;
+  display: none;
+}
+.tree-node.expanded > .tree-children {
+  display: block;
+}
+.tree-node:hover {
+  color: rgb(255, 132, 0);
+}
+.content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.top-filters {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  background-color: rgb(255, 254, 250);
+  padding: 10px 15px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.top-filters > div {
+  margin-right: 20px;
+}
+.top-filters label {
+  font-weight: bold;
+  margin-right: 5px;
+  color: #333;
+}
+.top-filters select,
+.top-filters input[type="date"] {
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.95em;
+}
+.chart-container {
+  flex: 1;
+  background: rgb(255, 250, 244);
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+canvas {
+  width: 100% !important;
+  height: 500px !important;
+}
+.legend {
+  display: flex;
+  align-items: center;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-right: 20px;
+  font-size: 0.9em;
+  color: #333;
+}
+.legend-color {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+  border: 1px solid #ccc;
+}

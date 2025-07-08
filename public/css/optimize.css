@@ -1,0 +1,259 @@
+/* --------------------------------
+   1. RESET y variables de color
+----------------------------------*/
+
+/* Reset básico para tipografía y espaciado */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Paleta fresca y neutra */
+  --color-bg: #ffffff;
+  --color-surface: #f9fbfc;
+  --color-border: #e6e9ec;
+  --color-text-primary: #2c3e50;
+  --color-text-secondary: #607d8b;
+  --color-accent: #1abc9c;        /* Turquesa suave */
+  --color-accent-dark: #16a085;   /* Versión más profunda para hover */
+  --color-white: #ffffff;
+
+  --radius: 8px;
+  --shadow-light: 0 2px 6px rgba(0, 0, 0, 0.05);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  --gap-lg: 32px;
+  --gap-md: 24px;
+  --gap-sm: 16px;
+
+  --font-base: 16px;
+  --font-heading: 2rem;           /* 32px */
+  --font-subheading: 1.25rem;     /* 20px */
+
+  --transition-fast: 0.2s ease-in-out;
+  --transition-medium: 0.3s ease-in-out;
+}
+
+/* Fuente global (puedes cambiar por otro Google Font si prefieres) */
+body,
+html {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: var(--font-base);
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+}
+
+/* Enlaces y botones básicos */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* --------------------------------
+   2. CONTENEDOR PRINCIPAL
+----------------------------------*/
+
+.dashboard-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--gap-lg) var(--gap-md);
+}
+
+/* --------------------------------
+   3. ENCABEZADO
+----------------------------------*/
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--gap-lg);
+}
+
+.dashboard-title {
+  font-size: var(--font-heading);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.btn-report {
+  position: relative;
+  padding: 12px 28px;
+  background-image: linear-gradient(
+    135deg,
+    var(--color-accent),
+    var(--color-accent-dark)
+  );
+  color: var(--color-white);
+  font-size: var(--font-base);
+  font-weight: 500;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-light);
+  transition: transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.btn-report:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* --------------------------------
+   4. TARJETAS DE RESUMEN
+----------------------------------*/
+
+.summary-cards {
+  display: flex;
+  gap: var(--gap-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--gap-lg);
+}
+
+.summary-card {
+  flex: 1;
+  min-width: 220px;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--gap-md);
+  box-shadow: var(--shadow-light);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.summary-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+}
+
+.card-title {
+  font-size: var(--font-subheading);
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--color-text-primary);
+}
+
+.card-text {
+  font-size: var(--font-base);
+  color: var(--color-text-secondary);
+}
+
+.card-text strong {
+  color: var(--color-text-primary);
+}
+
+/* --------------------------------
+   5. GRÁFICOS PRINCIPALES
+----------------------------------*/
+
+.main-charts {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--gap-md);
+  margin-bottom: var(--gap-lg);
+}
+
+.chart-card {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  position: relative;
+  padding-top: 40px; /* para el título */
+  box-shadow: var(--shadow-light);
+  transition: transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.chart-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.chart-card canvas {
+  width: 100% !important;
+  height: 320px !important;
+}
+
+/* --------------------------------
+   6. GRÁFICOS SECUNDARIOS
+----------------------------------*/
+
+.secondary-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--gap-md);
+  margin-bottom: var(--gap-lg);
+}
+
+.secondary-chart-card {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  position: relative;
+  padding-top: 40px;
+  box-shadow: var(--shadow-light);
+  transition: transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.secondary-chart-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.secondary-chart-card canvas {
+  width: 100% !important;
+  height: 280px !important;
+}
+
+/* --------------------------------
+   7. TÍTULOS DE GRÁFICO (absolutos)
+----------------------------------*/
+
+.chart-title {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  font-size: var(--font-subheading);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  z-index: 1;
+  background-color: var(--color-white);
+  padding: 0 8px;        /* para que el texto no se vea sobre el borde */
+  border-radius: var(--radius);
+}
+
+/* --------------------------------
+   8. MEDIAS QUERY (adaptabilidad)
+----------------------------------*/
+
+@media (max-width: 1024px) {
+  .main-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 576px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: var(--gap-sm);
+  }
+  .btn-report {
+    width: 100%;
+    text-align: center;
+    padding: 10px 0;
+  }
+}

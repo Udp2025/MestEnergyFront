@@ -1,0 +1,31 @@
+.grupo-tarifarios-container {
+    margin: 20px;
+}
+
+.grupo-tarifarios-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.grupo-tarifarios-table th,
+.grupo-tarifarios-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.btn-create, .btn-edit, .btn-delete {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    text-decoration: none;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.btn-create:hover,
+.btn-edit:hover,
+.btn-delete:hover {
+    background-color: #45a049;
+}

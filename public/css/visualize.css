@@ -1,0 +1,149 @@
+   /* ================== Estilos Globales ================== */
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f7f9fc;
+  }
+  .header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+  .header-bar h1 { margin: 0; font-size: 20px; color: #333; }
+  .header-bar .new-dash-btn {
+    font-size: 20px;
+    color: #3498db;
+    cursor: pointer;
+  }
+  /* ================== Dashboard Final ================== */
+  #dashboardView {
+    padding: 20px;
+    margin-top: 10px;
+  }
+  .dashboard-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    grid-auto-flow: dense;
+  }
+  .builder-widgets {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    grid-auto-flow: dense;
+  }
+  .widget-item {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+  }
+  .widget-item:hover {
+    transform: translateY(-2px);
+  }
+  .widget-item .widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  .widget-item .widget-header h4 {
+    font-size: 16px;
+    margin: 0;
+  }
+  .widget-config-btn, .widget-remove-btn {
+    background: #3498db;
+    color: #fff;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 5px;
+  }
+  .widget-remove-btn {
+    background: #e74c3c;
+  }
+  /* ================== Modales ================== */
+  .modal {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal-content {
+    background: #fff;
+    width: 90%;
+    max-width: 1200px;
+    max-height: 90%;
+    overflow: auto;
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+  }
+  .modal-header, .modal-footer {
+    padding: 10px;
+    background: #f1f3f5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header h2, .modal-footer button { margin: 0; }
+  .modal-header button,
+  .modal-footer button { background: #3498db; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+  /* ---------------- Builder Modal ---------------- */
+  .builder-selection .chart-options {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .chart-option {
+    width: 150px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    background: #fff;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .chart-option:hover {
+    transform: scale(1.05);
+  }
+  .preview-chart {
+    width: 100%;
+    height: 100px;
+  }
+  /* ---------------- Config Modal ---------------- */
+  .builder-config-panel label { display: block; margin-bottom: 5px; font-size: 13px; }
+  .builder-config-panel input,
+  .builder-config-panel select {
+    width: 100%;
+    padding: 5px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  /* ================== Tamaños de Widgets ================== */
+  .size-small { height: 200px; }
+  .size-medium { height: 250px; }
+  .size-large { height: 350px; }
+  .size-wide {
+    grid-column: span 2;
+    height: 250px;
+  }
+  /* Contenedor de gráficas con ApexCharts */
+  .apex-chart {
+    width: 100%;
+    height: calc(100% - 30px); /* Deja espacio para el header */
+  }
+ 
