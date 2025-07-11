@@ -5,25 +5,23 @@
  * (voltages, dates, aggregation etc. are hard-coded)
  */
 const FIXED_BODY = {
-  table: "test_telemetry_data",
+  table: "measurements",
   filter_map: {
-    site_id: 1,
-    voltage: ">125",
-    measurement_time: "[2020-01-01 00:00:00, 2021-12-31 23:59:59]",
+    measurement_time: ">=2025-07-01 00:00:00",
   },
   aggregation: [
     {
       group_by: ["device_id"],
       time_column: "measurement_time",
-      time_window: "M",
-      aggregations: { power: ["avg"] },
+      time_window: "H",
+      aggregations: { power_w: ["avg"] },
     },
   ],
   chart: {
     chart_type: "line",
     x: "measurement_time",
-    y: "power_avg",
-    style: { color: "device_id" },
+    y: "power_w_avg",
+    style: { color: "device_id", connectgaps: false },
   },
 };
 
@@ -33,6 +31,7 @@ async function fetchPlot(body) {
 
   const r = await fetch(`${API_BASE}/items/data/plot  `, {
     method: "POST",
+    mode: "cors",
     headers: {
       "Content-Type": "application/json",
       "x-api-key": `${API_KEY}`,
