@@ -7,7 +7,7 @@
 const FIXED_BODY = {
   table: "measurements",
   filter_map: {
-    measurement_time: ">=2025-07-01 00:00:00",
+    measurement_time: ">=2025-07-06 00:00:00",
   },
   aggregation: [
     {
@@ -21,7 +21,7 @@ const FIXED_BODY = {
     chart_type: "line",
     x: "measurement_time",
     y: "power_w_avg",
-    style: { color: "device_id", connectgaps: false },
+    style: { color: "device_id", marker_size: 10 },
   },
 };
 
@@ -31,7 +31,7 @@ async function fetchPlot(body) {
 
   const r = await fetch(`${API_BASE}/items/data/plot  `, {
     method: "POST",
-    mode: "cors",
+    //mode: "cors",
     headers: {
       "Content-Type": "application/json",
       "x-api-key": `${API_KEY}`,
