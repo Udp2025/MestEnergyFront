@@ -4,6 +4,27 @@
  * Single fixed request body for testing
  * (voltages, dates, aggregation etc. are hard-coded)
  */
+
+const FIXED_BODY_HEAT = {
+  table: "measurements",
+  filter_map: {
+    measurement_time: ">=2025-07-06 00:00:00",
+  },
+  aggregation: [
+    {
+      time_column: "measurement_time",
+      time_window: "H",
+      aggregations: { energy_wh: ["avg"] },
+    },
+  ],
+  chart: {
+    chart_type: "heatmap",
+    x: "hour",
+    y: "weekday",
+    z: "energy_wh_avg",
+  },
+};
+
 const FIXED_BODY = {
   table: "measurements",
   filter_map: {
@@ -13,14 +34,14 @@ const FIXED_BODY = {
     {
       group_by: ["device_id"],
       time_column: "measurement_time",
-      time_window: "H",
-      aggregations: { power_w: ["avg"] },
+      time_window: "6H",
+      aggregations: { energy_wh: ["avg"] },
     },
   ],
   chart: {
     chart_type: "line",
     x: "measurement_time",
-    y: "power_w_avg",
+    y: "energy_wh_avg",
     style: { color: "device_id", marker_size: 10 },
   },
 };
@@ -47,7 +68,7 @@ async function fetchPlot(body) {
 let first = true;
 async function render() {
   try {
-    const { figure, config } = await fetchPlot(FIXED_BODY);
+    const { figure, config } = await fetchPlot(FIXED_BODY_HEAT);
     const chart = document.getElementById("energyChart");
 
     console.log("Figure JSON Plotly: ", figure);
