@@ -32,7 +32,7 @@ const FIXED_BODY = {
   },
   aggregation: [
     {
-      group_by: ["device_id"],
+      group_by: ["site_id", "device_id"],
       time_column: "measurement_time",
       time_window: "6H",
       aggregations: { energy_wh: ["avg"] },
@@ -64,14 +64,56 @@ async function fetchPlot(body) {
   return r.json(); // large JSON is fine at dev scale
 }
 
-/* first paint  */
 let first = true;
+function applyMapping(figure, mapping = {}) {
+  /* 1. Flatten nested maps ➜ {old → new} */
+  const flat = {};
+  Object.entries(mapping).forEach(([_, inner]) => {
+    if (inner && typeof inner === "object" && !Array.isArray(inner)) {
+      Object.assign(flat, inner);
+    } else if (inner !== undefined) {
+      flat[_] = inner;
+    }
+  });
+  if (Object.keys(flat).length === 0) return;
+
+  /* 2. Prepare helpers */
+  const entries = Object.entries(flat).sort(
+    (a, b) => b[0].length - a[0].length
+  );
+  const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  /* 3. Walk every trace */
+  figure.data.forEach((trace) => {
+    if (trace.showlegend === false) return; // skip hidden
+
+    /* -- coerce so .replace exists -------------------------- */
+    let label = String(trace.name ?? ""); // '' if undefined
+    let hover =
+      typeof trace.hovertemplate === "string" ? trace.hovertemplate : null;
+
+    /* -- replace every key ---------------------------------- */
+    entries.forEach(([oldVal, newVal]) => {
+      console.log(oldVal, newVal);
+      if (newVal === undefined) return; // no mapping
+      const re = new RegExp(`\\b${esc(oldVal)}\\b`, "g");
+      label = label.replace(re, newVal);
+      if (hover) hover = hover.replace(re, newVal);
+    });
+
+    /* -- write back ----------------------------------------- */
+    trace.name = label;
+    trace.legendgroup = label; // keep toggling tidy
+    if (hover) trace.hovertemplate = hover;
+  });
+}
+
 async function render() {
   try {
-    const { figure, config } = await fetchPlot(FIXED_BODY_HEAT);
-    const chart = document.getElementById("energyChart");
+    const { figure, config, mapping = {} } = await fetchPlot(FIXED_BODY);
+    applyMapping(figure, mapping); // ← now handles many maps at once
 
-    console.log("Figure JSON Plotly: ", figure);
+    const chart = document.getElementById("energyChart");
     if (first) {
       await Plotly.newPlot(chart, figure.data, figure.layout, config);
       first = false;
