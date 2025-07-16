@@ -34,7 +34,7 @@
                 <h3 class="custom-menu-title">DASHBOARD GENERAL</h3>
                 
                 <ul>
-                    <li class="custom-active">
+                    <li class="custom-active mcst">
                         <i class="fa fa-th-large" aria-hidden="true"></i>
                         <a href="{{ route('dashboard') }}" style="text-decoration: none; color: inherit;">
                             
@@ -43,7 +43,7 @@
                     </li>
                 </ul>
                 <ul>
-                    <li >
+                   <li class="mcst">
                          <i class="fa fa-bell" aria-hidden="true"></i>
                         <a href="{{route('site_alerts')}}" style="text-decoration: none; color: inherit;">
                            
@@ -54,7 +54,7 @@
                 @if(auth()->check() && auth()->user()->role === 'admin')
                     <h3 class="custom-menu-title">GESTIÓN DE CLIENTES</h3>
                     <ul>
-                        <li>
+                        <li class="mcst">
                             <i class="fas fa-user"></i>
                             <a href="{{ route('clientes.index') }}" style="text-decoration: none; color: inherit;">
                                 <span>Clientes</span>
@@ -62,7 +62,7 @@
                         </li>
                     </ul>
                     <ul>
-                        <li>
+                        <li class="mcst">
                             <i class="bi bi-geo-alt"></i>
                             <a href="{{ route('clientes.index') }}" style="text-decoration: none; color: inherit;">
                                 <span>Locaciones</span>
@@ -70,7 +70,7 @@
                         </li>
                     </ul>
                     <ul>
-                        <li>
+                        <li class="mcst">
                             <i class="bi bi-crosshair"></i>
                             <a href="{{ route('clientes.index') }}" style="text-decoration: none; color: inherit;">
                                 <span>Áreas / Zonas</span>
@@ -82,7 +82,7 @@
                 @if(auth()->check() && auth()->user()->role === 'normal' && auth()->user()->cliente)
                     <h3 class="custom-menu-title">Mi perfil</h3>
                     <ul>
-                        <li>
+                        <li class="mcst">
                             <i class="fas fa-user"></i>
                             <a href="{{ route('mi-perfil') }}" style="text-decoration: none; color: inherit;">
                                 <span>Perfil</span>
@@ -93,31 +93,31 @@
 
                 <h3 class="custom-menu-title">DATOS y MONITOREO</h3>
                 <ul>
-                    <li>
+                    <li class="mcst">
                         <i class="bi bi-radar"></i>
                         <a href="" style="text-decoration: none; color: inherit;">
                             <span>Sensores / Medidores</span>
                         </a>
                     </li>
-                    <li>
+                    <li class="mcst">
                         <i class="bi bi-graph-up"></i>
                         <a href="" style="text-decoration: none; color: inherit;">
                             <span>Consumo Energético</span>
                         </a>
                     </li>
-                    <li>
+                    <li class="mcst">
                         <i class="bi bi-coin"></i>
                         <a href="" style="text-decoration: none; color: inherit;">
                             <span>Pronostico de Consumo</span>
                         </a>
                     </li>
-                    <li>
+                    <li class="mcst">
                         <i class="bi bi-file-earmark-medical"></i>
                         <a href="" style="text-decoration: none; color: inherit;">
                             <span>Costos Estimados / Facturación</span>
                         </a>
                     </li>
-                    <li>
+                    <li class="mcst">
                         <i class="bi bi-card-heading"></i>
                         <a href="" style="text-decoration: none; color: inherit;">
                             <span>Reportes Automáticos</span>
@@ -127,20 +127,20 @@
 
                 <h3 class="custom-menu-title">CONFIGURACION DE INPUTS</h3>
                 <ul>
-                    <li>
+                    <li class="mcst">
                         <i class="bi bi-database"></i>
                         <a href="{{ route('clientes.index') }}" style="text-decoration: none; color: inherit;">
                             <span>Datos CFE</span>
                         </a>
                     </li>
                      <!--
-                    <li>
+                    <li class="mcst">
                         <i class="fas fa-chart-bar"></i>
                         <a href="{{ route('mediciones.index') }}" style="text-decoration: none; color: inherit;">
                             <span>Datos PMZ</span>
                         </a>
                     </li>
-                    <li>
+                    <li class="mcst">
                         <i class="fas fa-cube"></i>
                         <a href="{{ route('areas_carga.index') }}" style="text-decoration: none; color: inherit;">
                             <span>Areas de Carga</span>
@@ -148,7 +148,7 @@
                     </li>
                     -->
                    
-                    <li>
+                    <li class="mcst">
                         <i class="bi bi-database"></i>
                         <a href="{{ route('tarifas.index') }}" style="text-decoration: none; color: inherit;">
                             <span>Fixed Inputs</span>
@@ -156,19 +156,19 @@
                     </li>
 
                     <!--
-                    <li>
+                    <li class="mcst">
                         <i class="fas fa-cube"></i>
                         <a href="{{ route('usuarios') }}" style="text-decoration: none; color: inherit;">
                             <span>Mediciones</span>
                         </a>
                     </li>
-                    <li>
+                    <li class="mcst">
                         <i class="fas fa-cube"></i>
                         <a href="{{ route('inicio') }}" style="text-decoration: none; color: inherit;">
                             <span>Mediciones</span>
                         </a>
                     </li>
-                    <li>
+                    <li class="mcst">
                         <i class="fas fa-cube"></i>
                         <a href="{{ route('panels.index') }}" style="text-decoration: none; color: inherit;">
                             <span>Panels</span>
@@ -179,7 +179,7 @@
 
                 <h3 class="custom-menu-title">Sistema</h3>
                 <ul>
-                    <li>
+                    <li class="mcst">
                         <i class="fas fa-cog"></i>
                         <a href="{{ route('config') }}" style="text-decoration: none; color: inherit;">
                             <span>Configuración</span>
@@ -246,37 +246,7 @@
                     <span id="time"></span>
                 </div>
             </header>
-            <nav class="custom-horizontal-menu">
-                <ul>
-                    <li class="menu-item">
-                        <a href="{{ route('inicio') }}">Dasboard</a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="#">Energy</a>
-                        <ul class="submenu">
-                            @if(auth()->check() && auth()->user()->role === 'admin')
-                            <li><a href="{{ route('usuarios') }}">Time View</a></li>
-                            @endif
-                            <li><a href="{{ route('heatmap') }}">Heat Map</a></li>
-                            <li><a href="{{ route('benchmark') }}">Benchmarking</a></li>
-                            <li><a href="{{ route('energyflow') }}">Energy Flow</a></li>
-                            <li><a href="{{ route('clientes.clidash') }}">clientes</a></li>
-
-                        </ul>
-                    </li>
-                    <li class="menu-item">
-                        <a href="#">Operational</a>
-                        <ul class="submenu">
-                            <li><a href="{{ route('site_alerts') }}">Site Alerts</a></li>
-                            <li><a href="{{ route('tiggers') }}">Tiggers</a></li>
-                            <li><a href="{{ route('manage') }}">Manage Events</a></li>
-                        </ul>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{{ route('groups') }}">Groups</a>
-                    </li>
-                </ul>
-            </nav>
+            
             <!-- Contenido dinámico -->
             <main class="custom-content">
                 @yield('content')

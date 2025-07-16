@@ -1,4 +1,4 @@
-@extends('layouts.complete')
+@extends('layouts.app')
 
 @section('title', 'Inicio')
 
@@ -46,8 +46,8 @@
   <div class="cards-container cardbg">
     <!-- Tarjeta inferior 1 -->
     <div class="site-card cardbg" data-site="Visualize" data-sites="1" data-loggers="0" data-sensors="131" data-bridges="0">
-      <h3>Textiles Manufacturer (Visualize)</h3>
-      <p><i class="fas fa-location-arrow"></i> Market Street 6, Adlington, United Kingdom</p>
+      <h3>DKDA SHOES</h3>
+      <p><i class="fas fa-location-arrow"></i> San Francisco del Rincón, Mexico</p>
       <p>
         <i class="fas fa-cogs"></i>
         <span class="site-label">Sites:</span> <span class="site-value">1</span> | 
@@ -64,8 +64,8 @@
 
     <!-- Tarjeta inferior 2 -->
     <div class="site-card cardbg" data-site="Optimize" data-sites="1" data-loggers="0" data-sensors="131" data-bridges="40">
-      <h3>Textiles Manufacturer (Optimize)</h3>
-      <p><i class="fas fa-location-arrow"></i> Market Street 6, Adlington, United Kingdom</p>
+      <h3>LAPROBA EL ÁGUILA SA DE CV</h3>
+      <p><i class="fas fa-location-arrow"></i> A Santa Ana del Conde , León de los Aldama, Mexico</p>
       <p>
         <i class="fas fa-cogs"></i>
         <span class="site-label">Sites:</span> <span class="site-value">1</span> | 

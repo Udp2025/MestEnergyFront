@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.complete')
 
 @section('title', 'Cliente - ' . $cliente->nombre)
 
@@ -353,9 +353,29 @@
             margin: 10px 0;
         }
     }
+
+    .clientes-header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 10px;
+        margin-top: 15px;
+    }
+
+    .clientes-titulo {
+        font-size: 50px;
+        font-weight: bold;
+        color: #91462E;
+        margin: 0;
+    }
 </style>
 
+<div class="clientes-header">
+    <h1 class="clientes-titulo">Client information</h1>
+</div>
+
 <div class="container">
+    
     <!-- Perfil -->
     <div class="profile-header">
         <div class="profile-image">

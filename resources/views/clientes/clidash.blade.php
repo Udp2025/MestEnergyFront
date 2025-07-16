@@ -1,211 +1,129 @@
-@extends('layouts.app')
+@extends('layouts.complete')
 
 @section('title', 'Energy Dashboard')
 
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/usuarios.css') }}">
 
-<div class="container">
-    <div class="main-content">
-        <h2>Energy Dashboard</h2>
-        <div class="filters">
-            <!-- Estos selects se pueden utilizar para filtrar aún más, 
-                 por ahora se activan el refresco de la gráfica -->
-            <select id="dataType">
-                <option value="all">All</option>
-                <option value="power">Power</option>
-                <option value="cost">Cost</option>
-            </select>
-            <select id="timeRange">
-                <option value="all">All Time</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
-            </select>
-        </div>
-        <div class="chart-container">
-            <canvas id="energyChart"></canvas>
-        </div>
-    </div>
+@php
+    // Sidebar
+    $mainSite = (object)['name'=>'LAPROBA EL ÁGUILA SA DE CV'];
+    $subSites = [
+      'Accesorios De Prensa',
+      'Extrusora Prensa Doble',
+      'Oficinas',
+      'Oficinas Nuevas',
+      'Taller Mantenimiento',
+      'Transformador Seco 112',
+    ];
 
-    <div class="sidebar">
-        <h3>Group By: <span>Measurement Type</span></h3>
-        <ul>
-            <li class="expandable">Electric Sensors
-                <ul>
-                    <li><input type="checkbox" class="sensor" value="Mains"> Mains</li>
-                    <li><input type="checkbox" class="sensor" value="Generation"> Generation</li>
-                    <li><input type="checkbox" class="sensor" value="EV Charging"> EV Charging</li>
-                </ul>
-            </li>
-            <li class="expandable">Gas
-                <ul>
-                    <li><input type="checkbox" class="sensor" value="Gas Usage"> Gas Usage</li>
-                    <li><input type="checkbox" class="sensor" value="Pipeline"> Pipeline</li>
-                </ul>
-            </li>
-        </ul>
+    // Cards
+    $dailyCost   = 400;
+    $monthlyCost = 1200;
+    $genCost     = -300;
+
+    // Gráfico: meses y dos series
+    $months     = ['Ene','Feb'];
+    $seriesCost = [1000, 1700];
+    $seriesGen  = [800, 1400];
+@endphp
+
+<div class="fin-container">
+  {{-- Header con filtro y título --}}
+  <div class="fin-header">
+    <div class="fin-filter">
+      <label>Benchmark By:</label>
+      <select><option>Device</option></select>
     </div>
+    <h1>Financial</h1>
+  </div>
+
+  <div class="fin-body">
+    {{-- Sidebar --}}
+    <aside class="fin-sidebar">
+      <h2><i class="fas fa-map-marker-alt"></i> {{ $mainSite->name }}</h2>
+      <ul>
+        @foreach($subSites as $s)
+          <li><label><input type="checkbox" checked> {{ $s }}</label></li>
+        @endforeach
+        <li class="other">+ Other Sites</li>
+      </ul>
+    </aside>
+
+    {{-- Contenido principal --}}
+    <section class="fin-content">
+      {{-- Tarjetas --}}
+      <div class="fin-cards">
+        <div class="fin-card">
+          <div class="fin-value">${{ number_format($dailyCost) }}</div>
+          <div class="fin-label">Costo Diario Estimado</div>
+        </div>
+        <div class="fin-card">
+          <div class="fin-value">${{ number_format($monthlyCost) }} USD</div>
+          <div class="fin-label">Costo Mensual Estimado</div>
+        </div>
+        <div class="fin-card highlight">
+          <div class="fin-value">-${{ number_format(abs($genCost)) }} USD</div>
+          <div class="fin-label">Costo Mensual de Generación Estimada</div>
+        </div>
+      </div>
+
+      {{-- Gráfico --}}
+      <div class="fin-chart-card">
+        <canvas id="finChart"></canvas>
+        <div class="fin-chart-legend">
+          <span><i class="dot solid"></i> Costo</span>
+          <span><i class="dot dashed"></i> Generación</span>
+        </div>
+      </div>
+    </section>
+  </div>
 </div>
 
-<!-- Incluimos Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Datos dinámicos pasados desde el controlador
-    const datos = @json($datos);
-
-    /**
-     * Función para agrupar datos por sensor (usando la propiedad "tipo")
-     * y filtrarlos según los sensores seleccionados.
-     */
-    function groupDataBySensor(selectedSensors) {
-        let filteredData = datos;
-        // Si se han seleccionado sensores, filtrar por el campo "tipo"
-        if (selectedSensors.length > 0) {
-            filteredData = datos.filter(d => selectedSensors.includes(d.tipo));
+  const ctx = document.getElementById('finChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: @json($months),
+      datasets: [
+        {
+          label: 'Costo',
+          data: @json($seriesCost),
+          borderColor: '#a3591a',
+          tension: 0.3,
+          pointStyle: 'circle',
+          pointRadius: 5,
+          fill: false
+        },
+        {
+          label: 'Generación',
+          data: @json($seriesGen),
+          borderColor: '#a3591a',
+          borderDash: [5,5],
+          tension: 0.3,
+          pointStyle: 'rect',
+          pointRadius: 5,
+          fill: false
         }
-        // Agrupar por "tipo"
-        const grouped = {};
-        filteredData.forEach(d => {
-            const sensor = d.tipo;
-            if (!grouped[sensor]) {
-                grouped[sensor] = { labels: [], values: [] };
-            }
-            // Se asume que "fecha" viene en formato YYYY-MM-DD (o similar)
-            grouped[sensor].labels.push(d.fecha);
-            grouped[sensor].values.push(d.valor);
-        });
-        return grouped;
+      ]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { 
+          grid: { display: false },
+          ticks: { color: '#7f4b1a' }
+        },
+        y: {
+          beginAtZero: false,
+          grid: { color: 'rgba(127,75,26,0.1)' },
+          ticks: { color: '#7f4b1a', callback: v => '$' + v }
+        }
+      },
+      responsive: true,
+      maintainAspectRatio: false
     }
-
-    // Función para obtener los sensores seleccionados
-    function getSelectedSensors() {
-        return [...document.querySelectorAll('.sensor:checked')].map(sensor => sensor.value);
-    }
-
-    const ctx = document.getElementById('energyChart').getContext('2d');
-    let chart;
-
-    function updateChart() {
-        const selectedSensors = getSelectedSensors();
-        const groupedData = groupDataBySensor(selectedSensors);
-
-        // Se crea un arreglo de etiquetas globales (únicas) a partir de los datos filtrados
-        let labels = [];
-        Object.values(groupedData).forEach(group => {
-            group.labels.forEach(label => {
-                if (!labels.includes(label)) {
-                    labels.push(label);
-                }
-            });
-        });
-        // Ordenar las fechas (asumiendo formato ISO)
-        labels = labels.sort();
-
-        // Crear datasets para cada sensor agrupado
-        const datasets = [];
-        for (let sensor in groupedData) {
-            // Mapear los valores según la fecha, rellenando con null si no hay dato en esa fecha
-            const dataMap = {};
-            groupedData[sensor].labels.forEach((label, idx) => {
-                dataMap[label] = groupedData[sensor].values[idx];
-            });
-            const sensorData = labels.map(label => dataMap[label] || null);
-            datasets.push({
-                label: sensor,
-                data: sensorData,
-                borderColor: '#' + Math.floor(Math.random() * 16777215).toString(16),
-                fill: false,
-                tension: 0.3,
-                pointRadius: 5,
-                pointHoverRadius: 7
-            });
-        }
-
-        // Si no se han seleccionado sensores o no hay datos filtrados, muestra todos los datos en un solo dataset
-        if (datasets.length === 0) {
-            const allValues = datos.map(d => d.valor);
-            const allLabels = datos.map(d => d.fecha);
-            datasets.push({
-                label: 'Datos',
-                data: allValues,
-                borderColor: '#3498db',
-                fill: false
-            });
-            labels = allLabels;
-        }
-
-        if (chart) {
-            chart.destroy();
-        }
-
-        chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: datasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false
-                    },
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    }
-                },
-                interaction: {
-                    mode: 'nearest',
-                    axis: 'x',
-                    intersect: false
-                },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Fecha'
-                        },
-                        ticks: {
-                            autoSkip: true,
-                            maxTicksLimit: 10
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Valor'
-                        },
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    }
-
-    // Lógica para mostrar/ocultar los submenús en la barra lateral
-    document.querySelectorAll('.expandable').forEach(item => {
-        item.addEventListener('click', function () {
-            const nestedList = this.querySelector('ul');
-            if (nestedList) {
-                nestedList.style.display = nestedList.style.display === 'block' ? 'none' : 'block';
-            }
-        });
-    });
-
-    // Agregar eventos a los selects y checkboxes para actualizar la gráfica
-    document.getElementById('dataType').addEventListener('change', updateChart);
-    document.getElementById('timeRange').addEventListener('change', updateChart);
-    document.querySelectorAll('.sensor').forEach(sensor => {
-        sensor.addEventListener('change', updateChart);
-    });
-
-    // Inicializar la gráfica
-    updateChart();
+  });
 </script>
-
 @endsection

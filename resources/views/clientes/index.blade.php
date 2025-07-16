@@ -1,34 +1,34 @@
-@extends('layouts.complete')
+@extends('layouts.app')
 
 @section('title', 'Clientes')
 
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/clientes.css') }}">
 
-<h1 class="clientes-titulo mb-4" style="
-    place-self: center;
-">Clientes</h1>
+<div class="clientes-container">
+    <div class="clientes-header">
+        <h1 class="clientes-titulo">Clientes</h1>
+    </div>
+    <div class="clientes-header-dos">
+        <button class="btn-crear-cliente" data-bs-toggle="modal" data-bs-target="#createClientModal">
+            + Crear Cliente
+        </button>
+    </div>
 
-<!-- Botón para abrir el modal de crear cliente -->
-<button class="btn btn-crear-cliente btn-success mb-3" data-bs-toggle="modal" data-bs-target="#createClientModal">
-    <i class="fas fa-user-plus"></i> Crear Cliente
-</button>
-<div class="clientes-contenedor container mt-5">
-    <!-- Tabla de clientes -->
-    <div class="clientes-tabla-container table-responsive shadow-lg p-3 mb-5 bg-white rounded">
-        <table class="clientes-tabla table table-hover align-middle">
-            <thead class="clientes-tabla-header table-dark">
+    <div class="clientes-tabla-container">
+        <table class="clientes-tabla">
+            <thead >
                 <tr>
-                    <th>Nombre</th>
-                    <th>Razón Social</th>
-                    <th>Correo</th>
-                    <th>Monitoreando desde</th>
-                    <th>Locaciones</th>
-                    <th>Áreas</th>
-                    <th>Medidores</th>
-                    <th>Reportes</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+                    <th class = "mest-color beige">Nombre</th>
+                    <th class = "mest-color beige">Razón Social</th>
+                    <th class = "mest-color beige">Correo</th>
+                    <th class = "mest-color beige">Monitoreando desde</th>
+                    <th class = "mest-color beige">Locaciones</th>
+                    <th class = "mest-color beige">Áreas</th>
+                    <th class = "mest-color beige">Medidores</th>
+                    <th class = "mest-color beige">Reportes</th>
+                    <th class = "mest-color beige">Estado</th>
+                    <th class = "mest-color beige">Acciones</th>
                 </tr>
             </thead>
             <tbody class="clientes-tabla-body">
@@ -190,83 +190,83 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <!-- Header del Modal -->
-            <div class="modal-header bg-success text-white">
+            <div class="modal-header mest-color text-white ">
                 <h5 class="modal-title" id="createClientModalLabel">
                     <i class="fas fa-user-plus"></i> Crear Cliente
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <!-- Formulario para crear cliente -->
-            <form action="{{ route('clientes.store') }}" method="POST" id="clientesForm">
+            <form action="{{ route('clientes.store') }}" method="POST" id="clientesForm" class="mestbg" >
                 @csrf
                 <div class="modal-body">
                     <div class="row g-4">
                         <!-- Nombre -->
                         <div class="col-md-6">
-                            <label for="nombre" class="form-label">Nombre:</label>
-                            <input type="text" id="nombre" name="nombre" class="form-control rounded-pill" placeholder="Ingrese el nombre completo" required>
+                            <label for="nombre" class="form-label mest-color-text">Nombre:</label>
+                            <input type="text" id="nombre" name="nombre" class="form-control rounded-pill"  required>
                         </div>
                         <!-- Razón Social -->
                         <div class="col-md-6">
-                            <label for="razon_social" class="form-label">Razón Social:</label>
-                            <input type="text" id="razon_social" name="razon_social" class="form-control rounded-pill" placeholder="Ingrese la razón social" required>
+                            <label for="razon_social" class="form-label mest-color-text">Razón Social:</label>
+                            <input type="text" id="razon_social" name="razon_social" class="form-control rounded-pill"  required>
                         </div>
                         <!-- Correo -->
                         <div class="col-md-6">
-                            <label for="email" class="form-label">Correo:</label>
-                            <input type="email" id="email" name="email" class="form-control rounded-pill" placeholder="Ingrese el correo electrónico" required>
+                            <label for="email" class="form-label mest-color-text">Correo:</label>
+                            <input type="email" id="email" name="email" class="form-control rounded-pill"  required>
                         </div>
                         <!-- Teléfono -->
                         <div class="col-md-6">
-                            <label for="telefono" class="form-label">Teléfono:</label>
-                            <input type="text" id="telefono" name="telefono" class="form-control rounded-pill" placeholder="Ingrese el teléfono" required>
+                            <label for="telefono" class="form-label mest-color-text">Teléfono:</label>
+                            <input type="text" id="telefono" name="telefono" class="form-control rounded-pill"  required>
                         </div>
                         <!-- Calle -->
                         <div class="col-md-6">
-                            <label for="calle" class="form-label">Calle:</label>
-                            <input type="text" id="calle" name="calle" class="form-control rounded-pill" placeholder="Ingrese la calle" required>
+                            <label for="calle" class="form-label mest-color-text">Calle:</label>
+                            <input type="text" id="calle" name="calle" class="form-control rounded-pill"  required>
                         </div>
                         <!-- Número -->
                         <div class="col-md-6">
-                            <label for="numero" class="form-label">Número:</label>
-                            <input type="text" id="numero" name="numero" class="form-control rounded-pill" placeholder="Ingrese el número" required>
+                            <label for="numero" class="form-label mest-color-text">Número:</label>
+                            <input type="text" id="numero" name="numero" class="form-control rounded-pill" required>
                         </div>
                         <!-- Colonia -->
                         <div class="col-md-6">
-                            <label for="colonia" class="form-label">Colonia:</label>
-                            <input type="text" id="colonia" name="colonia" class="form-control rounded-pill" placeholder="Ingrese la colonia" required>
+                            <label for="colonia" class="form-label mest-color-text">Colonia:</label>
+                            <input type="text" id="colonia" name="colonia" class="form-control rounded-pill" required>
                         </div>
                         <!-- Código Postal -->
                         <div class="col-md-6">
-                            <label for="codigo_postal" class="form-label">Código Postal:</label>
-                            <input type="number" id="codigo_postal" name="codigo_postal" class="form-control rounded-pill" placeholder="Ingrese el código postal" required>
+                            <label for="codigo_postal" class="form-label mest-color-text">Código Postal:</label>
+                            <input type="number" id="codigo_postal" name="codigo_postal" class="form-control rounded-pill"  required>
                         </div>
                         <!-- Ciudad -->
                         <div class="col-md-6">
-                            <label for="ciudad" class="form-label">Ciudad:</label>
-                            <input type="text" id="ciudad" name="ciudad" class="form-control rounded-pill" placeholder="Ingrese la ciudad" required>
+                            <label for="ciudad" class="form-label mest-color-text">Ciudad:</label>
+                            <input type="text" id="ciudad" name="ciudad" class="form-control rounded-pill" required>
                         </div>
                         <!-- Estado -->
                         <div class="col-md-6">
-                            <label for="estado" class="form-label">Estado:</label>
-                            <input type="text" id="estado" name="estado" class="form-control rounded-pill" placeholder="Ingrese el estado" required>
+                            <label for="estado" class="form-label mest-color-text">Estado:</label>
+                            <input type="text" id="estado" name="estado" class="form-control rounded-pill" required>
                         </div>
                         <!-- País -->
                         <div class="col-md-6">
-                            <label for="pais" class="form-label">País:</label>
-                            <input type="text" id="pais" name="pais" class="form-control rounded-pill" placeholder="Ingrese el país" required>
+                            <label for="pais" class="form-label mest-color-text">País:</label>
+                            <input type="text" id="pais" name="pais" class="form-control rounded-pill"  required>
                         </div>
                         <!-- Cambio de Dólar -->
                         <div class="col-md-6">
-                            <label for="cambio_dolar" class="form-label">Cambio de dolar:</label>
-                            <input type="numeric" id="cambio_dolar" name="cambio_dolar" class="form-control rounded-pill" placeholder="Ingrese el cambio" required>
+                            <label for="cambio_dolar" class="form-label mest-color-text">Cambio de dolar:</label>
+                            <input type="numeric" id="cambio_dolar" name="cambio_dolar" class="form-control rounded-pill"  required>
                         </div>
                     </div>
                 </div>
                 <!-- Footer del Modal -->
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" class="btn btn-success rounded-pill">Guardar</button>
+                    <button type="submit" class="btn mest-color rounded-pill beige">Guardar</button>
                 </div>
             </form>
         </div>

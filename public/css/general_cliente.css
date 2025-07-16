@@ -1,0 +1,100 @@
+/* public/css/vista_general.css */
+
+.vg-container {
+  background: #fdf6f1;
+  padding: 2rem;
+  font-family: sans-serif;
+  color: #7f4b1a;
+}
+
+.vg-title {
+  font-size: 1.75rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+}
+
+.vg-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.vg-card {
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(163, 123, 83, 0.1);
+}
+
+.vg-card-highlight {
+  background: #fff4e8;
+}
+
+.vg-card-icon {
+  font-size: 1.5rem;
+  margin-right: 0.75rem;
+  color: #a3591a;
+}
+
+.vg-card-label {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.vg-card-value {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.vg-card-sub {
+  font-size: 0.875rem;
+  color: #a37b53;
+}
+
+.vg-chart-card {
+  position: relative;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(163, 123, 83, 0.1);
+  padding: 1rem;
+  height: 350px;
+}
+
+.vg-chart-card canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.vg-tooltip {
+  position: absolute;
+  top: 25%;
+  left: 60%;
+  transform: translateX(-50%);
+  background: #a37b53;
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  text-align: center;
+}
+
+.vg-tooltip-value {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.vg-tooltip-label {
+  font-size: 0.875rem;
+}
+
+.vg-tooltip-line {
+  position: absolute;
+  bottom: -1.5rem;
+  left: 50%;
+  width: 2px;
+  height: 1.5rem;
+  background: rgba(163, 123, 83, 0.5);
+  transform: translateX(-50%);
+}

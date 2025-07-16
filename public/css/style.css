@@ -46,7 +46,7 @@ html {
   overflow: hidden;
 }
 body{
-  background-color: rgb(255, 246, 237);
+  background-color: rgb(255, 246, 237) !important;
 }
 /* Enlaces y botones sin estilos por defecto */
 a {
@@ -480,4 +480,8 @@ ol, ul {
 /* Versión colapsable si la quieres igual que la izquierda */
 .custom-sidebar-right.collapsed {
   width: 60px;
+}
+
+.mcst{
+  color: #b84936 !important;
 }
