@@ -26,23 +26,6 @@ const FIXED_BODY = {
   },
 };
 
-/* tiny helper */
-async function fetchPlot(body) {
-  const { API_BASE, API_KEY } = window.APP_CONF;
-
-  const r = await fetch(`${API_BASE}/items/data/plot  `, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": `${API_KEY}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!r.ok) throw new Error(`API ${r.status}: ${await r.text()}`);
-  return r.json(); // large JSON is fine at dev scale
-}
-
 /* first paint  */
 let first = true;
 async function render() {
