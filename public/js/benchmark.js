@@ -1,127 +1,136 @@
-document.querySelectorAll('#sensor-list > li').forEach(item => {
-    item.addEventListener('click', function () {
-        const submenu = this.querySelector('.submenu');
-        submenu.classList.toggle('display');
-        if (submenu.classList.contains('display')) {
-            submenu.style.display = 'block';
-        } else {
-            submenu.style.display = 'none';
-        }
-    });
-});
+// New Chart Rendering Logic -----------------------------------------------
 
-const ctx = document.getElementById('energyChart').getContext('2d');
-const energyChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-        labels: ['Sensor de Luz A', 'Sensor de Luz B', 'Sensor de Luz C'],
-        datasets: [{
-            label: 'Consumo de Energía (MWh/kWh)',
-            data: [6.21, 4.5, 7.3],
-            backgroundColor: ['#ffa726', '#000000', '#ffffff'],
-            borderWidth: 1
-        }]
+/*
+ * Single fixed request body for testing
+ * (voltages, dates, aggregation etc. are hard-coded)
+ */
+
+const FIXED_BODY_HEAT = {
+  table: "measurements",
+  filter_map: {
+    measurement_time: ">=2025-07-06 00:00:00",
+  },
+  aggregation: [
+    {
+      time_column: "measurement_time",
+      time_window: "H",
+      aggregations: { energy_wh: ["avg"] },
     },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                position: 'top',
-            },
-            title: {
-                display: true,
-                text: 'Consumo de Energía por Sensor'
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true
-            }
-        }
+  ],
+  chart: {
+    chart_type: "heatmap",
+    x: "hour",
+    y: "weekday",
+    z: "energy_wh_avg",
+  },
+};
+
+const FIXED_BODY = {
+  table: "measurements",
+  filter_map: {
+    measurement_time: ">=2025-07-06 00:00:00",
+  },
+  aggregation: [
+    {
+      group_by: ["site_id", "device_id"],
+      time_column: "measurement_time",
+      time_window: "6H",
+      aggregations: { energy_wh: ["avg"] },
+    },
+  ],
+  chart: {
+    chart_type: "line",
+    x: "measurement_time",
+    y: "energy_wh_avg",
+    style: { color: "device_id", marker_size: 10 },
+  },
+};
+
+/* tiny helper */
+async function fetchPlot(body) {
+  const { API_BASE, API_KEY } = window.APP_CONF;
+
+  const r = await fetch(`${API_BASE}/items/data/plot  `, {
+    method: "POST",
+    //mode: "cors",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": `${API_KEY}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!r.ok) throw new Error(`API ${r.status}: ${await r.text()}`);
+  return r.json(); // large JSON is fine at dev scale
+}
+
+let first = true;
+function applyMapping(figure, mapping = {}) {
+  /* 1. Flatten nested maps ➜ {old → new} */
+  const flat = {};
+  Object.entries(mapping).forEach(([_, inner]) => {
+    if (inner && typeof inner === "object" && !Array.isArray(inner)) {
+      Object.assign(flat, inner);
+    } else if (inner !== undefined) {
+      flat[_] = inner;
     }
-});
+  });
+  if (Object.keys(flat).length === 0) return;
 
-const sensorList = document.getElementById('sensor-list');
-const filterType = document.getElementById('filter-type');
-const filterDate = document.getElementById('filter-date');
-const normalizeBy = document.getElementById('normalize-by');
-const showLine = document.getElementById('show-line');
-const period = document.getElementById('period');
+  /* 2. Prepare helpers */
+  const entries = Object.entries(flat).sort(
+    (a, b) => b[0].length - a[0].length
+  );
+  const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-sensorList.addEventListener('change', function () {
-    updateChart();
-});
+  /* 3. Walk every trace */
+  figure.data.forEach((trace) => {
+    if (trace.showlegend === false) return; // skip hidden
 
-filterType.addEventListener('change', function () {
-    updateChart();
-});
+    /* -- coerce so .replace exists -------------------------- */
+    let label = String(trace.name ?? ""); // '' if undefined
+    let hover =
+      typeof trace.hovertemplate === "string" ? trace.hovertemplate : null;
 
-filterDate.addEventListener('change', function () {
-    updateChart();
-});
+    /* -- replace every key ---------------------------------- */
+    entries.forEach(([oldVal, newVal]) => {
+      console.log(oldVal, newVal);
+      if (newVal === undefined) return; // no mapping
+      const re = new RegExp(`\\b${esc(oldVal)}\\b`, "g");
+      label = label.replace(re, newVal);
+      if (hover) hover = hover.replace(re, newVal);
+    });
 
-normalizeBy.addEventListener('input', function () {
-    updateChart();
-});
+    /* -- write back ----------------------------------------- */
+    trace.name = label;
+    trace.legendgroup = label; // keep toggling tidy
+    if (hover) trace.hovertemplate = hover;
+  });
+}
 
-showLine.addEventListener('change', function () {
-    updateChart();
-});
+async function render() {
+  try {
+    const { figure, config, mapping = {} } = await fetchPlot(FIXED_BODY);
+    applyMapping(figure, mapping); // ← now handles many maps at once
 
-period.addEventListener('change', function () {
-    updateChart();
-});
-
-function updateChart() {
-    const selectedSensors = Array.from(sensorList.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
-    const newData = getSensorData(selectedSensors);
-
-    energyChart.data.labels = selectedSensors;
-    energyChart.data.datasets[0].data = newData;
-
-    if (showLine.checked) {
-        energyChart.config.type = 'line';
+    const chart = document.getElementById("energyChart");
+    if (first) {
+      await Plotly.newPlot(chart, figure.data, figure.layout, config);
+      first = false;
     } else {
-        energyChart.config.type = 'bar';
+      await Plotly.react(chart, figure.data, figure.layout, config);
     }
-
-    if (filterType.value === 'costo') {
-        // Cambiar los datos para mostrar el costo en lugar de la energía
-        energyChart.data.datasets[0].data = selectedSensors.map(sensor => getCostData(sensor));
-        energyChart.data.datasets[0].label = 'Costo (USD)';
-    } else {
-        // Cambiar los datos para mostrar la energía
-        energyChart.data.datasets[0].data = newData;
-        energyChart.data.datasets[0].label = 'Consumo de Energía (MWh/kWh)';
-    }
-
-    energyChart.update();
+  } catch (err) {
+    console.error(err);
+    alert("Could not load chart: " + err.message);
+  }
 }
 
-function getSensorData(sensors) {
-    // Aquí puedes agregar la lógica para obtener los datos de los sensores seleccionados
-    const data = {
-        'sensor1-op1': 6.21,
-        'sensor1-op2': 2.5,
-        'sensor2-op1': 4.5,
-        'sensor2-op2': 3.2,
-        'sensor3-op1': 7.3,
-        'sensor3-op2': 5.1
-        // Agrega más datos según sea necesario
-    };
-    return sensors.map(sensor => data[sensor] || 0);
-}
-
-function getCostData(sensor) {
-    // Aquí puedes agregar la lógica para obtener los datos de costo para los sensores seleccionados
-    const costData = {
-        'sensor1-op1': 60,
-        'sensor1-op2': 25,
-        'sensor2-op1': 45,
-        'sensor2-op2': 32,
-        'sensor3-op1': 73,
-        'sensor3-op2': 51
-        // Agrega más datos según sea necesario
-    };
-    return costData[sensor] || 0;
-}
+/* --- lazy-load: only fire when visible ------------------------------ */
+const io = new IntersectionObserver(([e]) => {
+  if (e.isIntersecting) {
+    render();
+    io.disconnect();
+  }
+});
+io.observe(document.getElementById("energyChart"));

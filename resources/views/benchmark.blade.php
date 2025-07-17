@@ -1,10 +1,23 @@
-@extends('layouts.complete')
+{{-- resources/views/benchmark.blade.php --}}
+@extends('layouts.app')
 
-@section('title', 'Benchmark')
-
+@section('title','Benchmark')
 @section('content')
-<!DOCTYPE html>
-<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<script>
+  window.APP_CONF = {
+    API_BASE : "{{ env('PLOT_API_BASE') }}",   
+    API_KEY  : "{{ env('PLOT_API_KEY') }}"     
+};
+</script>
+
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js" defer></script>
+<script src="{{ asset('js/benchmark.js') }}" defer></script>
+
+
+<link rel="stylesheet" href="{{ asset('css/benchmark.css') }}">
 
 <head>
     <meta charset="UTF-8">
@@ -52,70 +65,48 @@
     @endforeach
   </div>
 
-  <div class="re-dates">
-    <button>&lt;</button>
-    <span>{{ $periodStart->format('M j, Y') }} – {{ $periodEnd->format('M j, Y') }}</span>
-    <button>&gt;</button>
-    <button class="download"><i class="fas fa-download"></i></button>
-  </div>
-</div>
+        <div class="main-content">
+            <h1>Consumo de Energía Semanal</h1>
+            <div class="filters">
+                <div>
+                    <label for="filter-type">Filtrar por:</label>
+                    <select id="filter-type">
+                        <option value="energia">Energía</option>
+                        <option value="costo">Costo</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filter-date">Fecha:</label>
+                    <input type="date" id="filter-date">
+                </div>
+                <div>
+                    <label for="normalize-by">Normalize by:</label>
+                    <input type="text" id="normalize-by" placeholder="Ej. kWh/m²">
+                </div>
+                <div>
+                    <input type="checkbox" id="show-line">
+                    <label for="show-line">Show Line</label>
+                </div>
+                <div>
+                    <label for="period">Periodo:</label>
+                    <select id="period">
+                        <option value="dias">Días</option>
+                        <option value="semanas">Semanas</option>
+                        <option value="meses">Meses</option>
+                        <option value="años">Años</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-container">
+                <div id="energyChart" style="width:100%;height:420px"></div>
+            </div>
+        </div>
+    </div>
+</body>
 
-  <div class="re-body">
-    {{-- Sidebar --}}
-    <aside class="re-sidebar">
-      <h2>{{ $mainSite->name }}</h2>
-      <ul>
-        @foreach($subSites as $name)
-          <li><label><input type="checkbox" checked> {{ $name }}</label></li>
-        @endforeach
-        <li class="other">+ Other Sites</li>
-      </ul>
-    </aside>
+</html>
 
-    {{-- Gráfico y leyenda --}}
-    <section class="re-chart">
-      <canvas id="energyChart"></canvas>
-      <div class="re-legend">
-        @foreach($chartData as $item)
-          <div class="legend-item">
-            <span class="dot" style="background:{{ $item['color'] }}"></span>
-            {{ $item['label'] }}
-          </div>
-        @endforeach
-      </div>
-    </section>
-  </div>
-</div>
+ 
 
-<script>
-  const data = @json($chartData);
-  new Chart(document.getElementById('energyChart'), {
-    type: 'bar',
-    data: {
-      labels: data.map(d => d.label),
-      datasets: [{
-        data: data.map(d => d.value),
-        backgroundColor: data.map(d => d.color),
-        borderRadius: 6,
-        barPercentage: 0.7
-      }]
-    },
-    options: {
-      plugins: { legend: { display: false } },
-      scales: {
-        x: {
-          ticks: { maxRotation: 45, minRotation: 30, color: '#7f4b1a' },
-          grid: { display: false }
-        },
-        y: {
-          beginAtZero: true,
-          ticks: { callback: v => v + ' kWh', color: '#7f4b1a' },
-          grid: { color: 'rgba(127,75,26,0.1)' }
-        }
-      },
-      responsive: true,
-      maintainAspectRatio: false
-    }
-  });
-</script>
+
 @endsection

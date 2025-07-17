@@ -5,6 +5,18 @@
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/usuarios.css') }}">
 
+<script>
+  window.APP_CONF = {
+    API_BASE : "{{ env('PLOT_API_BASE') }}",   
+    API_KEY  : "{{ env('PLOT_API_KEY') }}"     
+};
+</script>
+
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js" defer></script>
+<script src="{{ asset('js/benchmark.js') }}" defer></script>
+
+
+
 <div class="container">
     <div class="main-content">
         <h2>Energy Dashboard</h2>
@@ -20,9 +32,9 @@
                 <option value="yearly">Yearly</option>
             </select>
         </div>
-        <div class="chart-container">
-            <canvas id="energyChart"></canvas>
-        </div>
+            <div class="chart-container">
+                <div id="energyChart" style="width:100%;height:420px"></div>
+            </div>
     </div>
 
     <div class="sidebar">

@@ -1,74 +1,73 @@
-     document.querySelectorAll('.expandable').forEach(item => {
-        item.addEventListener('click', function () {
-            const nestedList = this.querySelector('ul');
-            if (nestedList) {
-                nestedList.style.display = nestedList.style.display === 'block' ? 'none' : 'block';
-            }
-        });
-    });
+// New Chart Rendering Logic -----------------------------------------------
 
-    const ctx = document.getElementById('energyChart').getContext('2d');
-    let chart;
+/*
+ * Single fixed request body for testing
+ * (voltages, dates, aggregation etc. are hard-coded)
+ */
+const FIXED_BODY = {
+  table: "test_telemetry_data",
+  filter_map: {
+    voltage: ">125",
+    measurement_time: "[2020-01-01 00:00:00, 2021-12-31 23:59:59]",
+  },
+  aggregation: [
+    {
+      group_by: ["site_id"],
+      time_column: "measurement_time",
+      time_window: "M",
+      aggregations: { power: ["avg"] },
+    },
+  ],
+  chart: {
+    chart_type: "line",
+    x: "measurement_time",
+    y: "power_avg",
+    style: { color: "site_id", line_dash: "site_id" },
+  },
+};
 
-    function getSelectedSensors() {
-        return [...document.querySelectorAll('.sensor:checked')].map(sensor => sensor.value);
+/* tiny helper */
+async function fetchPlot(body) {
+  const { API_BASE, API_KEY } = window.APP_CONF;
+
+  const r = await fetch(`${API_BASE}/items/data/plot  `, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": `${API_KEY}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!r.ok) throw new Error(`API ${r.status}: ${await r.text()}`);
+  return r.json(); // large JSON is fine at dev scale
+}
+
+/* first paint  */
+let first = true;
+async function render() {
+  try {
+    const { figure, config } = await fetchPlot(FIXED_BODY);
+    const chart = document.getElementById("energyChart");
+
+    console.log("Figure JSON Plotly: ", figure);
+    if (first) {
+      await Plotly.newPlot(chart, figure.data, figure.layout, config);
+      first = false;
+    } else {
+      await Plotly.react(chart, figure.data, figure.layout, config);
     }
+  } catch (err) {
+    console.error(err);
+    alert("Could not load chart: " + err.message);
+  }
+}
 
-    function updateChart() {
-        const type = document.getElementById('dataType').value;
-        const range = document.getElementById('timeRange').value;
-        const selectedSensors = getSelectedSensors();
-
-        const dataSets = {
-            power: {
-                daily: [10, 20, 30, 40, 50],
-                weekly: [50, 100, 150, 200, 250],
-                monthly: [200, 400, 600, 800, 1000],
-                yearly: [1000, 2000, 3000, 4000, 5000]
-            },
-            cost: {
-                daily: [5, 15, 25, 35, 45],
-                weekly: [55, 105, 155, 205, 255],
-                monthly: [205, 405, 605, 805, 1005],
-                yearly: [1005, 2005, 3005, 4005, 5005]
-            }
-        };
-
-        const labels = ['00:00', '06:00', '12:00', '18:00', '24:00'];
-        const newData = dataSets[type][range];
-        
-        if (chart) {
-            chart.destroy();
-        }
-
-        chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: selectedSensors.length > 0 ? selectedSensors.map(sensor => ({
-                    label: sensor,
-                    borderColor: '#'+Math.floor(Math.random()*16777215).toString(16),
-                    data: newData.map(v => v * (Math.random() + 0.5)),
-                    fill: false
-                })) : [{
-                    label: type + ' Data',
-                    borderColor: '#3498db',
-                    data: newData,
-                    fill: false
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-    }
-
-    document.getElementById('dataType').addEventListener('change', updateChart);
-    document.getElementById('timeRange').addEventListener('change', updateChart);
-    document.querySelectorAll('.sensor').forEach(sensor => {
-        sensor.addEventListener('change', updateChart);
-    });
-
-    updateChart();
- 
+/* --- lazy-load: only fire when visible ------------------------------ */
+const io = new IntersectionObserver(([e]) => {
+  if (e.isIntersecting) {
+    render();
+    io.disconnect();
+  }
+});
+io.observe(document.getElementById("energyChart"));
