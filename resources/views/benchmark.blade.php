@@ -1,85 +1,63 @@
 {{-- resources/views/benchmark.blade.php --}}
 @extends('layouts.app')
-@section('title', 'Benchmark')
+@section('title','Benchmark')
+
 @push('head')
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <script 
-      src="https://cdn.plot.ly/plotly-2.32.0.min.js" defer>
-    </script>
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" defer></script>
 @endpush
 
-@vite([
-    "resources/js/pages/benchmark.js",
-    "resources/css/pages/benchmark.css"      
-])
+@vite(['resources/js/pages/benchmark.js','resources/css/pages/benchmark.css'])
 
 @section('content')
-<div class="container">
-    <div class="sidebar">
-        <h2>Sensores de Luz</h2>
-        <ul id="sensor-list">
-            <li>
-                Sensor de Luz A
-                <ul class="submenu">
-                    <li><input type="checkbox" value="sensor1-op1"> Opción 1</li>
-                    <li><input type="checkbox" value="sensor1-op2"> Opción 2</li>
-                </ul>
-            </li>
-            <li>
-                Sensor de Luz B
-                <ul class="submenu">
-                    <li><input type="checkbox" value="sensor2-op1"> Opción 1</li>
-                    <li><input type="checkbox" value="sensor2-op2"> Opción 2</li>
-                </ul>
-            </li>
-            <li>
-                Sensor de Luz C
-                <ul class="submenu">
-                    <li><input type="checkbox" value="sensor3-op1"> Opción 1</li>
-                    <li><input type="checkbox" value="sensor3-op2"> Opción 2</li>
-                </ul>
-            </li>
-        </ul>
-    </div>
+@php
+  $today = \Carbon\Carbon::today()->format('Y-m-d');
+@endphp
 
-    <div class="main-content">
-        <h1>Consumo de Energía Semanal</h1>
+<form id="plot-filters" class="filters">
+  @csrf
 
-        <div class="filters">
-            <div>
-                <label for="filter-type">Filtrar por:</label>
-                <select id="filter-type">
-                    <option value="energia">Energía</option>
-                    <option value="costo">Costo</option>
-                </select>
-            </div>
-            <div>
-                <label for="filter-date">Fecha:</label>
-                <input type="date" id="filter-date">
-            </div>
-            <div>
-                <label for="normalize-by">Normalize by:</label>
-                <input type="text" id="normalize-by" placeholder="Ej. kWh/m²">
-            </div>
-            <div>
-                <input type="checkbox" id="show-line">
-                <label for="show-line">Show Line</label>
-            </div>
-            <div>
-                <label for="period">Periodo:</label>
-                <select id="period">
-                    <option value="dias">Días</option>
-                    <option value="semanas">Semanas</option>
-                    <option value="meses">Meses</option>
-                    <option value="años">Años</option>
-                </select>
-            </div>
-        </div>
+  {{-- Metric -----------------------------------------------------------}}
+  <label>
+    Métrica
+    <select name="metric" id="metric" >
+      <option value="power_w" selected>Potencia</option>
+      <option value="energy_wh">Energía</option>
+    </select>
+  </label>
 
-        <div class="chart-container">
-            <div id="energyChart" style="width:100%;height:420px"></div>
-        </div>
-    </div>
-</div>
+  {{-- Dates ------------------------------------------------------------}}
+  <label>
+    Desde
+    <input type="date" name="from" id="from" value="{{ $today }}">
+  </label>
+  <label>
+    Hasta
+    <input type="date" name="to"   id="to"   value="{{ $today }}">
+  </label>
+
+  {{-- Aggregation ------------------------------------------------------}}
+  <label>
+    Frecuencia
+    <select name="period" id="period">
+      <option value="H"  selected>Hora</option>
+      <option value="D">Día</option>
+      <option value="W">Semana</option>
+    </select>
+  </label>
+
+  <label>
+    Función
+    <select name="agg" id="agg">
+      <option value="avg" selected>Avg</option>
+      <option value="sum">Sum</option>
+      <option value="min">Min</option>
+      <option value="max">Max</option>
+      <option value="count">Count</option>
+    </select>
+  </label>
+
+  <button type="submit">Actualizar</button>
+</form>
+
+<div id="energyChart" style="width:100%;height:420px"></div>
 @endsection
