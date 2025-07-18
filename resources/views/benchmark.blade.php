@@ -1,4 +1,5 @@
 {{-- resources/views/benchmark.blade.php --}}
+
 @extends('layouts.app')
 @section('title','Benchmark')
 
@@ -15,10 +16,18 @@
 
 <form id="plot-filters" class="filters">
   @csrf
+  <head>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  integrity="sha512-pY1u+Vx..." crossorigin="anonymous" referrerpolicy="no-referrer"
+/>
+
+  </head>
 
   {{-- Metric -----------------------------------------------------------}}
   <label>
-    Métrica
+    Métrica:
     <select name="metric" id="metric" >
       <option value="power_w" selected>Potencia</option>
       <option value="energy_wh">Energía</option>
@@ -30,17 +39,17 @@
 
   {{-- Dates ------------------------------------------------------------}}
   <label>
-    Desde
+    Desde:
     <input type="date" name="from" id="from" value="{{ $today }}">
   </label>
   <label>
-    Hasta
+    Hasta:
     <input type="date" name="to"   id="to"   value="{{ $today }}">
   </label>
 
   {{-- Aggregation ------------------------------------------------------}}
   <label>
-    Frecuencia
+    Frecuencia:
     <select name="period" id="period">
       <option value="H"  selected>Hora</option>
       <option value="2H">2H</option>
@@ -59,7 +68,7 @@
   </label>
 
   <label>
-    Función
+    Función:
     <select name="agg" id="agg">
       <option value="avg" selected>Promedio</option>
       <option value="sum">Suma</option>
@@ -73,8 +82,15 @@
     </select>
   </label>
 
-  <button type="submit">Actualizar</button>
+<button type="submit" class="btn btn-primary">
+  <i class="fas fa-sync-alt" aria-hidden="true"></i>
+  <span class="sr-only">Actualizar</span>
+</button>
+
 </form>
 
-<div id="energyChart" style="width:100%;height:420px"></div>
+<div class="chart-container">
+   <div id="energyChart" style="max-height:500px"></div>
+</div>
+
 @endsection

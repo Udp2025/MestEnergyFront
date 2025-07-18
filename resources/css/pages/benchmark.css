@@ -5,6 +5,10 @@ body {
   background-color: #f5f5f5;
 }
 
+label {
+  font-weight: 600 !important;
+}
+
 .container {
   display: flex;
   height: 100vh;
@@ -65,9 +69,10 @@ body {
 .main-content {
   flex-grow: 1;
   padding: 20px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   background-color: #ffffff;
   overflow-y: auto;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .main-content h1 {
@@ -107,30 +112,46 @@ body {
 .chart-container .modebar svg {
   display: inline !important;
 }
+/* Flex wrapper becomes single column < 640 px */
 .filters {
+  margin-top: 20px;
+  margin-bottom: 25px;
+  margin-left: 20px;
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
-  margin-bottom: 20px;
+  gap: 40px; /* modern gap instead of margin hacking */
+  align-items: end; /* labels sit above inputs */
 }
 
-.filters div {
-  flex: 1;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
+/* stack items on small screens */
+@media (max-width: 640px) {
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
-.filters label {
-  margin-right: 5px;
-}
-
+/* Inputs feel like buttons */
 .filters select,
-.filters input {
-  padding: 5px;
+.filters input,
+.filters button {
+  font: 14px/1.4 "Roboto", sans-serif;
   border: 1px solid #dfe6e9;
-  border-radius: 3px;
-  flex-grow: 1;
+  border-radius: 4px;
+  padding: 0.45rem 0.6rem;
+  min-height: 44px; /* WCAG touch target 44×44 px */
+}
+
+/* Primary action */
+.filters button {
+  background: #0d6efd;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.filters button:hover {
+  background: #0b5ed7;
 }
 
 .filters input[type="checkbox"] {
