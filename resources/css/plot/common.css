@@ -1,0 +1,74 @@
+/* resources/css/plot/common.css *
+
+/* --- 1 · Filters & buttons ------------------------------------ */
+body {
+  font-family: "Roboto", sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f5f5f5;
+}
+
+label {
+  font-weight: 600 !important;
+}
+
+.plot-filters {
+  margin-top: 20px;
+  margin-bottom: 25px;
+  margin-left: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px; /* modern gap instead of margin hacking */
+  align-items: end; /* labels sit above inputs */
+}
+
+.plot-filters select,
+.plot-filters input,
+.plot-filters button {
+  font: 14px/1.4 "Roboto", sans-serif;
+  border: 1px solid #dfe6e9;
+  border-radius: 4px;
+  padding: 0.45rem 0.6rem;
+  min-height: 44px;
+}
+
+.plot-filters input[type="checkbox"] {
+  transform: scale(1.2);
+  margin-right: 5px;
+}
+
+.plot-button {
+  /* reusable primary button */
+  background: #cead6d;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.plot-button:hover {
+  background: #0b5ed7;
+}
+
+.plot-filters div + div {
+  margin-left: 20px;
+}
+
+/* --- 2 · Chart container & modebar ---------------------------- */
+.chart-container {
+  position: relative;
+  padding: 40px 20px 10px 10px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  aspect-ratio: 16/9;
+}
+.chart-container .modebar {
+  position: absolute !important;
+  top: 8px !important;
+  right: 12px !important;
+  flex-direction: row !important;
+  gap: 4px;
+}
+.chart-container .modebar svg {
+  display: inline !important;
+}

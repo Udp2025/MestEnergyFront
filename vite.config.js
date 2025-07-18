@@ -6,10 +6,13 @@ export default defineConfig({
   plugins: [
     laravel({
       input: [
+        "resources/css/app.css",
+        "resources/css/plot/common.css",
+        "resources/css/pages/benchmark.css",
+        "resources/css/pages/heat_map.css",
         "resources/js/app.js",
         "resources/js/pages/benchmark.js",
-        "resources/css/app.css",
-        "resources/css/pages/benchmark.css",
+        "resources/js/pages/heat_map.js",
       ],
       refresh: true,
     }),

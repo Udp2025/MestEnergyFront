@@ -7,14 +7,14 @@
   <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" defer></script>
 @endpush
 
-@vite(['resources/js/pages/benchmark.js','resources/css/pages/benchmark.css'])
+@vite(['resources/js/pages/benchmark.js','resources/css/pages/benchmark.css', 'resources/css/plot/common.css'])
 
 @section('content')
 @php
   $today = \Carbon\Carbon::today()->format('Y-m-d');
 @endphp
 
-<form id="plot-filters" class="filters">
+<form id="plot-filters" class="plot-filters">
   @csrf
   <head>
 <link
@@ -82,7 +82,7 @@
     </select>
   </label>
 
-<button type="submit" class="btn btn-primary">
+<button type="submit" class="plot-button">
   <i class="fas fa-sync-alt" aria-hidden="true"></i>
   <span class="sr-only">Actualizar</span>
 </button>
