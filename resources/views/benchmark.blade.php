@@ -22,6 +22,9 @@
     <select name="metric" id="metric" >
       <option value="power_w" selected>Potencia</option>
       <option value="energy_wh">Energía</option>
+      <option value="current_a">Corriente</option>
+      <option value="voltage_v">Voltaje</option>
+      <option value="power_factor">Factor Potencia</option>
     </select>
   </label>
 
@@ -40,19 +43,33 @@
     Frecuencia
     <select name="period" id="period">
       <option value="H"  selected>Hora</option>
+      <option value="2H">2H</option>
+      <option value="6H">6H</option>
+      <option value="12H">12H</option>
       <option value="D">Día</option>
+      <option value="BD">Business Days</option>
       <option value="W">Semana</option>
+      <option value="BW">Quincena</option>
+      <option value="M">Mes</option>
+      <option value="Q">Trimestre</option>
+      <option value="S">Semestre</option>
+      <option value="Y">Año</option>
+
     </select>
   </label>
 
   <label>
     Función
     <select name="agg" id="agg">
-      <option value="avg" selected>Avg</option>
-      <option value="sum">Sum</option>
-      <option value="min">Min</option>
-      <option value="max">Max</option>
-      <option value="count">Count</option>
+      <option value="avg" selected>Promedio</option>
+      <option value="sum">Suma</option>
+      <option value="min">Mín</option>
+      <option value="max">Máx</option>
+      <option value="count">Conteo</option>
+      <option value="distinct">Conteo de distintos</option>
+      <option value="std">Desviación Estándar</option>
+      <option value="mode">Moda</option>
+      <option value="cumsum">Suma Acumulada</option>
     </select>
   </label>
 
