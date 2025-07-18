@@ -15,10 +15,11 @@ const DEFAULTS = {
 /*  Everything lives inside DOMContentLoaded                          */
 /* ------------------------------------------------------------------ */
 document.addEventListener("DOMContentLoaded", () => {
-  /* -- safe DOM look-ups ------------------------------------------- */
-  const form = document.getElementById("plot-filters");
-  const canvas = document.getElementById("energyChart");
-  if (!form || !canvas) {
+  const $ = (id) => document.getElementById(id);
+  const runBtn = $("run");
+  const form = $("plot-filters");
+  const chart = $("lineChart");
+  if (!form || !chart) {
     console.error("benchmark.js: required DOM nodes not found");
     return; // bail early, avoid further errors
   }
@@ -26,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* -- helpers ----------------------------------------------------- */
   const v = (name) => form[name]?.value?.trim() || DEFAULTS[name];
 
-  function buildRequest() {
+  function buildBody() {
     const metric = v("metric");
     const period = v("period");
     const func = v("agg");
@@ -55,32 +56,17 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  /* -- draw / redraw ---------------------------------------------- */
-  let first = true;
-  async function draw() {
-    try {
-      const body = buildRequest();
-      const { figure, config, mapping } = await fetchPlot(body);
-      applyMapping(figure, mapping);
-
-      if (first) {
-        await Plotly.newPlot(canvas, figure.data, figure.layout, config);
-        first = false;
-      } else {
-        await Plotly.react(canvas, figure.data, figure.layout, config);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("No se pudo cargar el gráfico: " + err.message);
-    }
-  }
-
-  /* -- event wiring ----------------------------------------------- */
-  form.addEventListener("submit", (e) => {
+  /* ------------- Event wiring ----------------------------------- */
+  form.onsubmit = async (e) => {
     e.preventDefault();
-    draw();
-  });
-  form.addEventListener("input", debounce(draw, 400));
-
-  draw(); // initial render
+    if (runBtn.disabled) return;
+    runBtn.disabled = true;
+    try {
+      const { figure, config, mapping } = await fetchPlot(buildBody());
+      applyMapping(figure, mapping);
+      await Plotly.react(chart, figure.data, figure.layout, config);
+    } finally {
+      runBtn.disabled = false;
+    }
+  };
 });

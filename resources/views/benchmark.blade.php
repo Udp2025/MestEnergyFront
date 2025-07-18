@@ -53,6 +53,7 @@
     <select name="period" id="period">
       <option value="H"  selected>Hora</option>
       <option value="2H">2H</option>
+      <option value="4H">6H</option>
       <option value="6H">6H</option>
       <option value="12H">12H</option>
       <option value="D">Día</option>
@@ -82,15 +83,13 @@
     </select>
   </label>
 
-<button type="submit" class="plot-button">
-  <i class="fas fa-sync-alt" aria-hidden="true"></i>
-  <span class="sr-only">Actualizar</span>
-</button>
-
+  <button id="run" type="submit" class="plot-button">
+    <span>Aplicar</span>
+  </button>
 </form>
 
 <div class="chart-container">
-   <div id="energyChart" style="max-height:500px"></div>
+   <div id="lineChart" style="max-height:560px"></div>
 </div>
 
 @endsection
