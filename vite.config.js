@@ -13,6 +13,8 @@ export default defineConfig({
         "resources/js/app.js",
         "resources/js/pages/benchmark.js",
         "resources/js/pages/heat_map.js",
+        "resources/css/pages/time_series.css",
+        "resources/js/pages/time_series.js",
       ],
       refresh: true,
     }),

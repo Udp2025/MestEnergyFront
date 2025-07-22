@@ -29,9 +29,7 @@ export function applyMapping(figure, mapping = {}) {
   if (Object.keys(flat).length === 0) return;
 
   /* 2. Prepare helpers */
-  const entries = Object.entries(flat).sort(
-    (a, b) => b[0].length - a[0].length
-  );
+  const entries = Object.entries(flat).sort((a, b) => b[0].length - a[0].length);
   const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   /* 3. Walk every trace */
@@ -40,8 +38,7 @@ export function applyMapping(figure, mapping = {}) {
 
     /* -- coerce so .replace exists -------------------------- */
     let label = String(trace.name ?? ""); // '' if undefined
-    let hover =
-      typeof trace.hovertemplate === "string" ? trace.hovertemplate : null;
+    let hover = typeof trace.hovertemplate === "string" ? trace.hovertemplate : null;
 
     /* -- replace every key ---------------------------------- */
     entries.forEach(([oldVal, newVal]) => {
