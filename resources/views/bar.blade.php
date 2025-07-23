@@ -1,13 +1,13 @@
-{{-- resources/views/time_series.blade.php --}}
+{{-- resources/views/bar.blade.php --}}
 
 @extends('layouts.app')
-@section('title','time_series')
+@section('title','bar')
 
 @push('head')
   <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" defer></script>
 @endpush
 
-@vite(['resources/js/pages/time_series.js','resources/css/pages/time_series.css', 'resources/css/plot/common.css'])
+@vite(['resources/js/pages/bar.js','resources/css/pages/bar.css', 'resources/css/plot/common.css'])
 
 @section('content')
 @php
@@ -37,23 +37,12 @@
     </select>
   </label>
 
-  {{-- Dates ------------------------------------------------------------}}
-  <label>
-    Desde:
-    <input type="date" name="from" id="from" value="{{ $today }}">
-  </label>
-  <label>
-    Hasta:
-    <input type="date" name="to"   id="to"   value="{{ $today }}">
-  </label>
-
-  {{-- Aggregation ------------------------------------------------------}}
   <label>
     Frecuencia:
-    <select name="period" id="period">
-      <option value="H"  selected>Hora</option>
+    <select name="freq" id="freq">
+      <option value="H"selected>Hora</option>
       <option value="2H">2H</option>
-      <option value="4H">6H</option>
+      <option value="4H">4H</option>
       <option value="6H">6H</option>
       <option value="12H">12H</option>
       <option value="D">Día</option>
@@ -68,20 +57,52 @@
     </select>
   </label>
 
+
   <label>
     Función:
     <select name="agg" id="agg">
-      <option value="avg" selected>Promedio</option>
-      <option value="sum">Suma</option>
+      <option value="sum"selected>Suma</option>
+      <option value="avg" >Promedio</option>
       <option value="min">Mín</option>
       <option value="max">Máx</option>
       <option value="count">Conteo</option>
-      <option value="distinct">Conteo de distintos</option>
       <option value="std">Desviación Estándar</option>
-      <option value="mode">Moda</option>
-      <option value="cumsum">Suma Acumulada</option>
     </select>
   </label>
+
+
+      <label>
+    Colorear por:
+    <select name="colorBy" id="colorBy" >
+      <option value="device_id" selected>Dispositivo</option>
+      <option value="hour">Hora</option>
+      <option value="weekday">Día semana</option>
+      <option value="month">Mes</option>
+      <option value="year">Año</option>
+    </select>
+  </label>
+
+
+  {{-- Dates ------------------------------------------------------------}}
+  <label>
+    Desde:
+    <input type="date" name="from" id="from" value="{{ $today }}">
+  </label>
+  <label>
+    Hasta:
+    <input type="date" name="to"   id="to"   value="{{ $today }}">
+  </label>
+
+
+
+    <label>
+    Orientación:
+    <select name="orient" id="orient">
+      <option value="v" selected>Vertical</option>
+      <option value="h">Horizontal</option>
+    </select>
+  </label>
+
 
   <button id="run" type="submit" class="plot-button">
     <span>Aplicar</span>

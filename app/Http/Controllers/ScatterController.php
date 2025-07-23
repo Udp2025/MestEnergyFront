@@ -4,14 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 
-class TimeSeriesController extends Controller
+class ScatterController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        return view('timeseries');
+        return view('scatter');
 
     }
 

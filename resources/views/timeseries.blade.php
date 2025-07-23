@@ -1,13 +1,13 @@
-{{-- resources/views/benchmark.blade.php --}}
+{{-- resources/views/timeseries.blade.php --}}
 
 @extends('layouts.app')
-@section('title','Benchmark')
+@section('title','TimeSeries')
 
 @push('head')
   <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" defer></script>
 @endpush
 
-@vite(['resources/js/pages/benchmark.js','resources/css/pages/benchmark.css', 'resources/css/plot/common.css'])
+@vite(['resources/js/pages/timeseries.js','resources/css/pages/timeseries.css', 'resources/css/plot/common.css'])
 
 @section('content')
 @php
@@ -53,7 +53,7 @@
     <select name="period" id="period">
       <option value="H"  selected>Hora</option>
       <option value="2H">2H</option>
-      <option value="4H">6H</option>
+      <option value="4H">4H</option>
       <option value="6H">6H</option>
       <option value="12H">12H</option>
       <option value="D">Día</option>

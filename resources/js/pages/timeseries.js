@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = $("plot-filters");
   const chart = $("lineChart");
   if (!form || !chart) {
-    console.error("time_series.js: required DOM nodes not found");
+    console.error("timeseries.js: required DOM nodes not found");
     return; // bail early, avoid further errors
   }
 
@@ -43,11 +43,13 @@ document.addEventListener("DOMContentLoaded", () => {
         {
           group_by: ["site_id", "device_id"],
           aggregations: { [metric]: [func] },
+          time_window: period,
+          time_column: "measurement_time",
         },
       ],
       chart: {
-        chart_type: "bar",
-        x: "device_id",
+        chart_type: "line",
+        x: "measurement_time",
         y: `${metric}_${func}`,
         style: { color: "device_id" },
       },

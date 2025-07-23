@@ -49,3 +49,8 @@ export const getDevices = (siteId) =>
     filter_map: { site_id: "=" + siteId },
     select_columns: ["device_id", "device_name"],
   });
+
+export function fmtDate(d) {
+  // returns "YYYY‑MM‑DD"
+  return d.toISOString().slice(0, 10);
+}

@@ -7,9 +7,9 @@ use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\GrupoTarifarioController;
 use App\Http\Controllers\TarifasController;
 use App\Http\Controllers\AreadeCargaController;
+use App\Http\Controllers\BarController;
 use App\Http\Controllers\TimeSeriesController;
-use App\Http\Controllers\BenchmarkController;
-use App\Http\Controllers\HistogramController;
+use App\Http\Controllers\ScatterController;
 use App\Http\Controllers\configController; // Asegúrate de que el nombre de la clase sea correcto (configController o ConfigController)
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnergyflowController;
@@ -96,9 +96,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/site_alerts', [SiteAlertsController::class, 'index'])->name('site_alerts');
     Route::get('/site_alerts_in', [SiteAlertsInController::class, 'index'])->name('site_alerts_in');
     Route::get('/tiggers', [TiggersController::class, 'index'])->name('tiggers');
-    Route::get('/benchmark', [BenchmarkController::class, 'index'])->name('benchmark');
-    Route::get('/time_series', [TimeSeriesController::class, 'index'])->name('time_series');
-    Route::get('/histogram', [HistogramController::class, 'index'])->name('histogram');
+    Route::get('/timeseries', [TimeSeriesController::class, 'index'])->name('timeseries');
+    Route::get('/bar', [BarController::class, 'index'])->name('bar');
+    Route::get('/scatter', [ScatterController::class, 'index'])->name('scatter');
     Route::get('/manage', [ManageController::class, 'index'])->name('manage');
     Route::get('/energyflow', [EnergyflowController::class, 'index'])->name('energyflow');
     Route::get('/permisosuser', [PermisosUserController::class, 'index'])->name('permisosuser');
