@@ -9,6 +9,7 @@ use App\Http\Controllers\TarifasController;
 use App\Http\Controllers\AreadeCargaController;
 use App\Http\Controllers\TimeSeriesController;
 use App\Http\Controllers\BenchmarkController;
+use App\Http\Controllers\ScatterController;
 use App\Http\Controllers\configController; // Asegúrate de que el nombre de la clase sea correcto (configController o ConfigController)
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnergyflowController;
@@ -97,6 +98,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/tiggers', [TiggersController::class, 'index'])->name('tiggers');
     Route::get('/benchmark', [BenchmarkController::class, 'index'])->name('benchmark');
     Route::get('/time_series', [TimeSeriesController::class, 'index'])->name('time_series');
+    Route::get('/scatter', [ScatterController::class, 'index'])->name('scatter');
     Route::get('/manage', [ManageController::class, 'index'])->name('manage');
     Route::get('/energyflow', [EnergyflowController::class, 'index'])->name('energyflow');
     Route::get('/permisosuser', [PermisosUserController::class, 'index'])->name('permisosuser');
