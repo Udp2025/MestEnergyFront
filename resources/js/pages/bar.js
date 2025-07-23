@@ -9,9 +9,9 @@ const DEFAULTS = {
   metric: "power_w",
   from: TODAY,
   to: TODAY,
-  freq: "5min", // ← default/raw
+  freq: "H", // ← default/raw
   orient: "v",
-  agg: "avg",
+  agg: "sum",
   colorBy: "device_id",
 };
 
@@ -28,19 +28,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  const freqSel = $("freq");
-  const aggSel = $("agg");
-  const colorSel = $("colorBy");
-
-  /* ----- UX: disable agg at 5‑min -------------------------------- */
-  function toggleAgg() {
-    const raw = freqSel.value === "5min";
-    aggSel.disabled = raw;
-    if (raw) aggSel.value = "avg"; // reset to default
-  }
-  toggleAgg();
-  freqSel.addEventListener("change", toggleAgg);
-
   /* ----- Helper --------------------------------------------------- */
   const v = (name) => form[name]?.value?.trim() || DEFAULTS[name];
 
@@ -49,8 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const metric = v("metric");
     const func = v("agg");
     const colorBy = v("colorBy");
-    const freqRaw = v("freq");
-    const freq = freqRaw === "5min" ? null : freqRaw;
+    const freq = v("freq");
     const from = v("from");
     const to = v("to");
     const orient = v("orient");

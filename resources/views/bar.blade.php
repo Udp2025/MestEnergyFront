@@ -40,8 +40,7 @@
   <label>
     Frecuencia:
     <select name="freq" id="freq">
-      <option value="5min"selected>Original</option>
-      <option value="H"  >Hora</option>
+      <option value="H"selected>Hora</option>
       <option value="2H">2H</option>
       <option value="4H">4H</option>
       <option value="6H">6H</option>
@@ -61,16 +60,25 @@
 
   <label>
     Función:
-    <select name="agg" id="agg" disabled>
-      <option value="avg" selected>Promedio</option>
-      <option value="sum">Suma</option>
+    <select name="agg" id="agg">
+      <option value="sum"selected>Suma</option>
+      <option value="avg" >Promedio</option>
       <option value="min">Mín</option>
       <option value="max">Máx</option>
       <option value="count">Conteo</option>
-      <option value="distinct">Conteo de distintos</option>
       <option value="std">Desviación Estándar</option>
-      <option value="mode">Moda</option>
-      <option value="cumsum">Suma Acumulada</option>
+    </select>
+  </label>
+
+
+      <label>
+    Colorear por:
+    <select name="colorBy" id="colorBy" >
+      <option value="device_id" selected>Dispositivo</option>
+      <option value="hour">Hora</option>
+      <option value="weekday">Día semana</option>
+      <option value="month">Mes</option>
+      <option value="year">Año</option>
     </select>
   </label>
 
@@ -85,16 +93,7 @@
     <input type="date" name="to"   id="to"   value="{{ $today }}">
   </label>
 
-    <label>
-    Colorear por:
-    <select name="colorBy" id="colorBy" >
-      <option value="device_id" selected>Dispositivo</option>
-      <option value="hour">Hora</option>
-      <option value="weekday">Día semana</option>
-      <option value="month">Mes</option>
-      <option value="year">Año</option>
-    </select>
-  </label>
+
 
     <label>
     Orientación:
