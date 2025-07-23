@@ -47,9 +47,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const colorSel = $("color_by"); // << new selector
 
   /* ----- Site / device dropdowns --------------------------------- */
-  let activeSiteId = window.currentUserIsAdmin
-    ? null
-    : Number(window.currentSiteId);
+  let activeSiteId = window.currentUserIsAdmin ? null : Number(window.currentSiteId);
 
   async function loadSites() {
     if (!window.currentUserIsAdmin) return;
@@ -63,10 +61,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     fillSelect(deviceSel, rows, "device_id", "device_name");
 
     /* prepend an “ALL” option so colour‑by‑device makes sense      */
-    deviceSel.insertAdjacentHTML(
-      "afterbegin",
-      '<option value="ALL">Todos</option>'
-    ); // MDN pattern
+    deviceSel.insertAdjacentHTML("afterbegin", '<option value="ALL">Todos</option>'); // MDN pattern
     deviceSel.value = "ALL";
 
     runBtn.disabled = deviceSel.options.length === 0;
@@ -131,11 +126,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const metricFunc2 = func2 === "original" ? metric2 : `${metric2}_${func2}`;
 
     /* need aggregation? */
-    const needsAgg = !(
-      freqRaw === "5min" &&
-      func1 === "original" &&
-      func2 === "original"
-    );
+    const needsAgg = !(freqRaw === "5min" && func1 === "original" && func2 === "original");
 
     /* device filter – omit when “ALL” so every device is included  */
     const filterMap = {
@@ -166,6 +157,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       ...(needsAgg && {
         aggregation: [
           {
+            group_by: ["site_id", "device_id"],
             aggregations: aggDict,
             time_window: freq,
             time_column: "measurement_time",
