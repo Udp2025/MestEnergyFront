@@ -17,6 +17,8 @@ export default defineConfig({
         "resources/js/pages/heat_map.js",
         "resources/css/pages/bar.css",
         "resources/js/pages/bar.js",
+        "resources/js/pages/histogram.js",
+        "resources/css/pages/histogram.css",
       ],
       refresh: true,
     }),

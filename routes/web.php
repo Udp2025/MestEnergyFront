@@ -9,6 +9,7 @@ use App\Http\Controllers\TarifasController;
 use App\Http\Controllers\AreadeCargaController;
 use App\Http\Controllers\BarController;
 use App\Http\Controllers\TimeSeriesController;
+use App\Http\Controllers\HistogramController;
 use App\Http\Controllers\ScatterController;
 use App\Http\Controllers\configController; // Asegúrate de que el nombre de la clase sea correcto (configController o ConfigController)
 use App\Http\Controllers\DashboardController;
@@ -97,6 +98,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/site_alerts_in', [SiteAlertsInController::class, 'index'])->name('site_alerts_in');
     Route::get('/tiggers', [TiggersController::class, 'index'])->name('tiggers');
     Route::get('/timeseries', [TimeSeriesController::class, 'index'])->name('timeseries');
+        Route::get('/histogram', [HistogramController::class, 'index'])->name('histogram');
     Route::get('/bar', [BarController::class, 'index'])->name('bar');
     Route::get('/scatter', [ScatterController::class, 'index'])->name('scatter');
     Route::get('/manage', [ManageController::class, 'index'])->name('manage');
