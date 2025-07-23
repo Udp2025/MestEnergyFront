@@ -267,7 +267,7 @@
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('general_clientes') }}"><span>Vista General</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a  href="{{ route('visualize') }}"><span>Energy Dashboard</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('heatmap') }}"><span>Heat Map</span></a></li>
-                    <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('benchmark') }}"><span>Benchmarking</span></a></li>
+                    <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('timeseries') }}"><span>Benchmarking</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('energyflow') }}"><span>Energy Flow</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('clientes.clidash') }}"><span>Financial</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{route('site_alerts_in')}}"><span>Operational Alerts</span></a></li>

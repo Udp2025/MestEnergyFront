@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{{ asset('css/usuarios.css') }}">
 
 <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" defer></script>
-<script src="{{ asset('js/benchmark.js') }}" defer></script>
+<script src="{{ asset('js/timeseries.js') }}" defer></script>
 
 
 

@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = $("plot-filters");
   const chart = $("lineChart");
   if (!form || !chart) {
-    console.error("benchmark.js: required DOM nodes not found");
+    console.error("timeseries.js: required DOM nodes not found");
     return; // bail early, avoid further errors
   }
 
