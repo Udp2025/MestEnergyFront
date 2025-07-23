@@ -11,7 +11,6 @@ export default defineConfig({
         "resources/css/pages/scatter.css",
         "resources/css/pages/benchmark.css",
         "resources/css/pages/heat_map.css",
-        "resources/css/pages/time_series.css",
         "resources/js/app.js",
         "resources/js/pages/scatter.js",
         "resources/js/pages/benchmark.js",
