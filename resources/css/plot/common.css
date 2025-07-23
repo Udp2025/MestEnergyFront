@@ -46,7 +46,7 @@ label {
   transition: background 0.15s;
 }
 .plot-button:hover {
-  background: #0b5ed7;
+  background: #727f92;
 }
 
 .plot-filters div + div {
