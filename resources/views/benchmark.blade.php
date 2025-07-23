@@ -53,7 +53,7 @@
     <select name="period" id="period">
       <option value="H"  selected>Hora</option>
       <option value="2H">2H</option>
-      <option value="4H">6H</option>
+      <option value="4H">4H</option>
       <option value="6H">6H</option>
       <option value="12H">12H</option>
       <option value="D">Día</option>
