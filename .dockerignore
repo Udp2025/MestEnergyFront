@@ -1,0 +1,27 @@
+# VCS
+.git
+.gitignore
+
+# Composer / Node (rebuilt inside containers)
+vendor
+node_modules
+
+bootstrap/cache/*.php
+
+
+# Laravel runtime stuff
+storage/*.key
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+
+# Local env files (pass at runtime, don't bake into images)
+.env
+.env.*
+
+# OS/IDE noise
+*.swp
+.DS_Store
+.vscode
+.idea
