@@ -16,9 +16,6 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
  && docker-php-ext-install -j"$(nproc)" \
       pdo pdo_mysql mbstring bcmath intl gd zip opcache exif
 
-# Custom php.ini with OPcache for prod
-COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
-
 # ---------- DEV target (code is bind-mounted in compose) ----------
 FROM php-base AS php-dev
 WORKDIR /var/www
@@ -29,14 +26,8 @@ FROM composer:2 AS vendor
 WORKDIR /app
 COPY composer.json composer.lock ./
 
-# If using BuildKit, you can cache Composer downloads to speed up subsequent builds:
-# RUN --mount=type=cache,target=/tmp/composer \
-#     composer install --no-dev --prefer-dist --no-interaction --no-progress \
-#       --optimize-autoloader --classmap-authoritative --no-scripts
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress \
       --optimize-autoloader --no-scripts
-# --no-scripts avoids running Laravel's post-autoload script that calls `artisan`
-#   (we will run the needed artisan commands later in the final stage).
 
 # ---------- Build frontend (Vite) ----------
 FROM node:20-alpine AS assets
@@ -65,7 +56,6 @@ RUN set -eux; \
     chmod -R 775 storage bootstrap/cache
 
 # Run Laravel discovery & build caches only now that 'artisan' exists
-# Clean any stale cache files that may reference dev-only packages (e.g., Breeze)
 RUN rm -f bootstrap/cache/*.php
 RUN php artisan package:discover --ansi
 RUN php artisan config:cache
