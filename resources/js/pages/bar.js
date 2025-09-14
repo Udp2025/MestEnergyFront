@@ -36,7 +36,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const metric = v("metric");
     const func = v("agg");
     const colorBy = v("colorBy");
-    const freq = v("freq");
+    const freqRaw = v("freq");
+    // allow future "no aggregation" by treating empty as null
+    let timeWindow = freqRaw === "" ? null : freqRaw;
     const from = v("from");
     const to = v("to");
     const orient = v("orient");
@@ -44,15 +46,20 @@ document.addEventListener("DOMContentLoaded", () => {
     /* dynamic group‑by list (avoid duplicates) */
     const groupBy = ["site_id", "device_id"];
 
-    /* aggregation clause (omit time_* keys for raw) */
-    if (colorBy != DEFAULTS["colorBy"] && freq === null) {
-      freq = "H";
+    /* aggregation clause (omit time_* keys for raw)
+       If a temporal colour is requested but no time window provided,
+       fall back to hourly to ensure derived columns exist. */
+    if (colorBy !== DEFAULTS.colorBy && !timeWindow) {
+      timeWindow = "H";
     }
     const aggregation = [
       {
         group_by: groupBy,
         aggregations: { [metric]: [func] },
-        ...(freq && { time_window: freq, time_column: "measurement_time" }),
+        ...(timeWindow && {
+          time_window: timeWindow,
+          time_column: "measurement_time",
+        }),
       },
     ];
 
@@ -75,11 +82,21 @@ document.addEventListener("DOMContentLoaded", () => {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (runBtn.disabled) return;
+    // basic date guard
+    const from = v("from");
+    const to = v("to");
+    if (from > to) {
+      alert("Rango de fechas inválido: 'Desde' es mayor que 'Hasta'.");
+      return;
+    }
     runBtn.disabled = true;
     try {
       const { figure, config, mapping } = await fetchPlot(buildBody());
       applyMapping(figure, mapping);
       await Plotly.react(chartDiv, figure.data, figure.layout, config);
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo cargar el gráfico: " + (err?.message || err));
     } finally {
       runBtn.disabled = false;
     }

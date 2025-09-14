@@ -1,6 +1,6 @@
-/* resources/css/plot/common.css *
+/* resources/css/plot/common.css */
 
-/* --- 1 · Filters & buttons ------------------------------------ */
+/* --- 1 · Filters & controls ------------------------------------ */
 body {
   font-family: "Roboto", sans-serif;
   margin: 0;
@@ -13,13 +13,18 @@ label {
 }
 
 .plot-filters {
-  margin-top: 20px;
-  margin-bottom: 25px;
-  margin-left: 20px;
+  margin: 20px 20px 24px 20px;
   display: flex;
   flex-wrap: wrap;
-  gap: 40px; /* modern gap instead of margin hacking */
-  align-items: end; /* labels sit above inputs */
+  gap: 20px 28px; /* row-gap col-gap */
+  align-items: flex-end;
+}
+
+/* Group label text above the control neatly */
+.plot-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .plot-filters select,
@@ -27,9 +32,19 @@ label {
 .plot-filters button {
   font: 14px/1.4 "Roboto", sans-serif;
   border: 1px solid #dfe6e9;
-  border-radius: 4px;
-  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
   min-height: 44px;
+}
+
+/* Comfortable min widths for consistency across pages */
+.plot-filters select,
+.plot-filters input[type="date"],
+.plot-filters input[type="number"],
+.plot-filters input[type="text"] {
+  min-width: 220px;
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02) inset;
 }
 
 .plot-filters input[type="checkbox"] {
@@ -37,38 +52,116 @@ label {
   margin-right: 5px;
 }
 
+/* Hover & focus feel for inputs without changing palette */
+.plot-filters select:hover,
+.plot-filters input:hover {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
+}
+.plot-filters select:focus-visible,
+.plot-filters input:focus-visible {
+  outline: 0;
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.06),
+    0 0 0 4px rgba(0, 0, 0, 0.04);
+}
+
+/* Align the primary action to the end when room allows */
+.plot-filters .plot-button {
+  margin-left: auto;
+}
+
+/* --- 2 · Buttons ------------------------------------------------- */
 .plot-button {
-  /* reusable primary button */
-  background: #cead6d;
+  background: #cead6d; /* keep brand color */
   color: #fff;
   border: none;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
 }
 .plot-button:hover {
-  background: #727f92;
+  background: #727f92; /* keep existing hover color */
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+}
+.plot-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+}
+.plot-button:focus-visible {
+  outline: 0;
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.04),
+    0 0 0 5px rgba(255, 255, 255, 0.6),
+    0 0 0 7px rgba(0, 0, 0, 0.06);
+}
+.plot-button:disabled,
+.plot-button[disabled] {
+  opacity: 0.85;
+  cursor: not-allowed;
+  position: relative;
+}
+/* Lightweight spinner while disabled (no palette change) */
+.plot-button[disabled]::after {
+  content: "";
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-top-color: #ffffff;
+  display: inline-block;
+  animation: plot-spin 0.7s linear infinite;
+}
+@keyframes plot-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.plot-filters div + div {
-  margin-left: 20px;
-}
-
-/* --- 2 · Chart container & modebar ---------------------------- */
+/* --- 3 · Chart container & modebar ------------------------------ */
 .chart-container {
   position: relative;
-  padding: 40px 20px 10px 10px;
+  padding: 44px 20px 12px 12px;
   background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
   aspect-ratio: 16/9;
 }
 .chart-container .modebar {
   position: absolute !important;
-  top: 8px !important;
+  top: 10px !important;
   right: 12px !important;
   flex-direction: row !important;
-  gap: 4px;
+  gap: 6px;
 }
 .chart-container .modebar svg {
   display: inline !important;
+}
+
+/* --- 4 · Responsive tweaks -------------------------------------- */
+@media (max-width: 1024px) {
+  .plot-filters select,
+  .plot-filters input[type="date"],
+  .plot-filters input[type="number"],
+  .plot-filters input[type="text"] {
+    min-width: 180px;
+  }
+}
+@media (max-width: 768px) {
+  .plot-filters {
+    gap: 14px 18px;
+  }
+  .plot-filters label,
+  .plot-filters .plot-button {
+    flex: 1 1 100%;
+  }
+  .plot-filters .plot-button {
+    margin-left: 0;
+    justify-content: center;
+  }
 }

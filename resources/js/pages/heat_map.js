@@ -72,14 +72,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     runBtn.disabled = deviceSel.options.length === 0;
   }
 
-  if (window.currentUserIsAdmin) {
-    await loadSites();
-    siteSel.onchange = async () => {
-      activeSiteId = siteSel.value;
-      await loadDevices(); // no draw here
-    };
+  try {
+    if (window.currentUserIsAdmin) {
+      await loadSites();
+      siteSel.onchange = async () => {
+        activeSiteId = siteSel.value;
+        await loadDevices(); // no draw here
+      };
+    }
+    await loadDevices();
+  } catch (err) {
+    console.error(err);
+    alert(
+      "No se pudieron cargar los dispositivos/sitios: " + (err?.message || err)
+    );
+    [runBtn, prevBtn, nextBtn].forEach((b) => (b.disabled = true));
+    return; // bail early
   }
-  await loadDevices();
 
   /* ---- axis-pair helpers ---------------------------------------- */
   const v = (name) => form[name]?.value;

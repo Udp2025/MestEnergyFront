@@ -1,2 +1,39 @@
-/* hola hola hola hola hola hola hola */
-/*aadioafjdoaisjfoa isdjfaposiadio adios adios*/
+/* resources/css/pages/heat_map.css */
+
+/* Period navigation cluster (prev | label | next) */
+.period-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 6px;
+}
+
+#periodLabel {
+  font-weight: 600;
+  padding: 8px 12px;
+  border: 1px solid #dfe6e9;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+/* Shape the prev/next buttons as compact circular controls */
+.period-nav .plot-button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .period-nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+  #periodLabel {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}

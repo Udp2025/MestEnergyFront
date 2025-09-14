@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const deviceSel = $("device");
   const freqSel = $("freq");
   const agg1Sel = $("agg1");
-  const colorBy = "device_id";
+  let colorBy = "device_id";
   const bins = $("bins");
 
   /* ----- Site / device dropdowns --------------------------------- */
@@ -65,15 +65,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     runBtn.disabled = deviceSel.options.length === 0;
   }
 
-  if (window.currentUserIsAdmin) {
-    await loadSites();
-    colorBy = "site_id";
-    siteSel.addEventListener("change", async () => {
-      activeSiteId = Number(siteSel.value);
-      await loadDevices();
-    });
+  try {
+    if (window.currentUserIsAdmin) {
+      await loadSites();
+      colorBy = "site_id";
+      siteSel.addEventListener("change", async () => {
+        activeSiteId = Number(siteSel.value);
+        await loadDevices();
+      });
+    }
+    await loadDevices();
+  } catch (err) {
+    console.error(err);
+    alert("No se pudieron cargar los dispositivos/sitios: " + (err?.message || err));
+    runBtn.disabled = true;
+    return; // bail early
   }
-  await loadDevices();
 
   /* ----- Raw‑data logic: lock aggregation controls --------------- */
   function toggleAggControls() {
@@ -118,7 +125,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const nbinsDict = bins.value === "" ? {} : { nbins: parseInt(bins.value) };
 
     const propsDict = { ...nbinsDict, ...colorDict };
-    console.log(propsDict);
     return {
       table: "measurements",
       filter_map: filterMap,
@@ -144,11 +150,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (runBtn.disabled) return;
+    // basic date guard
+    const from = v("from");
+    const to = v("to");
+    if (from > to) {
+      alert("Rango de fechas inválido: 'Desde' es mayor que 'Hasta'.");
+      return;
+    }
     runBtn.disabled = true; // UX guard
     try {
       const { figure, config, mapping } = await fetchPlot(buildBody());
       applyMapping(figure, mapping);
       await Plotly.react(chart, figure.data, figure.layout, config); // efficient re‑draw
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo cargar el gráfico: " + (err?.message || err));
     } finally {
       runBtn.disabled = false;
     }

@@ -26,13 +26,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* -- helpers ----------------------------------------------------- */
   const v = (name) => form[name]?.value?.trim() || DEFAULTS[name];
-
   function buildBody() {
     const metric = v("metric");
     const period = v("period");
     const func = v("agg");
     const from = v("from");
     const to = v("to");
+
+    console.log("fechas: ", `[${from} 00:00:00, ${to} 23:59:59]`);
 
     return {
       table: "measurements",
@@ -60,11 +61,21 @@ document.addEventListener("DOMContentLoaded", () => {
   form.onsubmit = async (e) => {
     e.preventDefault();
     if (runBtn.disabled) return;
+    // basic date guard
+    const from = v("from");
+    const to = v("to");
+    if (from > to) {
+      alert("Rango de fechas inválido: 'Desde' es mayor que 'Hasta'.");
+      return;
+    }
     runBtn.disabled = true;
     try {
       const { figure, config, mapping } = await fetchPlot(buildBody());
       applyMapping(figure, mapping);
       await Plotly.react(chart, figure.data, figure.layout, config);
+    } catch (err) {
+      console.error(err);
+      alert("No se pudo cargar el gráfico: " + (err?.message || err));
     } finally {
       runBtn.disabled = false;
     }
