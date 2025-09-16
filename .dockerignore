@@ -1,25 +1,34 @@
-# VCS
+# Version control artifacts
 .git
 .gitignore
 
-# Composer / Node (rebuilt inside containers)
-vendor
+# Environment files (provide via --env-file at runtime)
+.env
+.env.*
+
+# Dependencies rebuilt inside the image
 node_modules
+vendor
 
+# Build outputs regenerated during docker build
+public/build
+public/hot
+
+# Laravel runtime caches and logs
 bootstrap/cache/*.php
-
-# Laravel runtime stuff
 storage/*.key
 storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
 storage/logs/*
 
-# Local env files (pass at runtime, don't bake into images)
-.env
-.env.*
+# Tests and local tooling not needed in runtime image
+tests
+phpunit.xml
+pest.php
+artisan.log
 
-# OS/IDE noise
+# OS / editor noise
 *.swp
 .DS_Store
 .vscode

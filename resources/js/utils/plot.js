@@ -1,9 +1,8 @@
 export async function fetchPlot(body) {
-  const API_BASE = import.meta.env.VITE_PLOT_API_BASE;
   const API_KEY = import.meta.env.VITE_PLOT_API_KEY;
+  const API_BASE = import.meta.env.VITE_PLOT_API_BASE;
 
   if (!API_BASE || !API_KEY) throw new Error("Missing API configuration");
-
   const r = await fetch(`${API_BASE}/items/data/plot`, {
     method: "POST",
     headers: {
