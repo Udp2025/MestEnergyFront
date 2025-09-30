@@ -1,5 +1,5 @@
 {{-- resources/views/heat_map.blade.php --}}
-@extends('layouts.app')
+@extends('layouts.complete')
 @section('title','Heat Map')
 @push('head')
   <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" defer></script>

@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('estado');
             $table->string('pais');
             $table->decimal('cambio_dolar', 8, 2); 
+            $table->integer('site'); 
             $table->timestamps();
         });
     }

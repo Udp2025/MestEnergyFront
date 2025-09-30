@@ -1,6 +1,6 @@
 {{-- resources/views/timeseries.blade.php --}}
 
-@extends('layouts.app')
+@extends('layouts.complete')
 @section('title','TimeSeries')
 
 @push('head')

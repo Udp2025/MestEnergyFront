@@ -25,6 +25,7 @@ class Cliente extends Model
         'estado',
         'pais',
         'cambio_dolar',
+        'site'
     ];
     protected $hidden = [
         'password',

@@ -9,6 +9,11 @@ use App\Models\Dato; // Modelo para la tabla 'datos'
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
+
 
 class ClientesController extends Controller
 {
@@ -26,8 +31,8 @@ class ClientesController extends Controller
     }
 
     // Guardar un nuevo cliente
-    public function store(Request $request)
-    {
+    /*
+    public function store(Request $request){
         $request->validate([
             'nombre'         => 'required|string|max:255',
             'razon_social'   => 'required|string|max:255',
@@ -45,7 +50,82 @@ class ClientesController extends Controller
 
         $cliente = Cliente::create($request->all());
         return redirect()->route('clientes.index')->with('success', 'Cliente creado correctamente.');
+    }*/
+
+    public function store(Request $request)
+    {
+        // Reglas de validación (nota: chequea unicidad tanto en clientes como en users)
+        $rules = [
+            'nombre'         => 'required|string|max:255',
+            'razon_social'   => 'required|string|max:255',
+            'email'          => 'required|email|unique:clientes,email|unique:users,email',
+            'telefono'       => 'required|string|max:15',
+            'calle'          => 'required|string|max:255',
+            'numero'         => 'required|string|max:10',
+            'colonia'        => 'required|string|max:255',
+            'codigo_postal'  => 'required|string|max:5',
+            'ciudad'         => 'required|string|max:255',
+            'estado'         => 'required|string|max:255',
+            'pais'           => 'required|string|max:255',
+            'cambio_dolar'   => 'required|numeric|min:0',
+            'site'           => 'required|numeric|min:0',
+        ];
+
+        // Puedes personalizar mensajes si quieres:
+        $messages = [
+            'email.unique' => 'El correo ya está registrado en el sistema.',
+        ];
+
+        $validator = Validator::make($request->all(), $rules, $messages);
+
+        // Si falla validación, vuelve al formulario con los errores + un warning
+        if ($validator->fails()) {
+            return redirect()->back()
+                            ->withErrors($validator)
+                            ->withInput()
+                            ->with('warning', 'Hay errores en el formulario. Por favor corrige y vuelve a intentar.');
+        }
+
+        // Todo ok: crear Cliente + Usuario dentro de una transacción
+        DB::beginTransaction();
+        try {
+            $cliente = Cliente::create($request->only([
+                'nombre','razon_social','email','telefono',
+                'calle','numero','colonia','codigo_postal',
+                'ciudad','estado','pais','cambio_dolar', 'site'
+            ]));
+
+            // Generar contraseña temporal y crear usuario
+            $tempPassword = Str::random(10);
+            $user = User::create([
+                'name'       => $request->nombre,
+                'email'      => $request->email,
+                'password'   => Hash::make($tempPassword),
+                'cliente_id' => $cliente->id,
+                // 'role' => 'cliente' // opcional: ajusta según tu esquema de roles
+            ]);
+
+            DB::commit();
+
+            // Redirigir con éxito y opcionalmente mostrar contraseña temporal (si decides hacerlo)
+            return redirect()->route('clientes.index')
+                            ->with('success', 'Cliente y usuario creados correctamente.')
+                            ->with('temp_password', $tempPassword);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // Si por alguna razón se creó $cliente parcialmente, intenta eliminarlo para no dejar datos huérfanos
+            if (isset($cliente) && $cliente->exists) {
+                try { $cliente->delete(); } catch (\Exception $_) {}
+            }
+
+            // Devuelve al formulario con mensaje de error (no se redirige como si se hubiera guardado)
+            return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'No se pudo crear el cliente/usuario. ' . $e->getMessage());
+        }
     }
+
 
     // Mostrar un cliente con sus archivos relacionados y usuarios (si los hay)
     public function show($id)
@@ -77,6 +157,7 @@ class ClientesController extends Controller
             'estado'         => 'required|string|max:255',
             'pais'           => 'required|string|max:255',
             'cambio_dolar'   => 'required|numeric|min:0',
+            'site'           => 'required|numeric|min:0',
         ]);
 
         $cliente->update($request->all());
