@@ -92,7 +92,4 @@
 
 <script src="{{ asset('js/inicio.js') }}"></script>
 
-
-<script src="{{ asset('js/inicio.js') }}"></script>
-
 @endsection
