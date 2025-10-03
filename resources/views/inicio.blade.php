@@ -81,6 +81,18 @@
     </div>
   </div>
 </div>
+
+<script>
+  
+  const SITE = @json($auth_user_site ?? session('site') ?? null);
+
+  console.log('site:', SITE);
+  
+</script>
+
+<script src="{{ asset('js/inicio.js') }}"></script>
+
+
 <script src="{{ asset('js/inicio.js') }}"></script>
 
 @endsection
