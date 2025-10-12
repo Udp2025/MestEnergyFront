@@ -30,6 +30,22 @@
       <h2 class="text-2xl font-semibold text-light">Analytics</h2>
     </div>
 
+    @if ($errors->any())
+      <div class="bg-red-600/90 text-white rounded-lg p-3 text-sm">
+        <ul class="list-disc pl-4">
+          @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+          @endforeach
+        </ul>
+      </div>
+    @endif
+
+    @if (session('status'))
+      <div class="bg-green-600/80 text-white rounded-lg p-3 text-sm">
+        {{ session('status') }}
+      </div>
+    @endif
+
     <!-- Formulario -->
     <form method="POST" action="{{ route('login') }}" class="space-y-6">
       @csrf

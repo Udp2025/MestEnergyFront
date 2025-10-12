@@ -41,15 +41,56 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
+        $credentials = $this->only('email', 'password');
 
-            throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+        if (Auth::attempt($credentials, $this->boolean('remember'))) {
+            RateLimiter::clear($this->throttleKey());
+            return;
+        }
+
+        // Intento de compatibilidad con contraseñas legadas (texto plano, md5, sha1)
+        $user = \App\Models\User::where('email', $credentials['email'])->first();
+        if ($user) {
+            $plain = $credentials['password'];
+            $stored = (string) $user->getAuthPassword();
+            $matchesLegacy = hash_equals($stored, $plain)
+                || hash_equals($stored, md5($plain))
+                || hash_equals($stored, sha1($plain))
+                || hash_equals($stored, hash('sha256', $plain))
+                || hash_equals($stored, hash('sha512', $plain));
+
+            if (! $matchesLegacy && str_starts_with($stored, '*') && strlen($stored) === 41) {
+                $mysqlPassword = '*' . strtoupper(
+                    bin2hex(sha1(sha1($plain, true), true))
+                );
+                $matchesLegacy = hash_equals($stored, $mysqlPassword);
+            }
+
+            if ($matchesLegacy) {
+                // Rehash hacia el algoritmo actual (la declaración casts del modelo lo hace automáticamente)
+                $user->password = $plain;
+                $user->save();
+
+                Auth::login($user, $this->boolean('remember'));
+                RateLimiter::clear($this->throttleKey());
+                return;
+            }
+        }
+
+        RateLimiter::hit($this->throttleKey());
+
+        if ($user) {
+            \Log::warning('auth.failed_legacy_hash', [
+                'email' => $credentials['email'],
+                'hash_length' => strlen($user->getAuthPassword() ?? ''),
+                'hash_starts_with' => substr($user->getAuthPassword() ?? '', 0, 10),
+                'hash_info' => password_get_info((string) $user->getAuthPassword()),
             ]);
         }
 
-        RateLimiter::clear($this->throttleKey());
+        throw ValidationException::withMessages([
+            'email' => trans('auth.failed'),
+        ]);
     }
 
     /**

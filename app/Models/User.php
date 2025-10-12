@@ -12,6 +12,9 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable; // Agrega HasRoles
 
+    public const ROLE_SUPER_ADMIN = 'admin';
+    public const ROLE_CLIENT = 'normal';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -33,6 +36,21 @@ class User extends Authenticatable
     public function files()
     {
         return $this->hasMany(ClienteFile::class);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === self::ROLE_SUPER_ADMIN || (int) $this->cliente_id === 0;
+    }
+
+    public function isClientUser(): bool
+    {
+        return !$this->isSuperAdmin() && $this->role === self::ROLE_CLIENT;
+    }
+
+    public function siteId(): ?string
+    {
+        return $this->cliente?->site;
     }
 
     /**

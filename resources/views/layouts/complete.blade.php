@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <title>@yield('title')</title>
     <!-- Estilos -->
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
@@ -14,7 +15,18 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     
-    
+    @php
+        $context = $authContext ?? [
+            'isAuthenticated' => false,
+            'user' => null,
+            'abilities' => [
+                'canViewAllSites' => false,
+            ],
+        ];
+    @endphp
+    <script>
+        window.App = @json($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    </script>
     @vite(['resources/js/app.js', 'resources/css/app.css'])
 </head>
 <body>
@@ -267,7 +279,7 @@
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('general_clientes') }}"><span>Vista General</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a  href="{{ route('visualize') }}"><span>Energy Dashboard</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('heatmap') }}"><span>Heat Map</span></a></li>
-                    <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('timeseries') }}"><span>Benchmarking</span></a></li>
+                    <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('benchmarking') }}"><span>Benchmarking</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('energyflow') }}"><span>Energy Flow</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('clientes.clidash') }}"><span>Financial</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{route('site_alerts_in')}}"><span>Operational Alerts</span></a></li>

@@ -30,6 +30,7 @@ use App\Http\Controllers\PanelController;
 use App\Http\Controllers\PreferenciasController;
 use App\Http\Controllers\WidgetController;
 use App\Http\Controllers\PerfilController;
+use App\Http\Controllers\PlotProxyController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\Admin; // Importa el middleware
 use Illuminate\Support\Facades\Auth;
@@ -99,7 +100,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/tiggers', [TiggersController::class, 'index'])->name('tiggers');
     Route::get('/timeseries', [TimeSeriesController::class, 'index'])->name('timeseries');
         Route::get('/histogram', [HistogramController::class, 'index'])->name('histogram');
-    Route::get('/bar', [BarController::class, 'index'])->name('bar');
+    Route::get('/benchmarking', [BarController::class, 'index'])->name('benchmarking');
     Route::get('/scatter', [ScatterController::class, 'index'])->name('scatter');
     Route::get('/manage', [ManageController::class, 'index'])->name('manage');
     Route::get('/energyflow', [EnergyflowController::class, 'index'])->name('energyflow');
@@ -110,6 +111,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/clientes/{cliente}/download/{fileId}', [ClientesController::class, 'downloadFile'])->name('clientes.download_file');
     Route::get('/usuarios', [UsuarioController::class, 'usuarios'])->name('usuarios');
     Route::get('clidash', [ClientesController::class, 'clidash'])->name('clientes.clidash');
+
+    Route::post('/charts/plot', [PlotProxyController::class, 'plot'])->name('charts.plot');
+    Route::post('/charts/data', [PlotProxyController::class, 'data'])->name('charts.data');
  
 
  

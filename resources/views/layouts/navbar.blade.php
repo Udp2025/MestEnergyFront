@@ -335,7 +335,7 @@
         <ul class="submenu">
           <li><a href="{{ route('usuarios') }}">Time View</a></li>
           <li><a href="{{ route('heatmap') }}">Heat Map</a></li>
-          <li><a href="{{ route('timeseries') }}">Benchmarking</a></li>
+          <li><a href="{{ route('benchmarking') }}">Benchmarking</a></li>
           <li><a href="{{ route('energyflow') }}">Energy Flow</a></li>
  
         </ul>

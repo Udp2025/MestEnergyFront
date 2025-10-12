@@ -2,10 +2,10 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,12 +22,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Fuerza la URL raíz según APP_URL
-        URL::forceRootUrl(config('app.url'));
-
-        // Si usas HTTPS en el túnel, fuerza el esquema https
-        if (str_starts_with(config('app.url'), 'https://')) {
-            URL::forceScheme('https');
+        // Fuerza la URL raíz según APP_URL solo en producción (evita conflictos en dev)
+        $appUrl = config('app.url');
+        if (app()->environment('production') && $appUrl) {
+            URL::forceRootUrl($appUrl);
+            if (str_starts_with($appUrl, 'https://')) {
+                URL::forceScheme('https');
+            }
         }
 
         /**
@@ -44,6 +45,23 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with('auth_user_site', $site);
             $view->with('auth_user_id', $userId);
+
+            $view->with('authContext', [
+                'isAuthenticated' => (bool) $user,
+                'user' => $user
+                    ? [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role,
+                        'cliente_id' => $user->cliente_id,
+                        'site_id' => $site,
+                    ]
+                    : null,
+                'abilities' => [
+                    'canViewAllSites' => (bool) $user?->isSuperAdmin(),
+                ],
+            ]);
         });
     }
 }
