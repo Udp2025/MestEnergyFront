@@ -1,7 +1,14 @@
 /* ------------------------------------------------------------------ */
 /*  Scatter‑plot view – colours, dynamic aggregation & safe defaults  */
 /* ------------------------------------------------------------------ */
-import { fetchPlot, applyMapping, setupAdvancedFilters } from "../utils/plot";
+import {
+  fetchPlot,
+  applyMapping,
+  setupAdvancedFilters,
+  attachNoticeTarget,
+  normalisePlotError,
+  plotIsEmpty,
+} from "../utils/plot";
 import Plotly from "plotly.js-dist-min";
 import { fillSelect } from "../utils/list";
 import { getSites, getDevices, fmtDate } from "../utils/core";
@@ -46,6 +53,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   setupAdvancedFilters(form);
+  const notice = attachNoticeTarget(form);
 
   const siteSel = $("site"); // undefined for non‑admins
   const deviceSel = $("device");
@@ -70,6 +78,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!activeSiteId) {
       fillSelect(deviceSel, [], "device_id", "device_name");
       runBtn.disabled = true;
+      notice.show("Selecciona un sitio para ver sus dispositivos.", "info");
       return;
     }
     const rows = await getDevices(activeSiteId);
@@ -77,8 +86,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     /* prepend an “ALL” option so colour‑by‑device makes sense      */
     if (rows.length > 0) {
-      deviceSel.insertAdjacentHTML("afterbegin", '<option value="ALL">Todos</option>');
+      deviceSel.insertAdjacentHTML(
+        "afterbegin",
+        '<option value="ALL">Todos</option>'
+      );
       deviceSel.value = "ALL";
+      notice.clear();
+    } else {
+      notice.show("El sitio elegido no tiene dispositivos registrados.", "info");
     }
 
     runBtn.disabled = rows.length === 0;
@@ -98,7 +113,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadDevices();
   } catch (err) {
     console.error(err);
-    alert("No se pudieron cargar los dispositivos/sitios: " + (err?.message || err));
+    const { message, severity } = normalisePlotError(err);
+    notice.show(message, severity);
     runBtn.disabled = true;
     return; // bail early
   }
@@ -204,21 +220,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function run(e) {
     e?.preventDefault();
     if (runBtn.disabled) return;
+    notice.clear();
     // basic date guard
     const from = v("from");
     const to = v("to");
     if (from > to) {
-      alert("Rango de fechas inválido: 'Desde' es mayor que 'Hasta'.");
+      notice.show("Rango inválido: la fecha inicial es mayor que la final.", "error");
       return;
     }
     runBtn.disabled = true; // UX guard
     try {
       const { figure, config, mapping } = await fetchPlot(buildBody());
       applyMapping(figure, mapping);
+      if (plotIsEmpty(figure)) {
+        notice.show("No se encontraron datos para los filtros seleccionados.", "info");
+      }
       await Plotly.react(chart, figure.data, figure.layout, config); // efficient re‑draw
     } catch (err) {
       console.error(err);
-      alert("No se pudo cargar el gráfico: " + (err?.message || err));
+      const { message, severity } = normalisePlotError(err);
+      notice.show(message, severity);
     } finally {
       runBtn.disabled = false;
     }

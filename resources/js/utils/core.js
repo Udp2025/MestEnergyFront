@@ -26,8 +26,17 @@ export async function fetchDB(body) {
   });
 
   if (!res.ok) {
-    const msg = await res.text();
-    throw new Error(`API ${res.status}: ${msg}`);
+    let payload;
+    try {
+      payload = await res.json();
+    } catch (_) {
+      payload = await res.text();
+    }
+    const error = new Error("Plot API request failed");
+    error.status = res.status;
+    error.payload = payload;
+    error.isPlotError = true;
+    throw error;
   }
 
   /* 3.  Return plain JSON (the endpoint wraps real rows in .data) */

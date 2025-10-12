@@ -16,8 +16,13 @@
     $canViewAllSites = $authContext['abilities']['canViewAllSites'] ?? false;
 @endphp
 
+<div class="plot-page">
+  <h1 class="plot-page__title">Heat Map</h1>
 
-<form id="plot-filters" class="plot-filters" aria-label="Heat-map filters">
+  <section class="plot-card">
+    <form id="plot-filters" class="plot-filters" aria-label="Heat-map filters">
+      @csrf
+      <div class="plot-notice" data-notice role="alert"></div>
   {{-- SITE (only for admins) -------------------------------------------- --}}
   @if ($canViewAllSites)
     <label>Sitio:
@@ -25,10 +30,10 @@
     </label>
   @endif
 
-  {{-- DEVICE ------------------------------------------------------------- --}}
-  <label>Dispositivo:
-    <select id="device" name="device" required></select>
-  </label>
+      {{-- DEVICE ------------------------------------------------------------- --}}
+      <label>Dispositivo:
+        <select id="device" name="device" required></select>
+      </label>
 
   {{-- AXES ---------------------------------------------------------------- --}}
   <label>X:
@@ -47,46 +52,48 @@
     </select>
   </label>
 
-  {{-- Metric & Function -------------------------------------------------- --}}
-  <label>Métrica:
-    <select name="z" id="z">
-      @foreach (['power_w'=>'Potencia','energy_wh'=>'Energía','current_a'=>'Corriente','voltage_v'=>'Voltaje','power_factor'=>'Factor Potencia'] as $k=>$v)
-        <option value="{{ $k }}">{{ $v }}</option>
-      @endforeach
-    </select>
-  </label>
+      {{-- Metric & Function -------------------------------------------------- --}}
+      <label>Métrica:
+        <select name="z" id="z">
+          @foreach (['power_w'=>'Potencia','energy_wh'=>'Energía','current_a'=>'Corriente','voltage_v'=>'Voltaje','power_factor'=>'Factor Potencia'] as $k=>$v)
+            <option value="{{ $k }}">{{ $v }}</option>
+          @endforeach
+        </select>
+      </label>
 
-  <button
-    type="button"
-    class="plot-button plot-button--ghost advanced-toggle"
-    data-advanced-toggle
-    data-close-label="Ocultar filtros avanzados"
-    aria-expanded="false"
-  >
-    Filtros Avanzados
-  </button>
+      <button
+        type="button"
+        class="plot-button plot-button--ghost advanced-toggle"
+        data-advanced-toggle
+        data-close-label="Ocultar filtros avanzados"
+        aria-expanded="false"
+      >
+        Filtros Avanzados
+      </button>
 
-  <div class="advanced-filters" data-advanced-container>
-    <label>Función:
-      <select name="agg" id="agg">
-        @foreach (['avg'=>'Promedio','sum'=>'Suma','min'=>'Mín','max'=>'Máx','count'=>'Conteo','std'=>'Std','median'=>'Mediana','mode'=>'Moda','distinct'=>'Distintos'] as $k=>$v)
-          <option value="{{ $k }}" {{ $k==='avg' ? 'selected' : '' }}>{{ $v }}</option>
-        @endforeach
-      </select>
-    </label>
-  </div>
+      <div class="advanced-filters" data-advanced-container>
+        <label>Función:
+          <select name="agg" id="agg">
+            @foreach (['avg'=>'Promedio','sum'=>'Suma','min'=>'Mín','max'=>'Máx','count'=>'Conteo','std'=>'Std','median'=>'Mediana','mode'=>'Moda','distinct'=>'Distintos'] as $k=>$v)
+              <option value="{{ $k }}" {{ $k==='avg' ? 'selected' : '' }}>{{ $v }}</option>
+            @endforeach
+          </select>
+        </label>
+      </div>
 
-  {{-- Period navigation -------------------------------------------------- --}}
-  <div class="period-nav">
-    <button type="button" id="prev" class="plot-button" aria-label="Periodo anterior">‹</button>
-    <span   id="periodLabel" role="status" aria-live="polite"></span>
-    <button type="button" id="next" class="plot-button" aria-label="Periodo siguiente">›</button>
-  </div>
+      {{-- Period navigation -------------------------------------------------- --}}
+      <div class="period-nav">
+        <button type="button" id="prev" class="plot-button" aria-label="Periodo anterior">‹</button>
+        <span   id="periodLabel" role="status" aria-live="polite"></span>
+        <button type="button" id="next" class="plot-button" aria-label="Periodo siguiente">›</button>
+      </div>
 
-  <button id="run" type="submit" class="plot-button"><span>Aplicar</span></button>
-</form>
+      <button id="run" type="submit" class="plot-button"><span>Aplicar</span></button>
+    </form>
 
-<div class="chart-container">
-  <div id="heatChart" style="max-height:600px"></div>
+    <div class="chart-container">
+      <div id="heatChart" style="max-height:600px"></div>
+    </div>
+  </section>
 </div>
 @endsection

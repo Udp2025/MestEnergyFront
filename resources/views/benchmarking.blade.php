@@ -21,6 +21,7 @@
   <section class="plot-card">
     <form id="plot-filters" class="plot-filters">
       @csrf
+      <div class="plot-notice" data-notice role="alert"></div>
 
       @if ($canViewAllSites)
       <label>

@@ -3,7 +3,14 @@
  *********************************************************************/
 import Plotly from "plotly.js-dist-min";
 import debounce from "lodash.debounce";
-import { fetchPlot, applyMapping, setupAdvancedFilters } from "../utils/plot";
+import {
+  fetchPlot,
+  applyMapping,
+  setupAdvancedFilters,
+  attachNoticeTarget,
+  normalisePlotError,
+  plotIsEmpty,
+} from "../utils/plot";
 import { fillSelect } from "../utils/list";
 import { getSites, getDevices } from "../utils/core";
 import {
@@ -62,6 +69,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   setupAdvancedFilters(form);
+  const notice = attachNoticeTarget(form);
 
   const axes = [...document.querySelectorAll(".axisSelect")];
   const siteSel = $("site"); // undefined for non-admins
@@ -82,11 +90,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!activeSiteId) {
       fillSelect(deviceSel, [], "device_id", "device_name");
       runBtn.disabled = true;
+      notice.show("Selecciona un sitio para cargar sus dispositivos.", "info");
       return;
     }
     const rows = await getDevices(activeSiteId);
     fillSelect(deviceSel, rows, "device_id", "device_name");
-    runBtn.disabled = deviceSel.options.length === 0;
+    const hasDevices = rows.length > 0;
+    runBtn.disabled = !hasDevices;
+    if (!hasDevices) {
+      notice.show("El sitio elegido no tiene dispositivos registrados.", "info");
+    } else {
+      notice.clear();
+    }
   }
 
   try {
@@ -104,9 +119,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadDevices();
   } catch (err) {
     console.error(err);
-    alert(
-      "No se pudieron cargar los dispositivos/sitios: " + (err?.message || err)
-    );
+    const { message, severity } = normalisePlotError(err);
+    notice.show(message, severity);
     [runBtn, prevBtn, nextBtn].forEach((b) => (b.disabled = true));
     return; // bail early
   }
@@ -157,7 +171,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (invalid) {
       label.textContent = "Combinación inválida";
+      notice.show("La combinación de ejes elegida no es válida.", "info");
       return;
+    }
+
+    if (!runBtn.disabled) {
+      notice.clear();
     }
 
     if (r.unit === "week") periodStart = thisMonday(TODAY);
@@ -232,13 +251,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function draw() {
     if (runBtn.disabled) return;
     runBtn.disabled = true;
+    notice.clear();
     try {
       const { figure, config, mapping } = await fetchPlot(buildBody());
       applyMapping(figure, mapping);
+      if (plotIsEmpty(figure)) {
+        notice.show("No se encontraron datos para los filtros seleccionados.", "info");
+      }
       await Plotly.react(chart, figure.data, figure.layout, config);
     } catch (err) {
-      alert("No se pudo cargar el gráfico: " + err.message);
       console.error(err);
+      const { message, severity } = normalisePlotError(err);
+      notice.show(message, severity);
     } finally {
       runBtn.disabled = false;
     }

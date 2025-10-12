@@ -15,13 +15,17 @@ export async function fetchPlot(body) {
     body: JSON.stringify(body),
   });
   if (!r.ok) {
-    let reason = await r.text();
+    let payload;
     try {
-      reason = JSON.parse(reason);
+      payload = await r.json();
     } catch (_) {
-      // keep plain text
+      payload = await r.text();
     }
-    throw new Error(`API ${r.status}: ${JSON.stringify(reason)}`);
+    const error = new Error("Plot API request failed");
+    error.status = r.status;
+    error.payload = payload;
+    error.isPlotError = true;
+    throw error;
   }
   return r.json();
 }
@@ -91,5 +95,94 @@ export function setupAdvancedFilters(form, options = {}) {
   toggle.addEventListener("click", () => {
     container.classList.toggle("is-visible");
     sync();
+  });
+}
+
+export function attachNoticeTarget(form, selector = "[data-notice]") {
+  if (!form) {
+    return { show: () => {}, clear: () => {} };
+  }
+  const el = form.querySelector(selector);
+  if (!el) {
+    return { show: () => {}, clear: () => {} };
+  }
+
+  const show = (message, type = "info") => {
+    if (!message) {
+      el.textContent = "";
+      el.classList.remove("is-visible", "notice--info", "notice--error", "notice--success");
+      return;
+    }
+    el.textContent = message;
+    el.classList.add("is-visible");
+    el.classList.remove("notice--info", "notice--error", "notice--success");
+    el.classList.add(`notice--${type}`);
+  };
+
+  const clear = () => show("");
+
+  return { show, clear };
+}
+
+export function normalisePlotError(err) {
+  if (!err) {
+    return {
+      message: "Ocurrió un error desconocido.",
+      severity: "error",
+    };
+  }
+
+  if (err.isPlotError) {
+    if (err.status === 400 || err.status === 404 || err.status === 204) {
+      const payloadMessage =
+        typeof err.payload === "string"
+          ? err.payload
+          : err.payload?.message || err.payload?.detail;
+      return {
+        message:
+          payloadMessage ||
+          "No se encontraron datos para los filtros seleccionados. Ajusta el rango o los parámetros.",
+        severity: "info",
+      };
+    }
+    const payloadMessage =
+      typeof err.payload === "string"
+        ? err.payload
+        : err.payload?.message || err.payload?.detail;
+    return {
+      message:
+        payloadMessage ||
+        "No se pudo obtener información del servicio. Intenta nuevamente.",
+      severity: "error",
+    };
+  }
+
+  if (err.message) {
+    return { message: err.message, severity: "error" };
+  }
+
+  return { message: String(err), severity: "error" };
+}
+
+export function plotIsEmpty(figure) {
+  if (!figure || !Array.isArray(figure.data) || figure.data.length === 0) {
+    return true;
+  }
+
+  return figure.data.every((trace = {}) => {
+    const vectors = [trace.y, trace.x, trace.values];
+    if (vectors.some((arr) => Array.isArray(arr) && arr.length > 0)) {
+      return false;
+    }
+
+    const z = trace.z;
+    if (Array.isArray(z)) {
+      const flattened = typeof z.flat === "function" ? z.flat() : [].concat(...z);
+      if (flattened.length > 0) return false;
+    } else if (typeof z === "number") {
+      return false;
+    }
+
+    return true;
   });
 }

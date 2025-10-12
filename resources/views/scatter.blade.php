@@ -20,9 +20,14 @@
     $today      = $todayDate->format('Y-m-d');
     $lastWeek   = $todayDate->copy()->subWeek()->format('Y-m-d');
 @endphp
+<div class="plot-page">
+  <h1 class="plot-page__title">Dispersión</h1>
 
+  <section class="plot-card">
+    <form id="plot-filters" class="plot-filters">
+    @csrf
+    <div class="plot-notice" data-notice role="alert"></div>
 
-<form id="plot-filters" class="plot-filters">
     {{-- SITE (only for admins) -------------------------------------------- --}}
     @if ($canViewAllSites)
     <label>Sitio:
@@ -131,12 +136,13 @@
       </label>
     </div>
 
-
   <button id="run" type="submit" class="plot-button"><span>Aplicar</span></button>
 
-</form>
+    </form>
 
-<div class="chart-container">
-    <div id="scatterChart" class="plot-chart" style="max-height:600px"></div>
+    <div class="chart-container">
+        <div id="scatterChart" class="plot-chart" style="max-height:600px"></div>
+    </div>
+  </section>
 </div>
 @endsection
