@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const notice = attachNoticeTarget(form);
 
   const isAdmin = canViewAllSites();
-  let activeSiteId = isAdmin ? null : currentUserSiteId();
+  let activeSiteId = currentUserSiteId();
 
   async function loadSites() {
     if (!isAdmin || !siteSel) return;
@@ -68,15 +68,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const rows = await getDevices(activeSiteId);
     fillSelect(deviceSel, rows, "device_id", "device_name");
-    if (rows.length > 0) {
-      deviceSel.insertAdjacentHTML(
-        "afterbegin",
-        '<option value="ALL">Todos</option>'
-      );
-      deviceSel.value = "ALL";
-      notice.clear();
-    } else {
+    deviceSel.insertAdjacentHTML(
+      "afterbegin",
+      '<option value="ALL">Todos los dispositivos</option>'
+    );
+    deviceSel.value = "ALL";
+    if (rows.length === 0) {
       notice.show("El sitio elegido no tiene dispositivos registrados.", "info");
+    } else {
+      notice.clear();
     }
     runBtn.disabled = rows.length === 0;
   }

@@ -64,10 +64,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ----- Site / device dropdowns --------------------------------- */
   const isAdmin = canViewAllSites();
-  let activeSiteId = isAdmin ? null : currentUserSiteId();
+  let activeSiteId = currentUserSiteId();
 
   async function loadSites() {
-    if (!isAdmin) return;
+    if (!isAdmin || !siteSel) return;
     const sites = await getSites();
     fillSelect(siteSel, sites, "site_id", "site_name");
     activeSiteId = siteSel.value;
@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function loadDevices() {
     if (!deviceSel) return;
-    if (!activeSiteId) {
+    if (!activeSiteId && !isAdmin) {
       fillSelect(deviceSel, [], "device_id", "device_name");
       runBtn.disabled = true;
       notice.show("Selecciona un sitio para ver sus dispositivos.", "info");
@@ -85,15 +85,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     fillSelect(deviceSel, rows, "device_id", "device_name");
 
     /* prepend an “ALL” option so colour‑by‑device makes sense      */
-    if (rows.length > 0) {
-      deviceSel.insertAdjacentHTML(
-        "afterbegin",
-        '<option value="ALL">Todos</option>'
-      );
-      deviceSel.value = "ALL";
-      notice.clear();
-    } else {
+    deviceSel.insertAdjacentHTML(
+      "afterbegin",
+      '<option value="ALL">Todos los dispositivos</option>'
+    );
+    deviceSel.value = "ALL";
+    if (rows.length === 0) {
       notice.show("El sitio elegido no tiene dispositivos registrados.", "info");
+    } else {
+      notice.clear();
     }
 
     runBtn.disabled = rows.length === 0;
@@ -174,7 +174,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     /* device filter – omit when “ALL” so every device is included  */
     const filterMap = {
       measurement_time: `[${from} 00:00:00, ${to} 23:59:59]`,
-      site_id: "=" + activeSiteId,
+      ...(activeSiteId ? { site_id: "=" + activeSiteId } : {}),
       ...(deviceSel.value !== "ALL" && { device_id: "=" + deviceSel.value }),
     };
 

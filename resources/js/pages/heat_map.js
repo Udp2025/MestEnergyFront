@@ -77,16 +77,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   /* ---- Site / device dropdowns ---------------------------------- */
   const isAdmin = canViewAllSites();
-  let activeSiteId = isAdmin ? null : currentUserSiteId();
+  let activeSiteId = currentUserSiteId();
 
   async function loadSites() {
-    if (!isAdmin) return;
+    if (!isAdmin || !siteSel) return;
     const sites = await getSites();
     fillSelect(siteSel, sites, "site_id", "site_name");
     activeSiteId = siteSel.value;
   }
 
   async function loadDevices() {
+    if (!deviceSel) return;
     if (!activeSiteId) {
       fillSelect(deviceSel, [], "device_id", "device_name");
       runBtn.disabled = true;
@@ -95,6 +96,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     const rows = await getDevices(activeSiteId);
     fillSelect(deviceSel, rows, "device_id", "device_name");
+    deviceSel.insertAdjacentHTML(
+      "afterbegin",
+      '<option value="ALL">Todos los dispositivos</option>'
+    );
+    deviceSel.value = "ALL";
     const hasDevices = rows.length > 0;
     runBtn.disabled = !hasDevices;
     if (!hasDevices) {
@@ -228,8 +234,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       table: "measurements",
       filter_map: {
         measurement_time: `[${fromISO}, ${toISO}]`,
-        site_id: "=" + activeSiteId,
-        device_id: "=" + deviceSel.value,
+        ...(activeSiteId ? { site_id: "=" + activeSiteId } : {}),
+        ...(deviceSel?.value && deviceSel.value !== "ALL"
+          ? { device_id: "=" + deviceSel.value }
+          : {}),
       },
       aggregation: [
         {

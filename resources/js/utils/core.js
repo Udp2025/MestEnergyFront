@@ -46,12 +46,18 @@ export async function fetchDB(body) {
 export const getSites = () =>
   fetchDB({ table: "sites", select_columns: ["site_id", "site_name"] });
 
-export const getDevices = (siteId) =>
-  fetchDB({
+export const getDevices = (siteId) => {
+  const payload = {
     table: "devices",
-    filter_map: { site_id: "=" + siteId },
     select_columns: ["device_id", "device_name"],
-  });
+  };
+
+  if (siteId !== undefined && siteId !== null && siteId !== "ALL" && siteId !== "") {
+    payload.filter_map = { site_id: "=" + siteId };
+  }
+
+  return fetchDB(payload);
+};
 
 export function fmtDate(d) {
   // returns "YYYY‑MM‑DD"

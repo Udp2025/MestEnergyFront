@@ -44,10 +44,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const isAdmin = canViewAllSites();
   const siteSel = $("site");
   const deviceSel = $("device");
-  let activeSiteId = isAdmin ? null : currentUserSiteId();
+  let activeSiteId = currentUserSiteId();
 
   async function loadSites() {
-    if (!isAdmin) return;
+    if (!isAdmin || !siteSel) return;
     const sites = await getSites();
     fillSelect(siteSel, sites, "site_id", "site_name");
     activeSiteId = siteSel.value;
@@ -63,16 +63,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const rows = await getDevices(activeSiteId);
     fillSelect(deviceSel, rows, "device_id", "device_name");
-    if (rows.length > 0) {
-      deviceSel.insertAdjacentHTML(
-        "afterbegin",
-        '<option value="ALL">Todos</option>'
-      );
-      deviceSel.value = "ALL";
-      notice.clear();
-    }
+    deviceSel.insertAdjacentHTML(
+      "afterbegin",
+      '<option value="ALL">Todos los dispositivos</option>'
+    );
+    deviceSel.value = "ALL";
     if (rows.length === 0) {
       notice.show("El sitio elegido no tiene dispositivos registrados.", "info");
+    } else {
+      notice.clear();
     }
     runBtn.disabled = rows.length === 0;
   }
