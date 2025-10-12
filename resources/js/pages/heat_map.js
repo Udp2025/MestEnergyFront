@@ -6,6 +6,11 @@ import debounce from "lodash.debounce";
 import { fetchPlot, applyMapping } from "../utils/plot";
 import { fillSelect } from "../utils/list";
 import { getSites, getDevices } from "../utils/core";
+import {
+  canViewAllSites,
+  currentUserSiteId,
+  ensureAuthenticatedOrRedirect,
+} from "../utils/auth";
 
 const DAY_MS = 86_400_000;
 const TODAY = new Date();
@@ -39,6 +44,7 @@ const daysInMonth = (d) =>
   new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
 
 document.addEventListener("DOMContentLoaded", async () => {
+  ensureAuthenticatedOrRedirect();
   const $ = (id) => document.getElementById(id);
 
   /* ---- DOM ------------------------------------------------------ */
@@ -55,31 +61,39 @@ document.addEventListener("DOMContentLoaded", async () => {
   const deviceSel = $("device");
 
   /* ---- Site / device dropdowns ---------------------------------- */
-  let activeSiteId = window.currentUserIsAdmin
-    ? null
-    : Number(window.currentSiteId);
+  const isAdmin = canViewAllSites();
+  let activeSiteId = isAdmin ? null : currentUserSiteId();
 
   async function loadSites() {
-    if (!window.currentUserIsAdmin) return;
+    if (!isAdmin) return;
     const sites = await getSites();
     fillSelect(siteSel, sites, "site_id", "site_name");
     activeSiteId = siteSel.value;
   }
 
   async function loadDevices() {
+    if (!activeSiteId) {
+      fillSelect(deviceSel, [], "device_id", "device_name");
+      runBtn.disabled = true;
+      return;
+    }
     const rows = await getDevices(activeSiteId);
     fillSelect(deviceSel, rows, "device_id", "device_name");
     runBtn.disabled = deviceSel.options.length === 0;
   }
 
   try {
-    if (window.currentUserIsAdmin) {
+    if (isAdmin) {
       await loadSites();
       siteSel.onchange = async () => {
         activeSiteId = siteSel.value;
         await loadDevices(); // no draw here
       };
     }
+    if (!isAdmin && !activeSiteId) {
+      throw new Error("El usuario no tiene un sitio asignado.");
+    }
+
     await loadDevices();
   } catch (err) {
     console.error(err);
@@ -229,10 +243,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   axes.forEach((sel) => (sel.onchange = applyRule));
   form.addEventListener("input", debounce(applyRule, 300)); // label refresh only
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    draw();
+    await draw();
   });
 
   applyRule(); // initial label & state
+  if (!runBtn.disabled) {
+    await draw();
+  }
 });

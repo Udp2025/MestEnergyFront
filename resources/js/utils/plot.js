@@ -1,17 +1,28 @@
-export async function fetchPlot(body) {
-  const API_KEY = import.meta.env.VITE_PLOT_API_KEY;
-  const API_BASE = import.meta.env.VITE_PLOT_API_BASE;
+export function csrfToken() {
+  const token = document.head.querySelector('meta[name="csrf-token"]')?.content;
+  if (!token) throw new Error("Missing CSRF token");
+  return token;
+}
 
-  if (!API_BASE || !API_KEY) throw new Error("Missing API configuration");
-  const r = await fetch(`${API_BASE}/items/data/plot`, {
+export async function fetchPlot(body) {
+  const r = await fetch("/charts/plot", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": API_KEY,
+      "X-CSRF-TOKEN": csrfToken(),
+      Accept: "application/json",
     },
     body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error(`API ${r.status}: ${await r.text()}`);
+  if (!r.ok) {
+    let reason = await r.text();
+    try {
+      reason = JSON.parse(reason);
+    } catch (_) {
+      // keep plain text
+    }
+    throw new Error(`API ${r.status}: ${JSON.stringify(reason)}`);
+  }
   return r.json();
 }
 

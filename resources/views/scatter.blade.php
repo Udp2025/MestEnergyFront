@@ -15,22 +15,16 @@
 @php
     use Carbon\Carbon;
 
-    $isAdmin    = false; // auth()->user()->hasRole('admin');
-    $siteId     = session('currentSiteId', 186431);
+    $canViewAllSites = $authContext['abilities']['canViewAllSites'] ?? false;
     $todayDate  = Carbon::today();
     $today      = $todayDate->format('Y-m-d');
     $lastWeek   = $todayDate->copy()->subWeek()->format('Y-m-d');
 @endphp
 
-<script>
-  window.currentUserIsAdmin = @json($isAdmin);
-  window.currentSiteId      = @json($siteId);
-</script>
-
 
 <form id="plot-filters" class="plot-filters">
     {{-- SITE (only for admins) -------------------------------------------- --}}
-    @if ($isAdmin)
+    @if ($canViewAllSites)
     <label>Sitio:
         <select id="site" name="site" required></select>
     </label>

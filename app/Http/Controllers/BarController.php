@@ -11,7 +11,7 @@ class BarController extends Controller
      */
     public function index()
     {
-        return view('bar');
+        return view('benchmarking');
 
     }
 

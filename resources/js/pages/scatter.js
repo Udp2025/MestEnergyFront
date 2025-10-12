@@ -5,6 +5,11 @@ import { fetchPlot, applyMapping } from "../utils/plot";
 import Plotly from "plotly.js-dist-min";
 import { fillSelect } from "../utils/list";
 import { getSites, getDevices, fmtDate } from "../utils/core";
+import {
+  canViewAllSites,
+  currentUserSiteId,
+  ensureAuthenticatedOrRedirect,
+} from "../utils/auth";
 
 /* ---------- Dates ------------------------------------------------- */
 const TODAY_DATE = new Date();
@@ -28,6 +33,7 @@ const DEFAULTS = {
 /*  Everything lives inside DOMContentLoaded                          */
 /* ------------------------------------------------------------------ */
 document.addEventListener("DOMContentLoaded", async () => {
+  ensureAuthenticatedOrRedirect();
   const $ = (id) => document.getElementById(id);
 
   /* ----- grab DOM nodes ------------------------------------------ */
@@ -47,33 +53,45 @@ document.addEventListener("DOMContentLoaded", async () => {
   const colorSel = $("color_by"); // << new selector
 
   /* ----- Site / device dropdowns --------------------------------- */
-  let activeSiteId = window.currentUserIsAdmin ? null : Number(window.currentSiteId);
+  const isAdmin = canViewAllSites();
+  let activeSiteId = isAdmin ? null : currentUserSiteId();
 
   async function loadSites() {
-    if (!window.currentUserIsAdmin) return;
+    if (!isAdmin) return;
     const sites = await getSites();
     fillSelect(siteSel, sites, "site_id", "site_name");
-    activeSiteId = Number(siteSel.value);
+    activeSiteId = siteSel.value;
   }
 
   async function loadDevices() {
+    if (!deviceSel) return;
+    if (!activeSiteId) {
+      fillSelect(deviceSel, [], "device_id", "device_name");
+      runBtn.disabled = true;
+      return;
+    }
     const rows = await getDevices(activeSiteId);
     fillSelect(deviceSel, rows, "device_id", "device_name");
 
     /* prepend an “ALL” option so colour‑by‑device makes sense      */
-    deviceSel.insertAdjacentHTML("afterbegin", '<option value="ALL">Todos</option>'); // MDN pattern
-    deviceSel.value = "ALL";
+    if (rows.length > 0) {
+      deviceSel.insertAdjacentHTML("afterbegin", '<option value="ALL">Todos</option>');
+      deviceSel.value = "ALL";
+    }
 
-    runBtn.disabled = deviceSel.options.length === 0;
+    runBtn.disabled = rows.length === 0;
   }
 
   try {
-    if (window.currentUserIsAdmin) {
+    if (isAdmin) {
       await loadSites();
-      siteSel.addEventListener("change", async () => {
-        activeSiteId = Number(siteSel.value);
+      siteSel?.addEventListener("change", async () => {
+        activeSiteId = siteSel.value;
         await loadDevices();
       });
+    }
+    if (!isAdmin && !activeSiteId) {
+      throw new Error("El usuario no tiene un sitio asignado.");
     }
     await loadDevices();
   } catch (err) {
@@ -181,8 +199,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   /* ----- Submit handler ------------------------------------------ */
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  async function run(e) {
+    e?.preventDefault();
     if (runBtn.disabled) return;
     // basic date guard
     const from = v("from");
@@ -202,5 +220,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     } finally {
       runBtn.disabled = false;
     }
-  });
+  }
+
+  form.addEventListener("submit", run);
+
+  if (!runBtn.disabled) {
+    await run();
+  }
 });

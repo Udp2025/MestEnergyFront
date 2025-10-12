@@ -12,21 +12,15 @@
  *   });
  */
 
+import { csrfToken } from "./plot";
+
 export async function fetchDB(body) {
-  /* 1.  Read base URL & key from Vite env (exposed by Laravel-Vite) */
-  const BASE = import.meta.env.VITE_PLOT_API_BASE;
-  const KEY = import.meta.env.VITE_PLOT_API_KEY;
-
-  if (!BASE || !KEY) {
-    throw new Error("Plot API env vars are missing (check .env & Vite config)");
-  }
-
-  /* 2.  POST to the universal items/data endpoint */
-  const res = await fetch(`${BASE}/items/data`, {
+  const res = await fetch("/charts/data", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": KEY,
+      "X-CSRF-TOKEN": csrfToken(),
+      Accept: "application/json",
     },
     body: JSON.stringify(body),
   });

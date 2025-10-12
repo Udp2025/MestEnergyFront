@@ -11,8 +11,7 @@ class TimeSeriesController extends Controller
      */
     public function index()
     {
-        return view('timeseries');
-
+        return redirect()->route('general_clientes');
     }
 
     /**

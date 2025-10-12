@@ -1,6 +1,12 @@
 import { fetchPlot, applyMapping } from "../utils/plot";
 import Plotly from "plotly.js-dist-min";
-import debounce from "lodash.debounce";
+import {
+  canViewAllSites,
+  currentUserSiteId,
+  ensureAuthenticatedOrRedirect,
+} from "../utils/auth";
+import { fillSelect } from "../utils/list";
+import { getSites, getDevices } from "../utils/core";
 
 const TODAY = new Date().toISOString().slice(0, 10);
 const DEFAULTS = {
@@ -15,6 +21,7 @@ const DEFAULTS = {
 /*  Everything lives inside DOMContentLoaded                          */
 /* ------------------------------------------------------------------ */
 document.addEventListener("DOMContentLoaded", () => {
+  ensureAuthenticatedOrRedirect();
   const $ = (id) => document.getElementById(id);
   const runBtn = $("run");
   const form = $("plot-filters");
@@ -23,6 +30,57 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("timeseries.js: required DOM nodes not found");
     return; // bail early, avoid further errors
   }
+
+  const isAdmin = canViewAllSites();
+  const siteSel = $("site");
+  const deviceSel = $("device");
+  let activeSiteId = isAdmin ? null : currentUserSiteId();
+
+  async function loadSites() {
+    if (!isAdmin) return;
+    const sites = await getSites();
+    fillSelect(siteSel, sites, "site_id", "site_name");
+    activeSiteId = siteSel.value;
+  }
+
+  async function loadDevices() {
+    if (!deviceSel) return;
+    if (!activeSiteId) {
+      fillSelect(deviceSel, [], "device_id", "device_name");
+      runBtn.disabled = true;
+      return;
+    }
+    const rows = await getDevices(activeSiteId);
+    fillSelect(deviceSel, rows, "device_id", "device_name");
+    if (rows.length > 0) {
+      deviceSel.insertAdjacentHTML(
+        "afterbegin",
+        '<option value="ALL">Todos</option>'
+      );
+      deviceSel.value = "ALL";
+    }
+    runBtn.disabled = rows.length === 0;
+  }
+
+  const initPromise = (async () => {
+    try {
+      if (isAdmin) {
+        await loadSites();
+        siteSel.onchange = async () => {
+          activeSiteId = siteSel.value;
+          await loadDevices();
+        };
+      } else if (!activeSiteId) {
+        throw new Error("El usuario no tiene un sitio asignado.");
+      }
+      await loadDevices();
+    } catch (error) {
+      console.error(error);
+      alert("No se pudieron cargar sitios/dispositivos: " + (error?.message || error));
+      runBtn.disabled = true;
+      return;
+    }
+  })();
 
   /* -- helpers ----------------------------------------------------- */
   const v = (name) => form[name]?.value?.trim() || DEFAULTS[name];
@@ -39,6 +97,10 @@ document.addEventListener("DOMContentLoaded", () => {
       table: "measurements",
       filter_map: {
         measurement_time: `[${from} 00:00:00, ${to} 23:59:59]`,
+        ...(deviceSel?.value && deviceSel.value !== "ALL"
+          ? { device_id: "=" + deviceSel.value }
+          : {}),
+        ...(activeSiteId ? { site_id: "=" + activeSiteId } : {}),
       },
       aggregation: [
         {
@@ -58,8 +120,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ------------- Event wiring ----------------------------------- */
-  form.onsubmit = async (e) => {
-    e.preventDefault();
+  async function run(e) {
+    e?.preventDefault();
     if (runBtn.disabled) return;
     // basic date guard
     const from = v("from");
@@ -79,5 +141,13 @@ document.addEventListener("DOMContentLoaded", () => {
     } finally {
       runBtn.disabled = false;
     }
-  };
+  }
+
+  form.addEventListener("submit", run);
+
+  initPromise.then(() => {
+    if (!runBtn.disabled) {
+      run();
+    }
+  });
 });

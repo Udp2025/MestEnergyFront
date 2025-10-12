@@ -13,19 +13,13 @@
 
 @section('content')
 @php
-    $isAdmin = FALSE; // auth()->user()->hasRole('admin');   // or any gate/check you use
-    $siteId = 186431;// session('currentSiteId');           // populated by middleware
+    $canViewAllSites = $authContext['abilities']['canViewAllSites'] ?? false;
 @endphp
-
-<script>
-  window.currentUserIsAdmin = @json($isAdmin);
-  window.currentSiteId      = @json($siteId);
-</script>
 
 
 <form id="plot-filters" class="plot-filters" aria-label="Heat-map filters">
   {{-- SITE (only for admins) -------------------------------------------- --}}
-  @if ($isAdmin)
+  @if ($canViewAllSites)
     <label>Sitio:
       <select id="site" name="site" required></select>
     </label>
