@@ -60,14 +60,29 @@ label {
 .plot-filters select:focus-visible,
 .plot-filters input:focus-visible {
   outline: 0;
-  box-shadow:
-    0 0 0 2px rgba(0, 0, 0, 0.06),
-    0 0 0 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06), 0 0 0 4px rgba(0, 0, 0, 0.04);
 }
 
 /* Align the primary action to the end when room allows */
-.plot-filters .plot-button {
+.plot-filters #run {
   margin-left: auto;
+}
+
+.plot-filters .advanced-toggle {
+  align-self: flex-start;
+  align-self: end;
+}
+
+.plot-filters .advanced-filters {
+  display: none;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 20px 28px;
+  margin-top: 4px;
+}
+
+.plot-filters .advanced-filters.is-visible {
+  display: flex;
 }
 
 /* --- 2 · Buttons ------------------------------------------------- */
@@ -94,9 +109,7 @@ label {
 }
 .plot-button:focus-visible {
   outline: 0;
-  box-shadow:
-    0 0 0 2px rgba(0, 0, 0, 0.04),
-    0 0 0 5px rgba(255, 255, 255, 0.6),
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04), 0 0 0 5px rgba(255, 255, 255, 0.6),
     0 0 0 7px rgba(0, 0, 0, 0.06);
 }
 .plot-button:disabled,
@@ -124,6 +137,28 @@ label {
 }
 
 /* --- 3 · Chart container & modebar ------------------------------ */
+
+.plot-button.plot-button--ghost {
+  background: transparent;
+  color: #4a5568;
+  border: 1px solid #dfe6e9;
+  box-shadow: none;
+}
+
+.plot-button.plot-button--ghost:hover {
+  background: rgba(206, 173, 109, 0.12);
+  color: #2f3a4d;
+  box-shadow: none;
+}
+
+.plot-button.plot-button--ghost:active {
+  transform: none;
+}
+
+.plot-button.plot-button--ghost[disabled]::after {
+  display: none;
+}
+
 .chart-container {
   position: relative;
   padding: 44px 20px 12px 12px;

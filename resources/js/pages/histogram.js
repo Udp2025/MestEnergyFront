@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------ */
 /*  histogram‑plot view – colours, dynamic aggregation & safe defaults  */
 /* ------------------------------------------------------------------ */
-import { fetchPlot, applyMapping } from "../utils/plot";
+import { fetchPlot, applyMapping, setupAdvancedFilters } from "../utils/plot";
 import Plotly from "plotly.js-dist-min";
 import { fillSelect } from "../utils/list";
 import { getSites, getDevices, fmtDate } from "../utils/core";
@@ -42,6 +42,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("histogram.js: required DOM nodes not found");
     return;
   }
+
+  setupAdvancedFilters(form);
 
   const siteSel = $("site"); // undefined for non‑admins
   const deviceSel = $("device");

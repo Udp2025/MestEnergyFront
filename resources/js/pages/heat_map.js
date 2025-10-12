@@ -3,7 +3,7 @@
  *********************************************************************/
 import Plotly from "plotly.js-dist-min";
 import debounce from "lodash.debounce";
-import { fetchPlot, applyMapping } from "../utils/plot";
+import { fetchPlot, applyMapping, setupAdvancedFilters } from "../utils/plot";
 import { fillSelect } from "../utils/list";
 import { getSites, getDevices } from "../utils/core";
 import {
@@ -55,6 +55,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const runBtn = $("run");
   const prevBtn = $("prev");
   const nextBtn = $("next");
+
+  if (!form || !chart || !runBtn) {
+    console.error("heat_map.js: required DOM nodes not found");
+    return;
+  }
+
+  setupAdvancedFilters(form);
 
   const axes = [...document.querySelectorAll(".axisSelect")];
   const siteSel = $("site"); // undefined for non-admins

@@ -55,8 +55,19 @@
         <input type="date" name="to"   id="to"   value="{{ $today }}">
     </label>
 
-    {{-- === Resampling window ============================================ --}}
-    <label>Frecuencia:
+    <button
+      type="button"
+      class="plot-button plot-button--ghost advanced-toggle"
+      data-advanced-toggle
+      data-close-label="Ocultar filtros avanzados"
+      aria-expanded="false"
+    >
+      Filtros Avanzados
+    </button>
+
+    <div class="advanced-filters" data-advanced-container>
+      {{-- === Resampling window ============================================ --}}
+      <label>Frecuencia:
         <select name="freq" id="freq">
             <option value="5min" selected>5min</option>
             <option value="H">Hora</option>
@@ -73,10 +84,10 @@
             <option value="S">Semestre</option>
             <option value="Y">Año</option>
         </select>
-    </label>
+      </label>
 
-    {{-- === Aggregations ================================================== --}}
-    <label>Función X:
+      {{-- === Aggregations ================================================== --}}
+      <label>Función X:
         <select name="agg1" id="agg1" disabled>
             <option value="original" selected>Original</option>
             <option value="avg">Promedio</option>
@@ -85,15 +96,16 @@
             <option value="max">Máx</option>
             <option value="std">Desv. Estándar</option>
         </select>
-    </label>
+      </label>
 
-     {{-- BINS (optional) ------------------------------------------------ --}}
-  <label>Bins máx:
-    <input type="number" id="bins" name="bins" min="3" placeholder="auto">
-  </label>
+      {{-- BINS (optional) ------------------------------------------------ --}}
+      <label>Bins máx:
+        <input type="number" id="bins" name="bins" min="3" placeholder="auto">
+      </label>
+    </div>
 
 
-  <button id="run" type="submit" class="plot-button"><span>Aplicar</span></button>
+    <button id="run" type="submit" class="plot-button"><span>Aplicar</span></button>
 
 </form>
 

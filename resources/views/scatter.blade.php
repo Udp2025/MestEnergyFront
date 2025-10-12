@@ -67,8 +67,19 @@
         <input type="date" name="to"   id="to"   value="{{ $today }}">
     </label>
 
-    {{-- === Resampling window ============================================ --}}
-    <label>Frecuencia:
+    <button
+      type="button"
+      class="plot-button plot-button--ghost advanced-toggle"
+      data-advanced-toggle
+      data-close-label="Ocultar filtros avanzados"
+      aria-expanded="false"
+    >
+      Filtros Avanzados
+    </button>
+
+    <div class="advanced-filters" data-advanced-container>
+      {{-- === Resampling window ============================================ --}}
+      <label>Frecuencia:
         <select name="freq" id="freq">
             <option value="5min" selected>5min</option>
             <option value="H">Hora</option>
@@ -85,10 +96,10 @@
             <option value="S">Semestre</option>
             <option value="Y">Año</option>
         </select>
-    </label>
+      </label>
 
-    {{-- === Aggregations ================================================== --}}
-    <label>Función X:
+      {{-- === Aggregations ================================================== --}}
+      <label>Función X:
         <select name="agg1" id="agg1" disabled>
             <option value="original" selected>Original</option>
             <option value="avg">Promedio</option>
@@ -97,9 +108,9 @@
             <option value="max">Máx</option>
             <option value="std">Desv. Estándar</option>
         </select>
-    </label>
+      </label>
 
-    <label>Función Y:
+      <label>Función Y:
         <select name="agg2" id="agg2" disabled>
             {{-- same list as agg1; keep or prune as needed --}}
             <option value="original" selected>Original</option>
@@ -109,15 +120,16 @@
             <option value="max">Máx</option>
             <option value="std">Desv. Estándar</option>
         </select>
-    </label>
+      </label>
 
-    <label>Color&nbsp;por:
+      <label>Color&nbsp;por:
         <select id="color_by" name="color_by">
             <option value="device_id" selected>Dispositivo</option>
             <option value="hour">Hora</option>
             <option value="weekday">Día de la semana</option>
         </select>
-    </label>
+      </label>
+    </div>
 
 
   <button id="run" type="submit" class="plot-button"><span>Aplicar</span></button>

@@ -55,40 +55,52 @@
         <input type="date" name="to" id="to" value="{{ $today }}">
       </label>
 
-      {{-- Aggregation ------------------------------------------------------}}
-      <label>
-        Frecuencia:
-        <select name="period" id="period">
-          <option value="H" selected>Hora</option>
-          <option value="2H">2H</option>
-          <option value="4H">4H</option>
-          <option value="6H">6H</option>
-          <option value="12H">12H</option>
-          <option value="D">Día</option>
-          <option value="BD">Business Days</option>
-          <option value="W">Semana</option>
-          <option value="BW">Quincena</option>
-          <option value="M">Mes</option>
-          <option value="Q">Trimestre</option>
-          <option value="S">Semestre</option>
-          <option value="Y">Año</option>
-        </select>
-      </label>
+      <button
+        type="button"
+        class="plot-button plot-button--ghost advanced-toggle"
+        data-advanced-toggle
+        data-close-label="Ocultar filtros avanzados"
+        aria-expanded="false"
+      >
+        Filtros Avanzados
+      </button>
 
-      <label>
-        Función:
-        <select name="agg" id="agg">
-          <option value="avg" selected>Promedio</option>
-          <option value="sum">Suma</option>
-          <option value="min">Mín</option>
-          <option value="max">Máx</option>
-          <option value="count">Conteo</option>
-          <option value="distinct">Conteo de distintos</option>
-          <option value="std">Desviación Estándar</option>
-          <option value="mode">Moda</option>
-          <option value="cumsum">Suma Acumulada</option>
-        </select>
-      </label>
+      <div class="advanced-filters" data-advanced-container>
+        {{-- Aggregation ------------------------------------------------------}}
+        <label>
+          Frecuencia:
+          <select name="period" id="period">
+            <option value="H" selected>Hora</option>
+            <option value="2H">2H</option>
+            <option value="4H">4H</option>
+            <option value="6H">6H</option>
+            <option value="12H">12H</option>
+            <option value="D">Día</option>
+            <option value="BD">Business Days</option>
+            <option value="W">Semana</option>
+            <option value="BW">Quincena</option>
+            <option value="M">Mes</option>
+            <option value="Q">Trimestre</option>
+            <option value="S">Semestre</option>
+            <option value="Y">Año</option>
+          </select>
+        </label>
+
+        <label>
+          Función:
+          <select name="agg" id="agg">
+            <option value="avg" selected>Promedio</option>
+            <option value="sum">Suma</option>
+            <option value="min">Mín</option>
+            <option value="max">Máx</option>
+            <option value="count">Conteo</option>
+            <option value="distinct">Conteo de distintos</option>
+            <option value="std">Desviación Estándar</option>
+            <option value="mode">Moda</option>
+            <option value="cumsum">Suma Acumulada</option>
+          </select>
+        </label>
+      </div>
 
       <button id="run" type="submit" class="plot-button">
         <span>Aplicar</span>

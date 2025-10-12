@@ -46,48 +46,6 @@
         </select>
       </label>
 
-      <label>
-        Frecuencia:
-        <select name="freq" id="freq">
-          <option value="H"selected>Hora</option>
-          <option value="2H">2H</option>
-          <option value="4H">4H</option>
-          <option value="6H">6H</option>
-          <option value="12H">12H</option>
-          <option value="D">Día</option>
-          <option value="BD">Business Days</option>
-          <option value="W">Semana</option>
-          <option value="BW">Quincena</option>
-          <option value="M">Mes</option>
-          <option value="Q">Trimestre</option>
-          <option value="S">Semestre</option>
-          <option value="Y">Año</option>
-        </select>
-      </label>
-
-      <label>
-        Función:
-        <select name="agg" id="agg">
-          <option value="sum"selected>Suma</option>
-          <option value="avg" >Promedio</option>
-          <option value="min">Mín</option>
-          <option value="max">Máx</option>
-          <option value="count">Conteo</option>
-          <option value="std">Desviación Estándar</option>
-        </select>
-      </label>
-
-      <label>
-        Colorear por:
-        <select name="colorBy" id="colorBy" >
-          <option value="device_id" selected>Dispositivo</option>
-          <option value="hour">Hora</option>
-          <option value="weekday">Día semana</option>
-          <option value="month">Mes</option>
-          <option value="year">Año</option>
-        </select>
-      </label>
-
       {{-- Dates ------------------------------------------------------------}}
       <label>
         Desde:
@@ -98,13 +56,67 @@
         <input type="date" name="to"   id="to"   value="{{ $today }}">
       </label>
 
-      <label>
-        Orientación:
-        <select name="orient" id="orient">
-          <option value="v" selected>Vertical</option>
-          <option value="h">Horizontal</option>
-        </select>
-      </label>
+      <button
+        type="button"
+        class="plot-button plot-button--ghost advanced-toggle"
+        data-advanced-toggle
+        data-close-label="Ocultar filtros avanzados"
+        aria-expanded="false"
+      >
+        Filtros Avanzados
+      </button>
+
+      <div class="advanced-filters" data-advanced-container>
+        <label>
+          Frecuencia:
+          <select name="freq" id="freq">
+            <option value="H"selected>Hora</option>
+            <option value="2H">2H</option>
+            <option value="4H">4H</option>
+            <option value="6H">6H</option>
+            <option value="12H">12H</option>
+            <option value="D">Día</option>
+            <option value="BD">Business Days</option>
+            <option value="W">Semana</option>
+            <option value="BW">Quincena</option>
+            <option value="M">Mes</option>
+            <option value="Q">Trimestre</option>
+            <option value="S">Semestre</option>
+            <option value="Y">Año</option>
+          </select>
+        </label>
+
+        <label>
+          Función:
+          <select name="agg" id="agg">
+            <option value="sum"selected>Suma</option>
+            <option value="avg" >Promedio</option>
+            <option value="min">Mín</option>
+            <option value="max">Máx</option>
+            <option value="count">Conteo</option>
+            <option value="std">Desviación Estándar</option>
+          </select>
+        </label>
+
+        <label>
+          Colorear por:
+          <select name="colorBy" id="colorBy" >
+            <option value="device_id" selected>Dispositivo</option>
+            <option value="hour">Hora</option>
+            <option value="weekday">Día semana</option>
+            <option value="month">Mes</option>
+            <option value="year">Año</option>
+          </select>
+        </label>
+
+        <label>
+          Orientación:
+          <select name="orient" id="orient">
+            <option value="v" selected>Vertical</option>
+            <option value="h">Horizontal</option>
+          </select>
+        </label>
+      </div>
 
       <button id="run" type="submit" class="plot-button">
         <span>Aplicar</span>

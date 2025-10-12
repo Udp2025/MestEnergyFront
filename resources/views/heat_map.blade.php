@@ -56,13 +56,25 @@
     </select>
   </label>
 
-  <label>Función:
-    <select name="agg" id="agg">
-      @foreach (['avg'=>'Promedio','sum'=>'Suma','min'=>'Mín','max'=>'Máx','count'=>'Conteo','std'=>'Std','median'=>'Mediana','mode'=>'Moda','distinct'=>'Distintos'] as $k=>$v)
-        <option value="{{ $k }}" {{ $k==='avg' ? 'selected' : '' }}>{{ $v }}</option>
-      @endforeach
-    </select>
-  </label>
+  <button
+    type="button"
+    class="plot-button plot-button--ghost advanced-toggle"
+    data-advanced-toggle
+    data-close-label="Ocultar filtros avanzados"
+    aria-expanded="false"
+  >
+    Filtros Avanzados
+  </button>
+
+  <div class="advanced-filters" data-advanced-container>
+    <label>Función:
+      <select name="agg" id="agg">
+        @foreach (['avg'=>'Promedio','sum'=>'Suma','min'=>'Mín','max'=>'Máx','count'=>'Conteo','std'=>'Std','median'=>'Mediana','mode'=>'Moda','distinct'=>'Distintos'] as $k=>$v)
+          <option value="{{ $k }}" {{ $k==='avg' ? 'selected' : '' }}>{{ $v }}</option>
+        @endforeach
+      </select>
+    </label>
+  </div>
 
   {{-- Period navigation -------------------------------------------------- --}}
   <div class="period-nav">

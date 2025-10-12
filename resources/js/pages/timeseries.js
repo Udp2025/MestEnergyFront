@@ -1,4 +1,4 @@
-import { fetchPlot, applyMapping } from "../utils/plot";
+import { fetchPlot, applyMapping, setupAdvancedFilters } from "../utils/plot";
 import Plotly from "plotly.js-dist-min";
 import {
   canViewAllSites,
@@ -30,6 +30,8 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("timeseries.js: required DOM nodes not found");
     return; // bail early, avoid further errors
   }
+
+  setupAdvancedFilters(form);
 
   const isAdmin = canViewAllSites();
   const siteSel = $("site");

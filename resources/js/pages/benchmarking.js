@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------ */
 /*   Benchmarking bar plot – color by, frequency handling, UX guards  */
 /* ------------------------------------------------------------------ */
-import { fetchPlot, applyMapping } from "../utils/plot";
+import { fetchPlot, applyMapping, setupAdvancedFilters } from "../utils/plot";
 import Plotly from "plotly.js-dist-min";
 import {
   canViewAllSites,
@@ -37,6 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("benchmarking.js: required DOM nodes not found");
     return;
   }
+
+  setupAdvancedFilters(form);
 
   const isAdmin = canViewAllSites();
   let activeSiteId = isAdmin ? null : currentUserSiteId();

@@ -68,3 +68,28 @@ export function applyMapping(figure, mapping = {}) {
     if (hover) trace.hovertemplate = hover;
   });
 }
+
+export function setupAdvancedFilters(form, options = {}) {
+  if (!form) return;
+  const toggleSelector = options.toggleSelector || "[data-advanced-toggle]";
+  const containerSelector = options.containerSelector || "[data-advanced-container]";
+  const toggle = form.querySelector(toggleSelector);
+  const container = form.querySelector(containerSelector);
+  if (!toggle || !container) return;
+
+  const openLabel = toggle.dataset.openLabel || toggle.textContent.trim() || "Filtros Avanzados";
+  const closeLabel = toggle.dataset.closeLabel || "Ocultar filtros";
+
+  const sync = () => {
+    const isVisible = container.classList.contains("is-visible");
+    toggle.textContent = isVisible ? closeLabel : openLabel;
+    toggle.setAttribute("aria-expanded", isVisible ? "true" : "false");
+  };
+
+  sync();
+
+  toggle.addEventListener("click", () => {
+    container.classList.toggle("is-visible");
+    sync();
+  });
+}
