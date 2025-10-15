@@ -4,389 +4,306 @@
 
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/clientes.css') }}">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 
-<div class="clientes-container">
-    <div class="clientes-header">
-        <h1 class="clientes-titulo">Clientes</h1>
-    </div>
+<div class="page-shell">
+  <div class="page-inner">
 
-    <div class="mt-3">
-        {{-- Mensajes globales --}}
-        @if(session('warning'))
-          <div class="alert alert-warning">{{ session('warning') }}</div>
-        @endif
+    <!-- HEADER + TABS -->
+    <header class="header-top">
+      <div class="header-left">
+        <h1 class="main-title">Gestión de Clientes &amp; Onboarding</h1>
+        <div class="tabs" role="tablist" aria-label="Pestañas clientes">
+          <button class="tab-btn active" data-panel="panel-clientes" role="tab" aria-controls="panel-clientes" aria-selected="true">Clientes</button>
+          <button class="tab-btn" data-panel="panel-onboarding" role="tab" aria-controls="panel-onboarding" aria-selected="false">Onboarding</button>
+        </div>
+      </div>
+    </header>
 
-        @if(session('error'))
-          <div class="alert alert-danger">{{ session('error') }}</div>
-        @endif
+    <!-- CONTENT AREA -->
+    <main class="main-area">
+      <!-- PANEL: CLIENTES -->
+      <section id="panel-clientes" class="panel active" role="tabpanel" aria-labelledby="tab-clientes">
 
-        @if(session('success'))
-          <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
-
-        @if(session('temp_password'))
-          <div class="alert alert-info">
-            Contraseña temporal del usuario: <strong>{{ session('temp_password') }}</strong>
-            <small>Recomienda cambiarla al primer inicio.</small>
+        <!-- KPI -->
+        <div class="kpi-wrap">
+          <div class="kpi-card">
+            <div class="kpi-number">{{ $clientes->count() }}</div>
+            <div class="kpi-label">Clientes</div>
+            <div class="kpi-sub">1 activos, 1 onboarding, 1 prospectos</div>
           </div>
-        @endif
 
-        {{-- Errores de validación --}}
-        @if($errors->any())
-          <div class="alert alert-danger">
-            <ul class="mb-0">
-              @foreach($errors->all() as $err)
-                <li>{{ $err }}</li>
-              @endforeach
-            </ul>
+          <div class="kpi-card">
+            <div class="kpi-number">{{ $clientes->sum(function($c){ return $c->locaciones->count(); }) }}</div>
+            <div class="kpi-label">Sites</div>
+            <div class="kpi-sub">Total sitios</div>
           </div>
-        @endif
-    </div>
 
-    <div class="clientes-header-dos">
-        <button class="btn-crear-cliente" data-bs-toggle="modal" data-bs-target="#createClientModal">
-            + Crear Cliente
-        </button>
-    </div>
+          <div class="kpi-card">
+            <div class="kpi-number">{{ $clientes->sum(function($c){ return $c->medidores->count(); }) }}</div>
+            <div class="kpi-label">Sensores gestionados</div>
+            <div class="kpi-sub">Total medidores</div>
+          </div>
 
-    <div class="clientes-tabla-container mt-3">
-        <table class="clientes-tabla table table-striped">
-            <thead >
-                <tr>
-                    <th class="mest-color beige">Nombre</th>
-                    <th class="mest-color beige">Razón Social</th>
-                    <th class="mest-color beige">Correo</th>
-                    <th class="mest-color beige">Monitoreando desde</th>
-                    <th class="mest-color beige">Locaciones</th>
-                    <th class="mest-color beige">Áreas</th>
-                    <th class="mest-color beige">Medidores</th>
-                    <th class="mest-color beige">Reportes</th>
-                    <th class="mest-color beige">Estado</th>
-                    <th class="mest-color beige">Acciones</th>
-                </tr>
+          <div class="kpi-card">
+            <div class="kpi-number">$@php echo number_format($clientes->sum('mrr') ?? 0,0); @endphp</div>
+            <div class="kpi-label">MRR total</div>
+            <div class="kpi-sub">Ingresos recurrentes</div>
+          </div>
+
+          <div class="kpi-action">
+            <button class="btn-add" data-bs-toggle="modal" data-bs-target="#createClientModal">+ Agregar cliente</button>
+          </div>
+        </div>
+
+        <!-- SEARCH / FILTER -->
+        <div class="controls">
+          <input id="searchCliente" class="search" placeholder="Buscar por cliente o RFC..." />
+          <button class="filter">Filtrar estatus</button>
+        </div>
+
+        <!-- TABLE: CLIENTES -->
+        <div class="table-card">
+          <table class="clientes-table">
+            <thead>
+              <tr>
+                <th>Cliente</th><th>Ubicación</th><th>Sites</th><th>Áreas</th>
+                <th>Medidores</th><th>Reportes</th><th>Estado</th><th>Acciones</th>
+              </tr>
             </thead>
-            <tbody class="clientes-tabla-body">
-                @foreach ($clientes as $cliente)
+            <tbody>
+              @foreach($clientes as $cliente)
                 <tr>
-                    <td>
-                        <a href="{{ route('clientes.show', ['cliente' => $cliente->id]) }}">
-                            {{ $cliente->nombre }}
-                        </a>
-                    </td>
-                    <td>{{ $cliente->razon_social }}</td>
-                    <td>{{ $cliente->email }}</td>
-                    <td>
-                        @if ($cliente->user)
-                            {{ $cliente->user->created_at->format('d/m/Y') }}
-                        @else
-                            Sin usuario
-                        @endif
-                    </td>
-                    <td>{{ $cliente->locaciones->count() }}</td>
-                    <td>{{ $cliente->areas->count() }}</td>
-                    <td>{{ $cliente->medidores->count() }}</td>
-                    <td>{{ $cliente->reportes->count() }}</td>
-                    <td>
-                        <label class="switch">
-                            <input type="checkbox" class="toggle-status" data-id="{{ $cliente->id }}" {{ $cliente->estado == 'Activo' ? 'checked' : '' }}>
-                            <span class="slider round"></span>
-                        </label>
-                    </td>
-                    <td>
-                        <div class="dropdown">
-                            <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButton{{ $cliente->id }}" data-bs-toggle="dropdown" aria-expanded="false">
-                                ...
-                            </button>
-                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ $cliente->id }}">
-                                <li>
-                                    <a class="dropdown-item" href="{{ route('clientes.show', $cliente) }}">
-                                        <i class="fas fa-eye"></i> Ver Detalle
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editClientModal{{ $cliente->id }}">
-                                        <i class="fas fa-edit"></i> Editar
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="{{ route('clientes.destroy', $cliente) }}"
-                                        onclick="event.preventDefault(); document.getElementById('delete-form-{{ $cliente->id }}').submit();">
-                                        <i class="fas fa-trash-alt"></i> Eliminar
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                        <form id="delete-form-{{ $cliente->id }}" action="{{ route('clientes.destroy', $cliente) }}" method="POST" style="display: none;">
-                            @csrf
-                            @method('DELETE')
-                        </form>
-                    </td>
+                  <td class="c-name">
+                    <a href="{{ route('clientes.show', ['cliente' => $cliente->id]) }}" class="c-link">{{ $cliente->nombre }}</a>
+                    <div class="c-sub">{{ $cliente->razon_social }} <span class="rfc">RFC {{ $cliente->rfc ?? '—' }}</span></div>
+                  </td>
+                  <td>{{ $cliente->ciudad ?? '—' }}</td>
+                  <td>{{ $cliente->locaciones->count() }}</td>
+                  <td>{{ $cliente->areas->count() }}</td>
+                  <td>{{ $cliente->medidores->count() }}</td>
+                  <td>{{ $cliente->reportes->count() }}</td>
+                  <td>
+                    <span class="pill {{ \Illuminate\Support\Str::slug(strtolower($cliente->estado ?? 'sin')) }}">
+                      {{ $cliente->estado ?? '—' }}
+                    </span>
+                  </td>
+                  <td class="actions">
+                    <a href="{{ route('clientes.show', $cliente) }}" class="icon-btn" title="Ver"><i class="fas fa-eye"></i></a>
+                    <button class="icon-btn" data-bs-toggle="modal" data-bs-target="#editClientModal{{ $cliente->id }}" title="Editar"><i class="fas fa-edit"></i></button>
+                    <form action="{{ route('clientes.destroy', $cliente) }}" method="POST" style="display:inline">
+                      @csrf @method('DELETE')
+                      <button class="icon-btn del" onclick="return confirm('¿Eliminar cliente?')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                    </form>
+                    <label class="switch" title="Estado">
+                      <input type="checkbox" class="toggle-status" data-id="{{ $cliente->id }}" {{ ($cliente->estado ?? '') == 'Activo' ? 'checked' : '' }}>
+                      <span class="slider"></span>
+                    </label>
+                  </td>
                 </tr>
-                @endforeach
+              @endforeach
             </tbody>
-        </table>
-    </div>
+          </table>
+        </div>
+
+      </section>
+
+      <!-- PANEL: ONBOARDING -->
+      <section id="panel-onboarding" class="panel" role="tabpanel" aria-labelledby="tab-onboarding">
+
+        <div class="kpi-wrap">
+          <div class="kpi-card small">
+            <div class="kpi-number">{{ $clientes->where('estatus','Onboarding')->count() }}</div>
+            <div class="kpi-label">Clientes en onboarding</div>
+          </div>
+          <div class="kpi-card small">
+            @php
+              $avg = $clientes->where('estatus','Onboarding')->count() ? round($clientes->where('estatus','Onboarding')->avg('progreso') ?? 0) : 0;
+            @endphp
+            <div class="kpi-number">{{ $avg }}%</div>
+            <div class="kpi-label">Promedio avance</div>
+          </div>
+          <div class="kpi-card small">
+            <div class="kpi-number">0</div>
+            <div class="kpi-label">Listos para Go-Live</div>
+          </div>
+          <div class="kpi-card small">
+            <div class="kpi-number">2</div>
+            <div class="kpi-label">Pendientes de capacitación</div>
+          </div>
+
+          <div class="kpi-action">
+            <button class="btn-add" data-bs-toggle="modal" data-bs-target="#createClientModal">+ Agregar cliente</button>
+          </div>
+        </div>
+
+        <div class="table-card onboarding-card">
+          <table class="onboard-table">
+            <thead>
+              <tr>
+                <th>Cliente</th><th>Owner</th><th>Progreso</th><th>Próximo paso</th><th>Fecha objetivo</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @foreach ($clientes->where('estatus','Onboarding') as $cliente)
+                <tr>
+                  <td>
+                    <div class="c-name"><strong>{{ $cliente->nombre }}</strong><div class="c-sub">{{ $cliente->razon_social }}</div></div>
+                  </td>
+                  <td>{{ $cliente->owner_name ?? '—' }}</td>
+                  <td class="progress-td">
+                    <div class="progress-line" aria-hidden="true">
+                      <div class="progress-bar" style="width: {{ $cliente->progreso ?? 10 }}%"></div>
+                    </div>
+                    <div class="chips">
+                      @php $steps = ['Contrato','Datos fiscales','Alta de sitios','Configuración de sensores','Facturación','Capacitación','Go-Live']; @endphp
+                      @php $done = round((($cliente->progreso ?? 0) / 100) * count($steps)); @endphp
+                      @foreach($steps as $i => $s)
+                        <span class="chip {{ $i < $done ? 'done' : '' }}">{{ $s }}</span>
+                      @endforeach
+                    </div>
+                  </td>
+                  <td>{{ $cliente->proximo_paso ?? '—' }}</td>
+                  <td>{{ optional($cliente->fecha_objetivo)->format('Y-m-d') ?? '—' }}</td>
+                  <td>
+                    <a class="btn small edit" href="#" title="Editar"><i class="fas fa-pen"></i></a>
+                    <a class="btn continue" href="#" title="Continuar">Continuar</a>
+                  </td>
+                </tr>
+              @endforeach
+            </tbody>
+          </table>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
 </div>
 
-{{-- Modales de EDIT — uno por cliente --}}
+{{-- MODALES EDIT (uno por cliente) --}}
 @foreach ($clientes as $cliente)
-<div class="modal fade" id="editClientModal{{ $cliente->id }}" tabindex="-1" aria-labelledby="editClientModalLabel{{ $cliente->id }}" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            {{-- Header del Modal --}}
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="editClientModalLabel{{ $cliente->id }}">
-                    <i class="fas fa-edit"></i> Editar Cliente
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            {{-- Formulario para editar cliente --}}
-            <form action="{{ route('clientes.update', $cliente) }}" method="POST">
-                @csrf
-                @method('PUT')
-                {{-- Hidden para identificar el cliente (útil en redirecciones) --}}
-                <input type="hidden" name="cliente_id" value="{{ $cliente->id }}">
-                <div class="modal-body">
-                    <div class="row g-4">
-                        {{-- Nombre --}}
-                        <div class="col-md-6">
-                            <label for="nombre-{{ $cliente->id }}" class="form-label">Nombre:</label>
-                            <input type="text" id="nombre-{{ $cliente->id }}" name="nombre" class="form-control rounded-pill"
-                                   value="{{ old('nombre', $cliente->nombre) }}" required>
-                        </div>
-                        {{-- Razón Social --}}
-                        <div class="col-md-6">
-                            <label for="razon_social-{{ $cliente->id }}" class="form-label">Razón Social:</label>
-                            <input type="text" id="razon_social-{{ $cliente->id }}" name="razon_social" class="form-control rounded-pill"
-                                   value="{{ old('razon_social', $cliente->razon_social) }}" required>
-                        </div>
-                        {{-- Correo --}}
-                        <div class="col-md-6">
-                            <label for="email-{{ $cliente->id }}" class="form-label">Correo:</label>
-                            <input type="email" id="email-{{ $cliente->id }}" name="email" class="form-control rounded-pill"
-                                   value="{{ old('email', $cliente->email) }}" required>
-                        </div>
-                        {{-- Teléfono --}}
-                        <div class="col-md-6">
-                            <label for="telefono-{{ $cliente->id }}" class="form-label">Teléfono:</label>
-                            <input type="text" id="telefono-{{ $cliente->id }}" name="telefono" class="form-control rounded-pill"
-                                   value="{{ old('telefono', $cliente->telefono) }}" required>
-                        </div>
-                        {{-- Calle --}}
-                        <div class="col-md-6">
-                            <label for="calle-{{ $cliente->id }}" class="form-label">Calle:</label>
-                            <input type="text" id="calle-{{ $cliente->id }}" name="calle" class="form-control rounded-pill"
-                                   value="{{ old('calle', $cliente->calle) }}" required>
-                        </div>
-                        {{-- Número --}}
-                        <div class="col-md-6">
-                            <label for="numero-{{ $cliente->id }}" class="form-label">Número:</label>
-                            <input type="text" id="numero-{{ $cliente->id }}" name="numero" class="form-control rounded-pill"
-                                   value="{{ old('numero', $cliente->numero) }}" required>
-                        </div>
-                        {{-- Colonia --}}
-                        <div class="col-md-6">
-                            <label for="colonia-{{ $cliente->id }}" class="form-label">Colonia:</label>
-                            <input type="text" id="colonia-{{ $cliente->id }}" name="colonia" class="form-control rounded-pill"
-                                   value="{{ old('colonia', $cliente->colonia) }}" required>
-                        </div>
-                        {{-- Código Postal --}}
-                        <div class="col-md-6">
-                            <label for="codigo_postal-{{ $cliente->id }}" class="form-label">Código Postal:</label>
-                            <input type="number" id="codigo_postal-{{ $cliente->id }}" name="codigo_postal" class="form-control rounded-pill"
-                                   value="{{ old('codigo_postal', $cliente->codigo_postal) }}" required>
-                        </div>
-                        {{-- Ciudad --}}
-                        <div class="col-md-6">
-                            <label for="ciudad-{{ $cliente->id }}" class="form-label">Ciudad:</label>
-                            <input type="text" id="ciudad-{{ $cliente->id }}" name="ciudad" class="form-control rounded-pill"
-                                   value="{{ old('ciudad', $cliente->ciudad) }}" required>
-                        </div>
-                        {{-- Estado --}}
-                        <div class="col-md-6">
-                            <label for="estado-{{ $cliente->id }}" class="form-label">Estado:</label>
-                            <input type="text" id="estado-{{ $cliente->id }}" name="estado" class="form-control rounded-pill"
-                                   value="{{ old('estado', $cliente->estado) }}" required>
-                        </div>
-                        {{-- País --}}
-                        <div class="col-md-6">
-                            <label for="pais-{{ $cliente->id }}" class="form-label">País:</label>
-                            <input type="text" id="pais-{{ $cliente->id }}" name="pais" class="form-control rounded-pill"
-                                   value="{{ old('pais', $cliente->pais) }}" required>
-                        </div>
-                        {{-- Cambio de Dólar --}}
-                        <div class="col-md-6">
-                            <label for="cambio_dolar-{{ $cliente->id }}" class="form-label">Cambio de Dólar:</label>
-                            <input type="number" step="0.01" id="cambio_dolar-{{ $cliente->id }}" name="cambio_dolar" class="form-control rounded-pill"
-                                   value="{{ old('cambio_dolar', $cliente->cambio_dolar) }}" required>
-                        </div>
-                        {{-- Site --}}
-                        <div class="col-md-6">
-                            <label for="site-{{ $cliente->id }}" class="form-label">Site:</label>
-                            <input type="text" id="site-{{ $cliente->id }}" name="site" class="form-control rounded-pill"
-                                   value="{{ old('site', $cliente->site) }}" required>
-                        </div>
-                    </div>
-                </div>
-                {{-- Footer del Modal --}}
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" class="btn btn-primary rounded-pill">Guardar</button>
-                </div>
-            </form>
+<div class="modal fade" id="editClientModal{{ $cliente->id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header header-modal">
+        <h5 class="modal-title"><i class="fas fa-edit"></i> Editar Cliente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form action="{{ route('clientes.update', $cliente) }}" method="POST">
+        @csrf @method('PUT')
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6"><label>Nombre</label><input name="nombre" class="form-control" value="{{ old('nombre', $cliente->nombre) }}"></div>
+            <div class="col-md-6"><label>Razón social</label><input name="razon_social" class="form-control" value="{{ old('razon_social', $cliente->razon_social) }}"></div>
+            <!-- resto -->
+          </div>
         </div>
+        <div class="modal-footer">
+          <button class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+          <button class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
     </div>
+  </div>
 </div>
 @endforeach
 
-{{-- Modal para CREAR cliente --}}
-<div class="modal fade" id="createClientModal" tabindex="-1" aria-labelledby="createClientModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            {{-- Header del Modal --}}
-            <div class="modal-header mest-color text-white ">
-                <h5 class="modal-title" id="createClientModalLabel">
-                    <i class="fas fa-user-plus"></i> Crear Cliente
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            {{-- Formulario para crear cliente --}}
-            <form action="{{ route('clientes.store') }}" method="POST" id="clientesForm" class="mestbg" >
-                @csrf
-                <div class="modal-body">
-                    <div class="row g-4">
-                        {{-- Nombre --}}
-                        <div class="col-md-6">
-                            <label for="nombre" class="form-label mest-color-text">Nombre:</label>
-                            <input type="text" id="nombre" name="nombre" class="form-control rounded-pill" value="{{ old('nombre') }}" required>
-                        </div>
-                        {{-- Razón Social --}}
-                        <div class="col-md-6">
-                            <label for="razon_social" class="form-label mest-color-text">Razón Social:</label>
-                            <input type="text" id="razon_social" name="razon_social" class="form-control rounded-pill" value="{{ old('razon_social') }}" required>
-                        </div>
-                        {{-- Correo --}}
-                        <div class="col-md-6">
-                            <label for="email" class="form-label mest-color-text">Correo:</label>
-                            <input type="email" id="email" name="email" class="form-control rounded-pill" value="{{ old('email') }}" required>
-                        </div>
-                        {{-- Teléfono --}}
-                        <div class="col-md-6">
-                            <label for="telefono" class="form-label mest-color-text">Teléfono:</label>
-                            <input type="text" id="telefono" name="telefono" class="form-control rounded-pill" value="{{ old('telefono') }}" required>
-                        </div>
-                        {{-- Calle --}}
-                        <div class="col-md-6">
-                            <label for="calle" class="form-label mest-color-text">Calle:</label>
-                            <input type="text" id="calle" name="calle" class="form-control rounded-pill" value="{{ old('calle') }}" required>
-                        </div>
-                        {{-- Número --}}
-                        <div class="col-md-6">
-                            <label for="numero" class="form-label mest-color-text">Número:</label>
-                            <input type="text" id="numero" name="numero" class="form-control rounded-pill" value="{{ old('numero') }}" required>
-                        </div>
-                        {{-- Colonia --}}
-                        <div class="col-md-6">
-                            <label for="colonia" class="form-label mest-color-text">Colonia:</label>
-                            <input type="text" id="colonia" name="colonia" class="form-control rounded-pill" value="{{ old('colonia') }}" required>
-                        </div>
-                        {{-- Código Postal --}}
-                        <div class="col-md-6">
-                            <label for="codigo_postal" class="form-label mest-color-text">Código Postal:</label>
-                            <input type="number" id="codigo_postal" name="codigo_postal" class="form-control rounded-pill" value="{{ old('codigo_postal') }}" required>
-                        </div>
-                        {{-- Ciudad --}}
-                        <div class="col-md-6">
-                            <label for="ciudad" class="form-label mest-color-text">Ciudad:</label>
-                            <input type="text" id="ciudad" name="ciudad" class="form-control rounded-pill" value="{{ old('ciudad') }}" required>
-                        </div>
-                        {{-- Estado --}}
-                        <div class="col-md-6">
-                            <label for="estado" class="form-label mest-color-text">Estado:</label>
-                            <input type="text" id="estado" name="estado" class="form-control rounded-pill" value="{{ old('estado') }}" required>
-                        </div>
-                        {{-- País --}}
-                        <div class="col-md-6">
-                            <label for="pais" class="form-label mest-color-text">País:</label>
-                            <input type="text" id="pais" name="pais" class="form-control rounded-pill" value="{{ old('pais') }}" required>
-                        </div>
-                        {{-- Cambio de Dólar --}}
-                        <div class="col-md-6">
-                            <label for="cambio_dolar" class="form-label mest-color-text">Cambio de dolar:</label>
-                            <input type="number" step="0.01" id="cambio_dolar" name="cambio_dolar" class="form-control rounded-pill" value="{{ old('cambio_dolar') }}" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="site" class="form-label mest-color-text">Site:</label>
-                            <input type="text" id="site" name="site" class="form-control rounded-pill" value="{{ old('site') }}" required>
-                        </div>
-                    </div>
-                </div>
-                {{-- Footer del Modal --}}
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" class="btn mest-color rounded-pill beige">Guardar</button>
-                </div>
-            </form>
+{{-- MODAL CREAR --}}
+<div class="modal fade" id="createClientModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header header-modal">
+        <h5 class="modal-title"><i class="fas fa-user-plus"></i> Crear Cliente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form action="{{ route('clientes.store') }}" method="POST">
+        @csrf
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6"><label>Nombre</label><input name="nombre" class="form-control" value="{{ old('nombre') }}"></div>
+            <div class="col-md-6"><label>Razón social</label><input name="razon_social" class="form-control" value="{{ old('razon_social') }}"></div>
+            <!-- resto -->
+          </div>
         </div>
+        <div class="modal-footer">
+          <button class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+          <button class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
     </div>
+  </div>
 </div>
 
-{{-- Íconos Font Awesome --}}
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-{{-- Bootstrap JS (bundle incluye Popper) --}}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-{{-- Bootstrap CSS --}}
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Abrir modal CREATE si hay errores y no se pidió abrir un EDIT
-        const hasErrors = {{ $errors->any() ? 'true' : 'false' }};
-        const editModalId = @json(session('edit_modal')); // si el controlador devuelve 'edit_modal' en sesión
+document.addEventListener('DOMContentLoaded', () => {
+  // TABS (mostrar solo panel activo)
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected','false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected','true');
 
-        // Si se pidió abrir un modal de edición específico, abrirlo
-        if (editModalId) {
-            const editModalSel = '#editClientModal' + editModalId;
-            const modalEl = document.querySelector(editModalSel);
-            if (modalEl) {
-                const modal = new bootstrap.Modal(modalEl);
-                modal.show();
-            }
-        } else if (hasErrors) {
-            // si hay errores y no hay edit_modal definido, abrimos el create modal
-            const createModalEl = document.getElementById('createClientModal');
-            if (createModalEl) {
-                const modal = new bootstrap.Modal(createModalEl);
-                modal.show();
-            }
-        }
-
-        // toggle-status fetch
-        const toggles = document.querySelectorAll('.toggle-status');
-
-        toggles.forEach(toggle => {
-            toggle.addEventListener('change', function() {
-                const clienteId = this.getAttribute('data-id');
-                const estado = this.checked;
-
-                fetch(`/clientes/update-status/${clienteId}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                        },
-                        body: JSON.stringify({
-                            estado: estado
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log(data.success);
-                    })
-                    .catch(error => console.error('Error:', error));
-            });
-        });
+      const panelId = btn.getAttribute('data-panel');
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(panelId).classList.add('active');
     });
+  });
+
+  // Toggle status (fetch)
+  document.querySelectorAll('.toggle-status').forEach(toggle => {
+    toggle.addEventListener('change', function() {
+      const id = this.dataset.id;
+      const estado = this.checked ? 'Activo' : 'Inactivo';
+      fetch(`/clientes/update-status/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({ estado })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if(res.success){
+          const pill = this.closest('tr').querySelector('.pill');
+          if (pill) {
+            pill.textContent = estado;
+            pill.className = 'pill ' + estado.toLowerCase();
+          }
+        }
+      }).catch(e => console.error(e));
+    });
+  });
+
+  // Search
+  const search = document.getElementById('searchCliente');
+  if (search) {
+    search.addEventListener('input', () => {
+      const q = search.value.toLowerCase();
+      document.querySelectorAll('.clientes-table tbody tr').forEach(tr => {
+        tr.style.display = tr.innerText.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+  }
+
+  // Si el servidor devuelve que abra un modal específico
+  const hasErrors = {{ $errors->any() ? 'true' : 'false' }};
+  const editModalId = @json(session('edit_modal'));
+  if(editModalId){
+    const el = document.getElementById('editClientModal' + editModalId);
+    if(el) new bootstrap.Modal(el).show();
+  } else if(hasErrors){
+    const cm = document.getElementById('createClientModal');
+    if(cm) new bootstrap.Modal(cm).show();
+  }
+});
 </script>
 
 @endsection
