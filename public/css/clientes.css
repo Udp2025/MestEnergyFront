@@ -138,25 +138,198 @@
 .btn.small { padding:6px 10px; border-radius:8px; background:#fff; border:1px solid rgba(0,0,0,0.06); color:#57463e; }
 .btn.continue { background:var(--accent); color:#fff; border:none; border-radius:999px; padding:8px 12px; }
 
-/* Modal: forzar oculto por defecto y visible solo con .show (esto evita que aparezcan siempre visibles) */
-.modal {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity .16s ease, visibility .16s;
-}
-.modal.show {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
-/* Modal header */
-.header-modal { background: var(--accent); color:#fff; }
 
 /* Responsive */
 @media (max-width: 1000px) {
   .kpi-wrap { gap:10px; }
   .clientes-table td, .onboard-table td { padding:10px; font-size:13px; }
   .search { min-width:180px; }
+}
+
+/* Modal create client specific */
+.create-client-modal { border-radius: 14px; overflow: hidden; background: var(--panel); }
+.create-client-modal .modal-header { background: transparent; border-bottom: none; padding: 18px 24px; }
+.create-client-modal .modal-title { color: #4b382f; font-weight:800; }
+
+/* Stepper */
+.stepper { display:flex; gap:10px; padding: 8px 0 18px; }
+.step-btn {
+  background: transparent; border:1px solid rgba(0,0,0,0.04); color:#5b463f; padding:8px 14px; border-radius:999px;
+  cursor:pointer; font-weight:700;
+}
+.step-btn.active { background: var(--accent); color:#fff; border-color: var(--accent); box-shadow: 0 8px 20px rgba(184,90,67,0.12); }
+
+/* Steps container */
+.steps { min-height: 320px; }
+.step-panel { display:none; animation:fadeIn .12s ease; }
+.step-panel.active { display:block; }
+
+/* Form grid */
+.form-grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px 18px; }
+.form-group { display:flex; flex-direction:column; }
+.form-group.full { grid-column: 1 / -1; }
+.form-group label { font-size:13px; color:var(--muted); margin-bottom:6px; font-weight:700; }
+.form-control { border-radius:10px; border:1px solid rgba(0,0,0,0.06); padding:10px 12px; background:#fff; }
+
+/* Summary */
+.summary-box {
+  background: #fff7f2; border-radius:12px; padding:12px; box-shadow: inset 0 -1px 0 rgba(0,0,0,0.03);
+  color:#5b463f; font-size:13px; line-height:1.5;
+}
+
+/* Footer & buttons */
+.step-footer { display:flex; justify-content:space-between; align-items:center; border-top:none; padding:12px 20px; background: transparent; }
+.prev-step { color:#6b5b53; border:none; background:transparent; }
+.next-step { background: var(--accent); color:#fff; border:none; padding:10px 14px; border-radius:10px; font-weight:800; }
+.create-btn { background: var(--accent); color:#fff; border:none; padding:10px 14px; border-radius:10px; font-weight:800; }
+
+/* Switch already in your css, reuse. Slight spacing rules: */
+.switch-row { display:flex; align-items:center; gap:8px; justify-content:flex-start; }
+
+/* Small animations */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity:1; transform: translateY(0);} }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .modal-dialog { max-width: 92%; }
+}
+
+/* -- Restaurar comportamiento overlay para Bootstrap modal -- */
+.modal {
+  position: fixed;       /* importante: overlay */
+  inset: 0;              /* top:0; right:0; bottom:0; left:0; */
+  display: flex;         /* para centrar dialog */
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;         /* encima del resto */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .16s ease, visibility .16s;
+}
+
+/* cuando Bootstrap agrega la clase .show */
+.modal.show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  /* display: flex ya está; no sobrescribir */
+}
+
+/* Asegura que el dialog está centrado y sin márgenes del flow */
+.modal-dialog {
+  margin: 0;             /* elimina margen que podría empujarlo */
+  max-width: 1024px;     /* ajusta segun necesites */
+  width: 95%;
+  pointer-events: auto;  /* habilita interacción dentro del dialog */
+  z-index: 2001;
+}
+
+/* backdrop (si quieres controlar z-index del backdrop) */
+.modal-backdrop {
+  z-index: 1990;
+}
+
+/* si necesitas forzar por alguna regla que crea stacking context */
+.create-client-modal { z-index: 2001; }
+
+
+/* ===========================
+   Mejoras visuales para modal
+   =========================== */
+
+/* Fondo del backdrop más oscuro para destacar el modal */
+.modal-backdrop.show {
+  background-color: rgba(0,0,0,0.45); /* más contraste */
+}
+
+/* Asegura padding interno del viewport para no quedar pegado al borde */
+.modal {
+  padding: 28px; /* espacio alrededor para que no quede esquinado en pantallas pequeñas */
+}
+
+/* Dialog centrado y con márgenes controlados */
+.modal-dialog {
+  margin: 0 auto;           /* centrar correctamente */
+  max-width: 1000px;        /* ancho máximo */
+  width: 96%;
+  pointer-events: auto;
+}
+
+/* Apariencia del contenido: borde sutil, fondo, rounded y sombra fuerte */
+.modal-content {
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,0.06);
+  background: var(--panel);               /* usa tu variable */
+  box-shadow: 0 30px 60px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+
+/* Header: spacing y color (puedes ajustar) */
+.create-client-modal .modal-header {
+  padding: 18px 22px;
+  background: transparent; /* deja el header como el resto; cambia si quieres color */
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  position: relative;
+}
+
+/* Título */
+.create-client-modal .modal-title {
+  color: #4b382f;
+  font-weight:800;
+  margin:0;
+  font-size:18px;
+}
+
+/* Botón cerrar visible y con estilo circular (sobrescribe la imagen svg por defecto) */
+.create-client-modal .btn-close {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.06);
+  background-image: none !important;   /* evita el SVG default si no se ve */
+  background-color: #ffffff;           /* contraste con el header */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  cursor: pointer;
+}
+
+/* Pone una X legible dentro del botón cerrar */
+.create-client-modal .btn-close::before{
+  content: "✕";
+  font-size: 14px;
+  color: #6b5b53;
+  line-height: 1;
+}
+
+/* Hover del botón cerrar */
+.create-client-modal .btn-close:hover{
+  background-color: #f5f2ef;
+  transform: translateY(-1px);
+}
+
+/* Cuerpo del modal con padding cómodo */
+.create-client-modal .modal-body{
+  padding: 18px 22px;
+}
+
+/* Footer con separación y botones estilizados */
+.create-client-modal .modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid rgba(0,0,0,0.04);
+  background: transparent;
+}
+
+/* Asegura que en pantallas pequeñas el modal no "pegue" a la esquina */
+@media (max-width: 600px) {
+  .modal { padding: 12px; }
+  .modal-dialog { width: 100%; }
+  .create-client-modal .btn-close { right: 10px; top: 8px; width:34px; height:34px; }
 }

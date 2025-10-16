@@ -181,59 +181,192 @@
   </div>
 </div>
 
-{{-- MODALES EDIT (uno por cliente) --}}
-@foreach ($clientes as $cliente)
-<div class="modal fade" id="editClientModal{{ $cliente->id }}" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-      <div class="modal-header header-modal">
-        <h5 class="modal-title"><i class="fas fa-edit"></i> Editar Cliente</h5>
+<!-- Create Client Modal (3 pasos) -->
+<div class="modal fade" id="createClientModal" tabindex="-1" aria-hidden="true" aria-labelledby="createClientLabel">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content create-client-modal">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createClientLabel">Alta de cliente</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <form action="{{ route('clientes.update', $cliente) }}" method="POST">
-        @csrf @method('PUT')
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-md-6"><label>Nombre</label><input name="nombre" class="form-control" value="{{ old('nombre', $cliente->nombre) }}"></div>
-            <div class="col-md-6"><label>Razón social</label><input name="razon_social" class="form-control" value="{{ old('razon_social', $cliente->razon_social) }}"></div>
-            <!-- resto -->
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
-          <button class="btn btn-primary">Guardar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-@endforeach
 
-{{-- MODAL CREAR --}}
-<div class="modal fade" id="createClientModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-      <div class="modal-header header-modal">
-        <h5 class="modal-title"><i class="fas fa-user-plus"></i> Crear Cliente</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <form action="{{ route('clientes.store') }}" method="POST">
-        @csrf
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-md-6"><label>Nombre</label><input name="nombre" class="form-control" value="{{ old('nombre') }}"></div>
-            <div class="col-md-6"><label>Razón social</label><input name="razon_social" class="form-control" value="{{ old('razon_social') }}"></div>
-            <!-- resto -->
+      <div class="modal-body">
+        <!-- Stepper -->
+        <nav class="stepper" aria-label="Progreso">
+          <button class="step-btn active" data-step="1" aria-current="step">Generales</button>
+          <button class="step-btn" data-step="2">Fiscales / Contrato</button>
+          <button class="step-btn" data-step="3">Plan & Facturación</button>
+        </nav>
+
+        <!-- Panels -->
+        <form id="createClientForm">
+          <div class="steps">
+            <!-- Step 1 -->
+            <section class="step-panel active" data-step="1">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Nombre legal</label>
+                  <input name="nombre" type="text" class="form-control" placeholder="Razón social" required>
+                </div>
+                <div class="form-group">
+                  <label>RFC</label>
+                  <input name="rfc" type="text" class="form-control" placeholder="XAXX010101000" >
+                </div>
+
+                <div class="form-group">
+                  <label>Ciudad</label>
+                  <input name="ciudad" type="text" class="form-control" placeholder="Ciudad, Estado">
+                </div>
+                <div class="form-group">
+                  <label>Contacto</label>
+                  <input name="contacto" type="text" class="form-control" placeholder="Nombre del responsable">
+                </div>
+
+                <div class="form-group">
+                  <label>Email</label>
+                  <input name="email" type="email" class="form-control" placeholder="contacto@empresa.com">
+                </div>
+                <div class="form-group">
+                  <label>Teléfono</label>
+                  <input name="telefono" type="tel" class="form-control" placeholder="+52...">
+                </div>
+              </div>
+            </section>
+
+            <!-- Step 2 -->
+            <section class="step-panel" data-step="2">
+              <div class="form-grid">
+                <div class="form-group full">
+                  <label>Razón social (CFDI)</label>
+                  <input name="razon_fiscal" type="text" class="form-control" placeholder="">
+                </div>
+
+                <div class="form-group">
+                  <label>Régimen fiscal</label>
+                  <select name="regimen" class="form-control">
+                    <option value="601">601 - Personas Morales</option>
+                    <option value="603">603 - Personas Fisicas</option>
+                    <!-- agrega los que necesites -->
+                  </select>
+                </div>
+
+                <div class="form-group full">
+                  <label>Domicilio fiscal</label>
+                  <input name="domicilio" type="text" class="form-control" placeholder="">
+                </div>
+
+                <div class="form-group">
+                  <label>Uso CFDI</label>
+                  <select name="uso_cfdi" class="form-control">
+                    <option value="G03">G03 - Gastos en general</option>
+                    <option value="P01">P01 - Por definir</option>
+                  </select>
+                </div>
+
+                <div class="form-group switch-row">
+                  <label>Contrato aceptado</label>
+                  <label class="switch">
+                    <input type="checkbox" name="contrato_aceptado">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <div class="form-group full">
+                  <label>Notas de contrato / condiciones</label>
+                  <textarea name="notas_contrato" class="form-control" rows="3" placeholder=""></textarea>
+                </div>
+              </div>
+            </section>
+
+            <!-- Step 3 -->
+            <section class="step-panel" data-step="3">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Plan</label>
+                  <select name="plan" class="form-control">
+                    <option>Starter</option>
+                    <option>Pro</option>
+                    <option>Enterprise</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>MRR (MXN)</label>
+                  <input name="mrr" type="number" class="form-control" placeholder="6900">
+                </div>
+
+                <div class="form-group">
+                  <label>Ciclo</label>
+                  <select name="ciclo" class="form-control">
+                    <option>Mensual</option>
+                    <option>Anual</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>Día de corte</label>
+                  <input name="dia_corte" type="number" min="1" max="28" class="form-control">
+                </div>
+
+                <div class="form-group">
+                  <label>Método de pago</label>
+                  <select name="metodo_pago" class="form-control">
+                    <option>Tarjeta</option>
+                    <option>Transferencia</option>
+                  </select>
+                </div>
+
+                <div class="form-group switch-row">
+                  <label>Facturación automática (CFDI)</label>
+                  <label class="switch">
+                    <input type="checkbox" name="fact_auto">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <div class="form-group switch-row">
+                  <label>Recordatorios de pago</label>
+                  <label class="switch">
+                    <input type="checkbox" name="recordatorios">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <div class="form-group full">
+                  <label>Resumen</label>
+                  <div class="summary-box" id="summaryBox">
+                    <div><strong>Cliente:</strong> —</div>
+                    <div><strong>Régimen:</strong> —</div>
+                    <div><strong>Uso CFDI:</strong> —</div>
+                    <div><strong>Plan:</strong> —</div>
+                    <div><strong>MRR:</strong> —</div>
+                    <div><strong>Ciclo/Día corte:</strong> —</div>
+                    <div><strong>Contrato:</strong> —</div>
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
-          <button class="btn btn-primary">Guardar</button>
-        </div>
-      </form>
+
+          <!-- Footer (navegación) -->
+          <div class="modal-footer step-footer">
+            <div class="steps-left">
+              <button type="button" class="btn btn-link prev-step" aria-hidden="true" disabled>Atrás</button>
+              <div class="step-indicator">Paso <span id="currentStep">1</span> de 3</div>
+            </div>
+
+            <div class="steps-right">
+              <button type="button" class="btn btn-secondary next-step">Continuar</button>
+              <button type="submit" class="btn btn-primary create-btn d-none">+ Crear cliente</button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </div>
+
+
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -304,6 +437,126 @@ document.addEventListener('DOMContentLoaded', () => {
     if(cm) new bootstrap.Modal(cm).show();
   }
 });
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('createClientModal');
+  if(!modal) return;
+
+  const steps = Array.from(modal.querySelectorAll('.step-panel'));
+  const stepBtns = Array.from(modal.querySelectorAll('.step-btn'));
+  const prevBtn = modal.querySelector('.prev-step');
+  const nextBtn = modal.querySelector('.next-step');
+  const createBtn = modal.querySelector('.create-btn');
+  const currentStepEl = modal.querySelector('#currentStep');
+  const form = modal.querySelector('#createClientForm');
+  const summaryBox = modal.querySelector('#summaryBox');
+
+  let current = 1;
+  const total = steps.length;
+
+  function showStep(n){
+    current = Math.max(1, Math.min(n, total));
+    steps.forEach(s => s.classList.remove('active'));
+    const panel = modal.querySelector(`.step-panel[data-step="${current}"]`);
+    if(panel) panel.classList.add('active');
+
+    // stepper buttons active state
+    stepBtns.forEach(b => b.classList.toggle('active', parseInt(b.dataset.step) === current));
+
+    // footer controls
+    currentStepEl.textContent = current;
+    prevBtn.disabled = current === 1;
+    if(current === total){
+      nextBtn.classList.add('d-none');
+      createBtn.classList.remove('d-none');
+    } else {
+      nextBtn.classList.remove('d-none');
+      createBtn.classList.add('d-none');
+    }
+
+    // update summary when entering last step
+    if(current === total) updateSummary();
+  }
+
+  function updateSummary(){
+    const data = new FormData(form);
+    const text = {
+      cliente: data.get('nombre') || '—',
+      regimen: (data.get('regimen') ? data.get('regimen') : '—'),
+      uso: data.get('uso_cfdi') || '—',
+      plan: data.get('plan') || '—',
+      mrr: data.get('mrr') ? `$${Number(data.get('mrr')).toLocaleString()}` : '—',
+      ciclo: data.get('ciclo') || '—',
+      dia: data.get('dia_corte') || '—',
+      contrato: data.get('contrato_aceptado') ? 'Aceptado' : 'Pendiente'
+    };
+
+    summaryBox.innerHTML = `
+      <div><strong>Cliente:</strong> ${text.cliente}</div>
+      <div><strong>Régimen:</strong> ${text.regimen}</div>
+      <div><strong>Uso CFDI:</strong> ${text.uso}</div>
+      <div><strong>Plan:</strong> ${text.plan}</div>
+      <div><strong>MRR:</strong> ${text.mrr}</div>
+      <div><strong>Ciclo/Día corte:</strong> ${text.ciclo} / ${text.dia}</div>
+      <div><strong>Contrato:</strong> ${text.contrato}</div>
+    `;
+  }
+
+  // Next / Prev handlers
+  nextBtn.addEventListener('click', () => showStep(current + 1));
+  prevBtn.addEventListener('click', () => showStep(current - 1));
+
+  // Stepper click
+  stepBtns.forEach(b => b.addEventListener('click', () => showStep(parseInt(b.dataset.step))));
+
+  // When modal shown -> reset to step 1
+  modal.addEventListener('show.bs.modal', () => {
+    showStep(1);
+    form.reset();
+    // ensure toggle visual state if any
+  });
+
+  // handle submit (aquí podrías cambiar por request AJAX o submit normal)
+  form.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    // ejemplo simple: recopilar y enviar por fetch
+    const fd = new FormData(form);
+    const payload = {};
+    fd.forEach((v, k) => payload[k] = v);
+
+    // Puedes enviar a tu ruta /clientes con fetch POST (aquí un ejemplo)
+    fetch("{{ route('clientes.store') }}", {
+      method: "POST",
+      headers: {
+        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(res => {
+      if(res.success){
+        // cerrar modal, refrescar o insertar nuevo cliente en la tabla
+        const bsModal = bootstrap.Modal.getInstance(modal);
+        if(bsModal) bsModal.hide();
+        window.location.reload(); // o actualizar con DOM
+      } else {
+        // mostrar errores (mejor manejar validación en el servidor)
+        alert(res.message || 'Error al crear cliente');
+      }
+    })
+    .catch(e => {
+      console.error(e);
+      alert('Error al enviar datos');
+    });
+  });
+
+  // inicializa en caso de que se abra por server-side (si $errors, etc)
+  showStep(1);
+});
+
 </script>
 
 @endsection
