@@ -72,16 +72,21 @@ Route::middleware('auth')->group(function () {
     Route::post('/panels/save', [PanelController::class, 'save'])->name('panels.save');
     Route::get('/panels/get', [PanelController::class, 'get'])->name('panels.get');
 
-    // CRUD de panels y rutas para widgets
+    // CRUD de panels
     Route::get('/panels/create', [PanelController::class, 'create'])->name('panels.create');
     Route::post('/panels', [PanelController::class, 'store'])->name('panels.store');
     Route::get('/panels/{panel}', [PanelController::class, 'edit'])->name('panels.edit');
     Route::put('/panels/{panel}', [PanelController::class, 'update'])->name('panels.update');
     Route::delete('/panels/{panel}', [PanelController::class, 'destroy'])->name('panels.destroy');
 
-    Route::post('/panels/{panel}/widgets', [WidgetController::class, 'store'])->name('widgets.store');
-    Route::put('/panels/{panel}/widgets/{widget}', [WidgetController::class, 'update'])->name('widgets.update');
-    Route::delete('/panels/{panel}/widgets/{widget}', [WidgetController::class, 'destroy'])->name('widgets.destroy');
+    // API para widgets del panel personalizable
+    Route::prefix('api/widgets')->name('widgets.')->group(function () {
+        Route::get('/catalog', [WidgetController::class, 'catalog'])->name('catalog');
+        Route::get('/dashboard', [WidgetController::class, 'dashboard'])->name('dashboard');
+        Route::post('/attach', [WidgetController::class, 'attach'])->name('attach');
+        Route::patch('/{widget}', [WidgetController::class, 'update'])->name('update');
+        Route::delete('/{widget}', [WidgetController::class, 'destroy'])->name('destroy');
+    });
 
     // Rutas generales
     Route::resource('mediciones', MedicionesController::class);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\Plot\LocalPlotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -19,7 +20,11 @@ class PlotProxyController extends Controller
         $this->ensureAllowedTable($payload);
         $payload = $this->applySiteConstraints($request->user(), $payload);
 
-        return $this->forward($payload, '/items/data/plot');
+        if ($this->shouldUseRemote()) {
+            return $this->forward($payload, '/items/data/plot');
+        }
+
+        return response()->json(app(LocalPlotService::class)->plot($payload));
     }
 
     /**
@@ -31,7 +36,11 @@ class PlotProxyController extends Controller
         $this->ensureAllowedTable($payload);
         $payload = $this->applySiteConstraints($request->user(), $payload);
 
-        return $this->forward($payload, '/items/data');
+        if ($this->shouldUseRemote()) {
+            return $this->forward($payload, '/items/data');
+        }
+
+        return response()->json(app(LocalPlotService::class)->data($payload));
     }
 
     /**
@@ -46,7 +55,7 @@ class PlotProxyController extends Controller
             abort(422, 'El parámetro "table" es obligatorio.');
         }
 
-        $allowed = ['measurements', 'devices', 'sites'];
+        $allowed = ['measurements', 'devices', 'sites', 'site_daily_kpi'];
         if (!in_array($table, $allowed, true)) {
             abort(422, "La tabla solicitada ({$table}) no está permitida.");
         }
@@ -84,6 +93,14 @@ class PlotProxyController extends Controller
         $payload['filter_map'] = $filterMap;
 
         return $payload;
+    }
+
+    protected function shouldUseRemote(): bool
+    {
+        $baseUrl = rtrim((string) config('services.plot.base_url', ''), '/');
+        $apiKey = config('services.plot.api_key');
+
+        return $baseUrl !== '' && $apiKey;
     }
 
     /**

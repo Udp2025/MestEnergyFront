@@ -4,7 +4,18 @@ export function csrfToken() {
   return token;
 }
 
+let plotApiAvailable = true;
+
 export async function fetchPlot(body) {
+  if (!plotApiAvailable) {
+    const error = new Error(
+      "El servicio de gráficos no está disponible en este entorno."
+    );
+    error.status = 503;
+    error.payload = { message: error.message };
+    error.isPlotError = true;
+    throw error;
+  }
   const r = await fetch("/charts/plot", {
     method: "POST",
     headers: {
@@ -15,6 +26,9 @@ export async function fetchPlot(body) {
     body: JSON.stringify(body),
   });
   if (!r.ok) {
+    if (r.status === 404 || r.status === 503) {
+      plotApiAvailable = false;
+    }
     let payload;
     try {
       payload = await r.json();
