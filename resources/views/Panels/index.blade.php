@@ -16,6 +16,9 @@
       <button id="widget-drawer-toggle" class="panel-button panel-button--primary">
         + Agregar widget
       </button>
+      <button id="panel-edit" class="panel-button panel-button--ghost">
+        Reordenar
+      </button>
       <button id="panel-save" class="panel-button panel-button--ghost" disabled>
         Guardar cambios
       </button>
@@ -44,6 +47,25 @@
       <div id="widget-catalog-empty" class="empty-state" hidden>
         <strong>No encontramos widgets disponibles.</strong>
         <small>Verifica tus permisos o recarga la página.</small>
+      </div>
+      <div class="widget-catalog__toolbar">
+        <div class="widget-catalog__filters">
+          <label class="widget-catalog__filter">
+            <input type="radio" name="catalog-kind" value="all" checked>
+            <span>Todos</span>
+          </label>
+          <label class="widget-catalog__filter">
+            <input type="radio" name="catalog-kind" value="chart">
+            <span>Gráficas</span>
+          </label>
+          <label class="widget-catalog__filter">
+            <input type="radio" name="catalog-kind" value="kpi">
+            <span>KPI</span>
+          </label>
+        </div>
+        <div class="widget-catalog__search">
+          <input type="search" id="widget-search" placeholder="Buscar widget…" autocomplete="off">
+        </div>
       </div>
       <div class="widget-catalog"></div>
     </div>

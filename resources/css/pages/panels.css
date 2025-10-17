@@ -34,6 +34,16 @@
   align-items: center;
 }
 
+.panel-header__actions .panel-button + .panel-button {
+  margin-left: 0;
+}
+
+.panel-header__actions .panel-button#panel-edit.is-active {
+  background: rgba(19, 42, 107, 0.08);
+  border-color: rgba(19, 42, 107, 0.24);
+  color: #132a6b;
+}
+
 .panel-button {
   padding: 0.55rem 1rem;
   border-radius: 999px;
@@ -90,6 +100,10 @@
   align-items: stretch;
 }
 
+.widget-grid.is-editing {
+  gap: 1.75rem;
+}
+
 .widget-card {
   background: #ffffff;
   border: 1px solid rgba(206, 173, 109, 0.32);
@@ -107,6 +121,21 @@
 .widget-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 22px 48px -24px rgba(15, 23, 42, 0.38);
+}
+
+.widget-card--draggable {
+  cursor: grab;
+  border-style: dashed;
+}
+
+.widget-card--draggable.is-dragging {
+  opacity: 0.6;
+  cursor: grabbing;
+}
+
+.widget-card--draggable.widget-card--drop-target {
+  border-color: rgba(19, 42, 107, 0.35);
+  background: rgba(19, 42, 107, 0.06);
 }
 
 .widget-card--kpi {
@@ -366,6 +395,69 @@
   gap: 1rem;
   overflow-y: auto;
   padding-right: 0.5rem;
+}
+
+.widget-catalog__toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(47, 58, 77, 0.08);
+  margin-bottom: 0.75rem;
+}
+
+.widget-catalog__filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.widget-catalog__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: #4a5568;
+  border: 1px solid rgba(74, 85, 104, 0.18);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.widget-catalog__filter input[type="radio"] {
+  accent-color: #cead6d;
+}
+
+.widget-catalog__filter span {
+  pointer-events: none;
+}
+
+.widget-catalog__filter:has(input[type="radio"]:checked) {
+  background: rgba(206, 173, 109, 0.14);
+  border-color: rgba(206, 173, 109, 0.35);
+  color: #2f3a4d;
+  font-weight: 600;
+}
+
+.widget-catalog__search {
+  position: relative;
+}
+
+.widget-catalog__search input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(74, 85, 104, 0.16);
+  background: #fff;
+  font-size: 0.9rem;
+  color: #344056;
+}
+
+.widget-catalog__search input::placeholder {
+  color: #94a3b8;
 }
 
 .widget-catalog__item {

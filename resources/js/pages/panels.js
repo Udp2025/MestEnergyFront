@@ -77,6 +77,8 @@ const state = {
 const isSuperAdmin = canViewAllSites();
 let isDirty = false;
 let widgetsApiEnabled = true;
+let isEditingMode = false;
+let activeDragId = null;
 
 function getSaveButton() {
   return document.getElementById("panel-save");
@@ -93,6 +95,56 @@ function setDirty(flag = true) {
     saveBtn.disabled = true;
     saveBtn.textContent = "Cambios guardados";
   }
+}
+
+function applyEditModeUI() {
+  const editButton = document.getElementById("panel-edit");
+  if (editButton) {
+    editButton.classList.toggle("is-active", isEditingMode);
+    editButton.textContent = isEditingMode ? "Terminar orden" : "Reordenar";
+  }
+  const dashboardRoot = document.getElementById("panel-dashboard");
+  const dashboardGrid = dashboardRoot?.querySelector(".widget-grid");
+  dashboardRoot?.classList.toggle("is-editing", isEditingMode);
+  dashboardGrid?.classList.toggle("is-editing", isEditingMode);
+}
+
+function toggleEditMode(force) {
+  const nextMode = typeof force === "boolean" ? force : !isEditingMode;
+  if (nextMode === isEditingMode) {
+    applyEditModeUI();
+    return;
+  }
+  isEditingMode = nextMode;
+  applyEditModeUI();
+  renderDashboard();
+}
+
+function syncDashboardOrderFromDom() {
+  const dashboardRoot = document.getElementById("panel-dashboard");
+  const dashboardGrid = dashboardRoot?.querySelector(".widget-grid");
+  if (!dashboardGrid) return;
+  const orderedIds = Array.from(
+    dashboardGrid.querySelectorAll(".widget-card")
+  ).map((card) => card.dataset.widgetId);
+  if (!orderedIds.length) return;
+
+  const widgetMap = new Map(state.dashboard.map((widget) => [String(widget.id), widget]));
+  const reordered = orderedIds
+    .map((id) => widgetMap.get(id))
+    .filter(Boolean);
+
+  if (reordered.length !== state.dashboard.length) {
+    // append any widgets that were not found just in case
+    widgetMap.forEach((widget, id) => {
+      if (!orderedIds.includes(id)) {
+        reordered.push(widget);
+      }
+    });
+  }
+
+  state.dashboard = reordered;
+  setDirty(true);
 }
 
 function isWidgetsApiUrl(url) {
@@ -409,6 +461,8 @@ function renderCatalog() {
   const catalogRoot = document.getElementById("widget-catalog");
   const catalogList = catalogRoot?.querySelector(".widget-catalog");
   const catalogEmpty = document.getElementById("widget-catalog-empty");
+  const searchInput = catalogRoot?.querySelector("#widget-search");
+  const filterRadios = catalogRoot?.querySelectorAll('input[name="catalog-kind"]');
   if (!catalogList || !catalogEmpty) return;
 
   catalogList.innerHTML = "";
@@ -418,7 +472,38 @@ function renderCatalog() {
   }
 
   catalogEmpty.hidden = true;
-  state.catalog.forEach((definition) => {
+  const query = (searchInput?.value || "").trim().toLowerCase();
+  const kindFilter = Array.from(filterRadios || []).find((radio) => radio.checked)?.value || "all";
+
+  const filtered = state.catalog.filter((definition) => {
+    if (kindFilter !== "all" && definition.kind !== kindFilter) {
+      return false;
+    }
+    if (!query) return true;
+    const haystack = [
+      definition.name,
+      definition.description,
+      definition.slug,
+      definition.source_dataset,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(query);
+  });
+
+  if (!filtered.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.innerHTML = `
+      <strong>No encontramos widgets que coincidan.</strong>
+      <small>Prueba con otro término o cambia el filtro.</small>
+    `;
+    catalogList.appendChild(empty);
+    return;
+  }
+
+  filtered.forEach((definition) => {
     const row = document.createElement("div");
     row.className = "widget-catalog__item";
     row.dataset.widgetSlug = definition.slug;
@@ -481,6 +566,7 @@ function renderDashboard() {
   orderedCards.forEach((card) => fragment.appendChild(card));
   dashboardGrid.innerHTML = "";
   dashboardGrid.appendChild(fragment);
+  applyEditModeUI();
 }
 
 function applyWidgetCardKind(card, kind) {
@@ -512,6 +598,11 @@ function renderWidgetCard(widget, definition) {
   card.dataset.widgetSlug = widget.slug;
   card.dataset.widgetKind = definition.kind;
   applyWidgetCardKind(card, definition.kind);
+
+  if (isEditingMode) {
+    card.setAttribute("draggable", "true");
+    card.classList.add("widget-card--draggable");
+  }
 
   const header = document.createElement("header");
   header.className = "widget-card__header";
@@ -564,6 +655,13 @@ function updateWidgetCard(card, widget, definition) {
   card.dataset.widgetSlug = widget.slug;
   card.dataset.widgetKind = kind;
   applyWidgetCardKind(card, kind);
+  if (isEditingMode) {
+    card.setAttribute("draggable", "true");
+    card.classList.add("widget-card--draggable");
+  } else {
+    card.removeAttribute("draggable");
+    card.classList.remove("widget-card--draggable", "is-dragging", "widget-card--drop-target");
+  }
 
   const expectedTitle = widget.title || definition.name;
   const titleNode = card.querySelector(".widget-card__title");
@@ -587,6 +685,82 @@ function updateWidgetCard(card, widget, definition) {
       renderChartWidget(widget, definition, body);
     }
   }
+}
+
+function handleDragStart(event) {
+  if (!isEditingMode) return;
+  const card = event.target.closest(".widget-card");
+  if (!card) return;
+  activeDragId = card.dataset.widgetId;
+  card.classList.add("is-dragging");
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("text/plain", activeDragId);
+}
+
+function handleDragOver(event) {
+  if (!isEditingMode) return;
+  event.preventDefault();
+  const grid = event.currentTarget;
+  const draggedId = activeDragId || event.dataTransfer.getData("text/plain");
+  if (!grid || !draggedId) return;
+  const draggedCard = grid.querySelector(`.widget-card[data-widget-id="${draggedId}"]`);
+  if (!draggedCard) return;
+
+  const targetCard = event.target.closest(".widget-card");
+  grid.querySelectorAll(".widget-card--drop-target").forEach((el) => {
+    if (el !== targetCard) el.classList.remove("widget-card--drop-target");
+  });
+
+  if (!targetCard) {
+    grid.appendChild(draggedCard);
+    return;
+  }
+
+  if (targetCard === draggedCard) {
+    return;
+  }
+
+  const rect = targetCard.getBoundingClientRect();
+  const halfwayY = rect.top + rect.height / 2;
+  const halfwayX = rect.left + rect.width / 2;
+  const before = event.clientY < halfwayY || event.clientX < halfwayX;
+
+  targetCard.classList.add("widget-card--drop-target");
+  if (before) {
+    grid.insertBefore(draggedCard, targetCard);
+  } else {
+    grid.insertBefore(draggedCard, targetCard.nextSibling);
+  }
+}
+
+function handleDragLeave(event) {
+  if (!isEditingMode) return;
+  const card = event.target.closest(".widget-card");
+  card?.classList.remove("widget-card--drop-target");
+}
+
+function handleDrop(event) {
+  if (!isEditingMode) return;
+  event.preventDefault();
+  const grid = event.currentTarget;
+  grid.querySelectorAll(".widget-card--drop-target").forEach((el) =>
+    el.classList.remove("widget-card--drop-target")
+  );
+  const draggedCard = grid.querySelector(`.widget-card[data-widget-id="${activeDragId}"]`);
+  draggedCard?.classList.remove("is-dragging");
+  syncDashboardOrderFromDom();
+  activeDragId = null;
+}
+
+function handleDragEnd(event) {
+  if (!isEditingMode) return;
+  const card = event.target.closest(".widget-card");
+  card?.classList.remove("is-dragging");
+  const grid = document.querySelector("#panel-dashboard .widget-grid");
+  grid?.querySelectorAll(".widget-card--drop-target").forEach((el) =>
+    el.classList.remove("widget-card--drop-target")
+  );
+  activeDragId = null;
 }
 
 function renderKpiWidget(widget, definition, container) {
@@ -1072,9 +1246,12 @@ function registerEvents() {
   const dashboardGrid = dashboardRoot?.querySelector(".widget-grid");
   const catalogRoot = document.getElementById("widget-catalog");
   const catalogList = catalogRoot?.querySelector(".widget-catalog");
+  const catalogSearch = catalogRoot?.querySelector("#widget-search");
+  const catalogFilters = catalogRoot?.querySelectorAll('input[name="catalog-kind"]');
   const drawer = document.getElementById("widget-drawer");
   const drawerToggle = document.getElementById("widget-drawer-toggle");
   const drawerClose = document.getElementById("widget-drawer-close");
+  const editButton = document.getElementById("panel-edit");
   const saveButton = getSaveButton();
 
   dashboardGrid?.addEventListener("click", (event) => {
@@ -1085,6 +1262,12 @@ function registerEvents() {
     removeWidget(card.dataset.widgetId);
   });
 
+  dashboardGrid?.addEventListener("dragstart", handleDragStart);
+  dashboardGrid?.addEventListener("dragover", handleDragOver);
+  dashboardGrid?.addEventListener("dragleave", handleDragLeave);
+  dashboardGrid?.addEventListener("drop", handleDrop);
+  dashboardGrid?.addEventListener("dragend", handleDragEnd);
+
   catalogList?.addEventListener("click", (event) => {
     const addButton = event.target.closest("[data-add]");
     if (!addButton) return;
@@ -1093,6 +1276,11 @@ function registerEvents() {
     const slug = row.dataset.widgetSlug;
     addWidget(slug);
   });
+
+  catalogSearch?.addEventListener("input", () => renderCatalog());
+  catalogFilters?.forEach((radio) =>
+    radio.addEventListener("change", () => renderCatalog())
+  );
 
   drawerToggle?.addEventListener("click", () => {
     drawer?.classList.add("is-open");
@@ -1106,6 +1294,10 @@ function registerEvents() {
     if (event.target === drawer) {
       drawer.classList.remove("is-open");
     }
+  });
+
+  editButton?.addEventListener("click", () => {
+    toggleEditMode();
   });
 
   saveButton?.addEventListener("click", () => {
@@ -1204,6 +1396,9 @@ async function saveDashboard() {
     }
     renderDashboard();
     state.removedWidgetIds = new Set();
+    if (isEditingMode) {
+      toggleEditMode(false);
+    }
     setDirty(false);
     saveBtn.textContent = "Cambios guardados";
     setTimeout(() => {
