@@ -1033,8 +1033,16 @@ function handleDragOver(event) {
   }
 
   const rect = targetCard.getBoundingClientRect();
-  const halfwayY = rect.top + rect.height / 2;
-  const before = event.clientY < halfwayY;
+  const withinVertical =
+    event.clientY >= rect.top && event.clientY <= rect.bottom;
+  let before;
+  if (withinVertical) {
+    const halfwayX = rect.left + rect.width / 2;
+    before = event.clientX < halfwayX;
+  } else {
+    const halfwayY = rect.top + rect.height / 2;
+    before = event.clientY < halfwayY;
+  }
 
   targetCard.classList.add("widget-card--drop-target");
   if (before) {
