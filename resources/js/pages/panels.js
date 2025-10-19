@@ -13,7 +13,24 @@ const DEFAULT_WIDGET_CATALOG = [
     slug: "histogram_chart",
     name: "Histograma de corriente",
     kind: "chart",
-    description: "Distribución de valores de corriente agregada por dispositivo.",
+    description:
+      "Distribución de valores de corriente agregada por dispositivo.",
+  },
+  {
+    slug: "histogram_today_chart",
+    name: "Histograma de corriente (hoy)",
+    kind: "chart",
+    description:
+      "Distribución de corriente por dispositivo durante el día actual.",
+    source_dataset: "measurements",
+  },
+  {
+    slug: "histogram_month_chart",
+    name: "Histograma de corriente (mes)",
+    kind: "chart",
+    description:
+      "Distribución de corriente acumulada en el mes actual (promedio diario).",
+    source_dataset: "measurements",
   },
   {
     slug: "scatter_chart",
@@ -22,22 +39,84 @@ const DEFAULT_WIDGET_CATALOG = [
     description: "Relación entre corriente y voltaje promediada por hora.",
   },
   {
+    slug: "scatter_today_chart",
+    name: "Voltaje vs corriente (hoy)",
+    kind: "chart",
+    description: "Dispersión de voltaje y corriente del día actual.",
+    source_dataset: "measurements",
+  },
+  {
+    slug: "scatter_month_chart",
+    name: "Voltaje vs corriente (mes)",
+    kind: "chart",
+    description:
+      "Dispersión promedio diaria de voltaje y corriente del mes en curso.",
+    source_dataset: "measurements",
+  },
+  {
     slug: "timeseries_chart",
     name: "Serie temporal de potencia",
     kind: "chart",
     description: "Evolución de la potencia promedio en las últimas horas.",
   },
   {
+    slug: "timeseries_today_chart",
+    name: "Potencia promedio (hoy)",
+    kind: "chart",
+    description: "Serie temporal horaria de la potencia del día actual.",
+    source_dataset: "measurements",
+  },
+  {
+    slug: "timeseries_month_chart",
+    name: "Potencia promedio (mes)",
+    kind: "chart",
+    description: "Serie temporal diaria de la potencia del mes actual.",
+    source_dataset: "measurements",
+  },
+  {
     slug: "bar_chart",
     name: "Barras de energía",
     kind: "chart",
-    description: "Energía acumulada por dispositivo en el periodo seleccionado.",
+    description:
+      "Energía acumulada por dispositivo en el periodo seleccionado.",
+  },
+  {
+    slug: "bar_today_chart",
+    name: "Energía por dispositivo (hoy)",
+    kind: "chart",
+    description:
+      "Energía acumulada por dispositivo durante el día actual.",
+    source_dataset: "measurements",
+  },
+  {
+    slug: "bar_month_chart",
+    name: "Energía por dispositivo (mes)",
+    kind: "chart",
+    description:
+      "Energía acumulada por dispositivo en el mes en curso.",
+    source_dataset: "measurements",
   },
   {
     slug: "heatmap_chart",
     name: "Heat map",
     kind: "chart",
     description: "Patrones temporales de potencia promedio.",
+  },
+  {
+    slug: "heatmap_today_chart",
+    name: "Mapa de calor (hoy)",
+    kind: "chart",
+    description:
+      "Mapa de calor de potencia por hora durante el día actual.",
+    source_dataset: "measurements",
+  },
+  {
+    slug: "heatmap_month_chart",
+    name: "Mapa de calor (mes)",
+    kind: "chart",
+    description:
+      "Mapa de calor diario de potencia durante el mes actual.",
+    source_dataset: "measurements",
   },
   {
     slug: "devices_per_site",
@@ -52,6 +131,89 @@ const DEFAULT_WIDGET_CATALOG = [
     kind: "kpi",
     description: "Porcentaje de availability del sitio para la fecha actual.",
     source_dataset: "site_daily_kpi",
+  },
+  {
+    slug: "energy_today_kpi",
+    name: "Energía generada hoy",
+    kind: "kpi",
+    description: "Energía total acumulada del sitio en el día actual.",
+    source_dataset: "site_daily_kpi",
+  },
+  {
+    slug: "peak_power_kpi",
+    name: "Potencia pico del día",
+    kind: "kpi",
+    description:
+      "Valor máximo de potencia registrado para el sitio durante el día.",
+    source_dataset: "site_daily_kpi",
+  },
+  {
+    slug: "load_factor_kpi",
+    name: "Load factor diario",
+    kind: "kpi",
+    description:
+      "Relación entre la energía real generada y la energía máxima posible (load factor).",
+    source_dataset: "site_daily_kpi",
+  },
+  {
+    slug: "pf_compliance_kpi",
+    name: "Cumplimiento factor de potencia",
+    kind: "kpi",
+    description:
+      "Porcentaje de cumplimiento del factor de potencia objetivo en el sitio.",
+    source_dataset: "site_daily_kpi",
+  },
+  {
+    slug: "data_freshness_kpi",
+    name: "Latencia de datos",
+    kind: "kpi",
+    description:
+      "Minutos transcurridos desde la última actualización de datos del sitio.",
+    source_dataset: "site_daily_kpi",
+  },
+  {
+    slug: "active_devices_kpi",
+    name: "Dispositivos activos",
+    kind: "kpi",
+    description: "Número de dispositivos reportando datos en la última hora.",
+    source_dataset: "site_hourly_kpi",
+  },
+  {
+    slug: "energy_last7_chart",
+    name: "Energía últimos 7 días",
+    kind: "chart",
+    description: "Tendencia de energía diaria generada en la última semana.",
+    source_dataset: "site_daily_kpi",
+  },
+  {
+    slug: "power_factor_trend_chart",
+    name: "Tendencia factor de potencia",
+    kind: "chart",
+    description: "Seguimiento del factor de potencia promedio diario.",
+    source_dataset: "site_daily_kpi",
+  },
+  {
+    slug: "availability_trend_chart",
+    name: "Disponibilidad horaria",
+    kind: "chart",
+    description: "Disponibilidad porcentual por hora durante los últimos días.",
+    source_dataset: "site_hourly_kpi",
+  },
+  {
+    slug: "device_energy_rank_chart",
+    name: "Ranking energía por dispositivo",
+    kind: "chart",
+    description:
+      "Comparativo de energía generada por dispositivo en el periodo seleccionado.",
+    source_dataset: "device_daily_kpi",
+  },
+  {
+    slug: "ingestion_lag_chart",
+    name: "Latencia de ingesta",
+    kind: "chart",
+    description:
+      "Latencia promedio de los procesos de ingesta de datos recientes.",
+    source_dataset: "ingestion_run_kpi",
   },
 ];
 
@@ -129,10 +291,10 @@ function syncDashboardOrderFromDom() {
   ).map((card) => card.dataset.widgetId);
   if (!orderedIds.length) return;
 
-  const widgetMap = new Map(state.dashboard.map((widget) => [String(widget.id), widget]));
-  const reordered = orderedIds
-    .map((id) => widgetMap.get(id))
-    .filter(Boolean);
+  const widgetMap = new Map(
+    state.dashboard.map((widget) => [String(widget.id), widget])
+  );
+  const reordered = orderedIds.map((id) => widgetMap.get(id)).filter(Boolean);
 
   if (reordered.length !== state.dashboard.length) {
     // append any widgets that were not found just in case
@@ -176,6 +338,64 @@ function formatPercent(value) {
   return `${Number(value).toFixed(1)}%`;
 }
 
+function formatEnergy(valueWh) {
+  if (valueWh === null || valueWh === undefined) return "-";
+  const absValue = Math.abs(Number(valueWh));
+  if (absValue >= 1_000_000) {
+    return `${(valueWh / 1_000_000).toFixed(2)} MWh`;
+  }
+  if (absValue >= 1_000) {
+    return `${(valueWh / 1_000).toFixed(1)} kWh`;
+  }
+  return `${Number(valueWh).toFixed(0)} Wh`;
+}
+
+function formatMinutes(value) {
+  if (value === null || value === undefined) return "-";
+  if (value < 60) return `${value.toFixed(0)} min`;
+  const hours = value / 60;
+  if (hours < 24) return `${hours.toFixed(1)} h`;
+  const days = hours / 24;
+  return `${days.toFixed(1)} d`;
+}
+
+function computePastHours(hours = 24) {
+  const end = new Date();
+  const start = new Date(end.getTime() - hours * 60 * 60 * 1000);
+  const to = end.toISOString().slice(0, 19).replace("T", " ");
+  const from = start.toISOString().slice(0, 19).replace("T", " ");
+  return { from, to };
+}
+
+function appendSiteSelector(container, widget, onChange) {
+  if (!isSuperAdmin || !state.sites.length) return null;
+  const controls = document.createElement("div");
+  controls.className = "widget-card__controls";
+  const label = document.createElement("label");
+  label.textContent = "Sitio";
+  const select = document.createElement("select");
+  state.sites.forEach((site) => {
+    const option = document.createElement("option");
+    option.value = site.site_id;
+    option.textContent = site.site_name;
+    if (
+      String(widget.data_filters?.siteId ?? state.defaultSiteId) ===
+      site.site_id
+    ) {
+      option.selected = true;
+    }
+    select.appendChild(option);
+  });
+  select.addEventListener("change", async (event) => {
+    await updateWidgetFilters(widget, { siteId: event.target.value });
+    onChange(event.target.value);
+  });
+  controls.appendChild(label);
+  controls.appendChild(select);
+  container.appendChild(controls);
+  return controls;
+}
+
 const PLOT_MODEBAR_WHITELIST = ["resetScale2d", "toImage"];
 const PLOT_MODEBAR_REMOVALS = [
   "zoom2d",
@@ -205,7 +425,8 @@ function sanitisePlotFigure(figure = {}) {
   if (!Array.isArray(figure.data)) {
     figure.data = [];
   }
-  figure.layout = figure.layout && typeof figure.layout === "object" ? figure.layout : {};
+  figure.layout =
+    figure.layout && typeof figure.layout === "object" ? figure.layout : {};
   const { title } = figure.layout;
   if (title) {
     if (typeof title === "object" && title !== null) {
@@ -280,11 +501,17 @@ function normaliseCatalogPayload(rows = []) {
 
 function normaliseWidgetPayload(payload) {
   if (!payload) return null;
-  const definition = findDefinition(payload.slug || payload.widget_definition?.slug);
+  const definition = findDefinition(
+    payload.slug || payload.widget_definition?.slug
+  );
   const id = payload.id ?? payload.widget_id ?? `local-${Date.now()}`;
   const slug = payload.slug || payload.widget_definition?.slug;
   if (!slug) return null;
-  const kind = payload.kind || definition?.kind || payload.widget_definition?.kind || "chart";
+  const kind =
+    payload.kind ||
+    definition?.kind ||
+    payload.widget_definition?.kind ||
+    "chart";
   const dataFilters = payload.data_filters || payload.filters || {};
   const title =
     payload.title || payload.name || definition?.name || "Widget personalizado";
@@ -323,6 +550,18 @@ function createWidgetInstance(definition, overrides = {}) {
     dateRange: computeDateRange(),
     ...(overrides.data_filters || {}),
   };
+  if (/_today_/i.test(definition.slug) || /_today$/.test(definition.slug)) {
+    const today = formatDateISO(new Date());
+    filters.dateRange = { from: today, to: today };
+  } else if (/_month_/i.test(definition.slug) || /_month$/.test(definition.slug)) {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    filters.dateRange = {
+      from: formatDateISO(start),
+      to: formatDateISO(end),
+    };
+  }
   return {
     id: `local-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     slug: definition.slug,
@@ -351,16 +590,34 @@ async function fetchJSON(url, options = {}) {
     ...options,
   });
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
+    const payload = await response
+      .json()
+      .catch(() => ({ message: response.statusText }));
     const error = new Error(payload.message || "Request failed");
     error.payload = payload;
     error.status = response.status;
-    if ((error.status === 404 || error.status === 501) && isWidgetsApiUrl(url)) {
+    if (
+      (error.status === 404 || error.status === 501) &&
+      isWidgetsApiUrl(url)
+    ) {
       widgetsApiEnabled = false;
     }
     throw error;
   }
-  return response.json();
+  if (response.status === 204) {
+    return null;
+  }
+  const raw = await response.text();
+  const text = raw.trim();
+  if (!text) {
+    return null;
+  }
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.warn("fetchJSON: unable to parse response", err, { url });
+    return null;
+  }
 }
 
 async function ensureSites() {
@@ -412,7 +669,10 @@ async function loadCatalog() {
     const rows = Array.isArray(data?.widgets) ? data.widgets : data;
     state.catalog = normaliseCatalogPayload(rows);
   } catch (err) {
-    console.warn("panels.js: catalog endpoint unavailable, using defaults", err);
+    console.warn(
+      "panels.js: catalog endpoint unavailable, using defaults",
+      err
+    );
     if (!err || [404, 501, 503].includes(err.status)) {
       widgetsApiEnabled = false;
     }
@@ -462,7 +722,9 @@ function renderCatalog() {
   const catalogList = catalogRoot?.querySelector(".widget-catalog");
   const catalogEmpty = document.getElementById("widget-catalog-empty");
   const searchInput = catalogRoot?.querySelector("#widget-search");
-  const filterRadios = catalogRoot?.querySelectorAll('input[name="catalog-kind"]');
+  const filterRadios = catalogRoot?.querySelectorAll(
+    'input[name="catalog-kind"]'
+  );
   if (!catalogList || !catalogEmpty) return;
 
   catalogList.innerHTML = "";
@@ -473,7 +735,9 @@ function renderCatalog() {
 
   catalogEmpty.hidden = true;
   const query = (searchInput?.value || "").trim().toLowerCase();
-  const kindFilter = Array.from(filterRadios || []).find((radio) => radio.checked)?.value || "all";
+  const kindFilter =
+    Array.from(filterRadios || []).find((radio) => radio.checked)?.value ||
+    "all";
 
   const filtered = state.catalog.filter((definition) => {
     if (kindFilter !== "all" && definition.kind !== kindFilter) {
@@ -516,7 +780,9 @@ function renderCatalog() {
       </div>
       <p class="widget-catalog__description">${definition.description || ""}</p>
       <div class="widget-catalog__footer">
-        <span class="widget-catalog__meta">${definition.source_dataset || "Directo"}</span>
+        <span class="widget-catalog__meta">${
+          definition.source_dataset || "Directo"
+        }</span>
         <button class="panel-button panel-button--primary" data-add>Agregar</button>
       </div>
     `;
@@ -587,8 +853,24 @@ function resetWidgetBody(container, kind) {
   }
   container.innerHTML = "";
   container.className = "widget-card__body";
-  container.classList.add(kind === "chart" ? "widget-card__body--chart" : "widget-card__body--kpi");
+  container.classList.add(
+    kind === "chart" ? "widget-card__body--chart" : "widget-card__body--kpi"
+  );
   container.dataset.widgetKind = kind;
+}
+
+function renderWidgetLoading(container, message = "Cargando widget…") {
+  if (!container) return;
+  container.innerHTML = "";
+  container.className = "widget-card__body";
+  container.dataset.widgetKind = "loading";
+  const loadingNode = document.createElement("div");
+  loadingNode.className = "widget-card__loading";
+  loadingNode.innerHTML = `
+    <span class="widget-card__loading-spinner" aria-hidden="true"></span>
+    <span>${message}</span>
+  `;
+  container.appendChild(loadingNode);
 }
 
 function renderWidgetCard(widget, definition) {
@@ -597,11 +879,14 @@ function renderWidgetCard(widget, definition) {
   card.dataset.widgetId = String(widget.id);
   card.dataset.widgetSlug = widget.slug;
   card.dataset.widgetKind = definition.kind;
+  card.dataset.widgetLoading = widget.isLoading ? "true" : "false";
   applyWidgetCardKind(card, definition.kind);
 
   if (isEditingMode) {
-    card.setAttribute("draggable", "true");
-    card.classList.add("widget-card--draggable");
+    if (!widget.isLoading) {
+      card.setAttribute("draggable", "true");
+      card.classList.add("widget-card--draggable");
+    }
   }
 
   const header = document.createElement("header");
@@ -620,6 +905,9 @@ function renderWidgetCard(widget, definition) {
   removeBtn.dataset.remove = "true";
   removeBtn.setAttribute("aria-label", "Quitar widget");
   removeBtn.innerHTML = '<span aria-hidden="true">&times;</span>';
+  if (widget.isLoading) {
+    removeBtn.disabled = true;
+  }
 
   const headerInfo = document.createElement("div");
   headerInfo.className = "widget-card__header-info";
@@ -634,6 +922,11 @@ function renderWidgetCard(widget, definition) {
 
   card.appendChild(header);
   card.appendChild(body);
+
+  if (widget.isLoading) {
+    renderWidgetLoading(body, "Agregando widget…");
+    return card;
+  }
 
   if (definition.kind === "kpi") {
     renderKpiWidget(widget, definition, body);
@@ -650,17 +943,23 @@ function updateWidgetCard(card, widget, definition) {
   const body = card.querySelector(".widget-card__body");
   const previousSlug = card.dataset.widgetSlug;
   const previousKind = body?.dataset.widgetKind;
+  const wasLoading = card.dataset.widgetLoading === "true";
 
   card.dataset.widgetId = String(widget.id);
   card.dataset.widgetSlug = widget.slug;
   card.dataset.widgetKind = kind;
+  card.dataset.widgetLoading = widget.isLoading ? "true" : "false";
   applyWidgetCardKind(card, kind);
-  if (isEditingMode) {
+  if (isEditingMode && !widget.isLoading) {
     card.setAttribute("draggable", "true");
     card.classList.add("widget-card--draggable");
   } else {
     card.removeAttribute("draggable");
-    card.classList.remove("widget-card--draggable", "is-dragging", "widget-card--drop-target");
+    card.classList.remove(
+      "widget-card--draggable",
+      "is-dragging",
+      "widget-card--drop-target"
+    );
   }
 
   const expectedTitle = widget.title || definition.name;
@@ -675,9 +974,20 @@ function updateWidgetCard(card, widget, definition) {
     metaNode.textContent = expectedMeta;
   }
 
+  const removeButton = card.querySelector("[data-remove]");
+  if (removeButton) {
+    removeButton.disabled = !!widget.isLoading;
+  }
+
   if (!body) return;
 
-  const shouldRebuild = previousKind !== kind || previousSlug !== widget.slug;
+  if (widget.isLoading) {
+    renderWidgetLoading(body, "Agregando widget…");
+    return;
+  }
+
+  const shouldRebuild =
+    previousKind !== kind || previousSlug !== widget.slug || wasLoading;
   if (shouldRebuild) {
     if (kind === "kpi") {
       renderKpiWidget(widget, definition, body);
@@ -703,7 +1013,9 @@ function handleDragOver(event) {
   const grid = event.currentTarget;
   const draggedId = activeDragId || event.dataTransfer.getData("text/plain");
   if (!grid || !draggedId) return;
-  const draggedCard = grid.querySelector(`.widget-card[data-widget-id="${draggedId}"]`);
+  const draggedCard = grid.querySelector(
+    `.widget-card[data-widget-id="${draggedId}"]`
+  );
   if (!draggedCard) return;
 
   const targetCard = event.target.closest(".widget-card");
@@ -722,8 +1034,7 @@ function handleDragOver(event) {
 
   const rect = targetCard.getBoundingClientRect();
   const halfwayY = rect.top + rect.height / 2;
-  const halfwayX = rect.left + rect.width / 2;
-  const before = event.clientY < halfwayY || event.clientX < halfwayX;
+  const before = event.clientY < halfwayY;
 
   targetCard.classList.add("widget-card--drop-target");
   if (before) {
@@ -743,10 +1054,12 @@ function handleDrop(event) {
   if (!isEditingMode) return;
   event.preventDefault();
   const grid = event.currentTarget;
-  grid.querySelectorAll(".widget-card--drop-target").forEach((el) =>
-    el.classList.remove("widget-card--drop-target")
+  grid
+    .querySelectorAll(".widget-card--drop-target")
+    .forEach((el) => el.classList.remove("widget-card--drop-target"));
+  const draggedCard = grid.querySelector(
+    `.widget-card[data-widget-id="${activeDragId}"]`
   );
-  const draggedCard = grid.querySelector(`.widget-card[data-widget-id="${activeDragId}"]`);
   draggedCard?.classList.remove("is-dragging");
   syncDashboardOrderFromDom();
   activeDragId = null;
@@ -757,9 +1070,9 @@ function handleDragEnd(event) {
   const card = event.target.closest(".widget-card");
   card?.classList.remove("is-dragging");
   const grid = document.querySelector("#panel-dashboard .widget-grid");
-  grid?.querySelectorAll(".widget-card--drop-target").forEach((el) =>
-    el.classList.remove("widget-card--drop-target")
-  );
+  grid
+    ?.querySelectorAll(".widget-card--drop-target")
+    .forEach((el) => el.classList.remove("widget-card--drop-target"));
   activeDragId = null;
 }
 
@@ -770,6 +1083,30 @@ function renderKpiWidget(widget, definition, container) {
   }
   if (widget.slug === "site_availability") {
     renderAvailabilityWidget(widget, container);
+    return;
+  }
+  if (widget.slug === "energy_today_kpi") {
+    renderSiteEnergyWidget(widget, container);
+    return;
+  }
+  if (widget.slug === "peak_power_kpi") {
+    renderPeakPowerWidget(widget, container);
+    return;
+  }
+  if (widget.slug === "load_factor_kpi") {
+    renderLoadFactorWidget(widget, container);
+    return;
+  }
+  if (widget.slug === "pf_compliance_kpi") {
+    renderPfComplianceWidget(widget, container);
+    return;
+  }
+  if (widget.slug === "data_freshness_kpi") {
+    renderDataFreshnessWidget(widget, container);
+    return;
+  }
+  if (widget.slug === "active_devices_kpi") {
+    renderActiveDevicesWidget(widget, container);
     return;
   }
   resetWidgetBody(container, "kpi");
@@ -792,7 +1129,10 @@ function renderDeviceCountWidget(widget, container) {
       const option = document.createElement("option");
       option.value = site.site_id;
       option.textContent = site.site_name;
-      if (String(widget.data_filters?.siteId ?? state.defaultSiteId) === site.site_id) {
+      if (
+        String(widget.data_filters?.siteId ?? state.defaultSiteId) ===
+        site.site_id
+      ) {
         option.selected = true;
       }
       select.appendChild(option);
@@ -833,7 +1173,7 @@ function renderDeviceCountWidget(widget, container) {
   };
   if (siteId && siteId !== "ALL") {
     requestBody.filter_map = {
-      site_id: "=" + siteId,
+      site_id: [String(siteId)],
     };
   }
 
@@ -878,7 +1218,10 @@ function renderAvailabilityWidget(widget, container) {
       const option = document.createElement("option");
       option.value = site.site_id;
       option.textContent = site.site_name;
-      if (String(widget.data_filters?.siteId ?? state.defaultSiteId) === site.site_id) {
+      if (
+        String(widget.data_filters?.siteId ?? state.defaultSiteId) ===
+        site.site_id
+      ) {
         option.selected = true;
       }
       select.appendChild(option);
@@ -908,7 +1251,7 @@ function renderAvailabilityWidget(widget, container) {
   const requestBody = {
     table: "site_daily_kpi",
     filter_map: {
-      kpi_date: "=" + today,
+      kpi_date: [today],
     },
     aggregation: [
       {
@@ -920,7 +1263,7 @@ function renderAvailabilityWidget(widget, container) {
     ],
   };
   if (siteId && siteId !== "ALL") {
-    requestBody.filter_map.site_id = "=" + siteId;
+    requestBody.filter_map.site_id = [String(siteId)];
   }
 
   fetchDB(requestBody)
@@ -937,9 +1280,21 @@ function renderAvailabilityWidget(widget, container) {
       if (!record && rows.length) {
         record = rows[0];
       }
-      const pct = record?.availability_pct_avg ?? record?.availability_pct ?? null;
-      metric.firstChild.textContent = pct === null ? "-" : formatPercent(pct);
-      metric.setAttribute("aria-label", `Disponibilidad ${metric.firstChild.textContent}`);
+      const pct =
+        record?.availability_pct_avg ??
+        record?.availability_pct ??
+        null;
+      if (pct === null || pct === undefined) {
+        metric.firstChild.textContent = "-";
+        helper.textContent = "Sin datos de disponibilidad";
+        return;
+      }
+      const normalized = pct > 1 ? pct : pct * 100;
+      metric.firstChild.textContent = `${Number(normalized).toFixed(1)}%`;
+      metric.setAttribute(
+        "aria-label",
+        `Disponibilidad ${metric.firstChild.textContent}`
+      );
     })
     .catch((err) => {
       console.error("panels.js: availability fetch failed", err);
@@ -947,11 +1302,414 @@ function renderAvailabilityWidget(widget, container) {
     });
 }
 
+function renderSiteEnergyWidget(widget, container) {
+  resetWidgetBody(container, "kpi");
+  const wrapper = document.createElement("div");
+  wrapper.className = "widget-card__kpi-wrapper";
+  container.appendChild(wrapper);
+  appendSiteSelector(wrapper, widget, () =>
+    renderSiteEnergyWidget(widget, container)
+  );
+
+  const metric = document.createElement("div");
+  metric.className = "widget-card__metric";
+  metric.textContent = "-";
+  const helper = document.createElement("small");
+  helper.textContent = "Energía generada hoy";
+  metric.appendChild(helper);
+  wrapper.appendChild(metric);
+
+  const filters = widget.data_filters || {};
+  const siteId = filters.siteId || state.defaultSiteId || currentUserSiteId();
+  const today = formatDateISO(new Date());
+
+  const requestBody = {
+    table: "site_daily_kpi",
+    filter_map: {
+      kpi_date: [today],
+    },
+    select_columns: [
+      "site_id",
+      "total_energy_wh",
+      "peak_power_w",
+      "load_factor",
+      "avg_power_factor",
+      "pf_compliance_pct",
+      "data_freshness_minutes",
+    ],
+  };
+  if (siteId && siteId !== "ALL") {
+    requestBody.filter_map.site_id = [String(siteId)];
+  }
+
+  fetchDB(requestBody)
+    .then((response) => {
+      const rows = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+        ? response
+        : [];
+      let record = null;
+      if (siteId && siteId !== "ALL") {
+        record = rows.find((row) => String(row.site_id) === String(siteId));
+      }
+      if (!record && rows.length) {
+        record = rows[0];
+      }
+      const energy = record?.total_energy_wh ?? record?.energy_wh_sum ?? null;
+      if (energy === null || energy === undefined) {
+        metric.firstChild.textContent = "-";
+        helper.textContent = "Energía no disponible";
+        return;
+      }
+      metric.firstChild.textContent = formatEnergy(energy);
+      metric.setAttribute(
+        "aria-label",
+        `Energía total ${metric.firstChild.textContent}`
+      );
+    })
+    .catch((err) => {
+      console.error("panels.js: energy kpi failed", err);
+      helper.textContent = "Energía no disponible";
+    });
+}
+
+function renderPeakPowerWidget(widget, container) {
+  resetWidgetBody(container, "kpi");
+  const wrapper = document.createElement("div");
+  wrapper.className = "widget-card__kpi-wrapper";
+  container.appendChild(wrapper);
+  appendSiteSelector(wrapper, widget, () =>
+    renderPeakPowerWidget(widget, container)
+  );
+
+  const metric = document.createElement("div");
+  metric.className = "widget-card__metric";
+  metric.textContent = "-";
+  const helper = document.createElement("small");
+  helper.textContent = "Potencia pico hoy";
+  metric.appendChild(helper);
+  wrapper.appendChild(metric);
+
+  const filters = widget.data_filters || {};
+  const siteId = filters.siteId || state.defaultSiteId || currentUserSiteId();
+  const today = formatDateISO(new Date());
+
+  const requestBody = {
+    table: "site_daily_kpi",
+    filter_map: {
+      kpi_date: [today],
+    },
+    select_columns: ["site_id", "peak_power_w"],
+  };
+  if (siteId && siteId !== "ALL") {
+    requestBody.filter_map.site_id = [String(siteId)];
+  }
+
+  fetchDB(requestBody)
+    .then((response) => {
+      const rows = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+        ? response
+        : [];
+      let record = null;
+      if (siteId && siteId !== "ALL") {
+        record = rows.find((row) => String(row.site_id) === String(siteId));
+      }
+      if (!record && rows.length) {
+        record = rows[0];
+      }
+      const peakPower = record?.peak_power_w ?? null;
+      if (peakPower === null || peakPower === undefined) {
+        metric.firstChild.textContent = "-";
+        helper.textContent = "Potencia pico no disponible";
+        return;
+      }
+      metric.firstChild.textContent = `${Number(peakPower).toFixed(0)} W`;
+      metric.setAttribute(
+        "aria-label",
+        `Potencia pico ${metric.firstChild.textContent}`
+      );
+    })
+    .catch((err) => {
+      console.error("panels.js: peak power kpi failed", err);
+      helper.textContent = "Potencia pico no disponible";
+    });
+}
+
+function renderLoadFactorWidget(widget, container) {
+  resetWidgetBody(container, "kpi");
+  const wrapper = document.createElement("div");
+  wrapper.className = "widget-card__kpi-wrapper";
+  container.appendChild(wrapper);
+  appendSiteSelector(wrapper, widget, () =>
+    renderLoadFactorWidget(widget, container)
+  );
+
+  const metric = document.createElement("div");
+  metric.className = "widget-card__metric";
+  metric.textContent = "-";
+  const helper = document.createElement("small");
+  helper.textContent = "Load factor diario";
+  metric.appendChild(helper);
+  wrapper.appendChild(metric);
+
+  const filters = widget.data_filters || {};
+  const siteId = filters.siteId || state.defaultSiteId || currentUserSiteId();
+  const today = formatDateISO(new Date());
+
+  const requestBody = {
+    table: "site_daily_kpi",
+    filter_map: {
+      kpi_date: [today],
+    },
+    select_columns: ["site_id", "load_factor"],
+  };
+  if (siteId && siteId !== "ALL") {
+    requestBody.filter_map.site_id = [String(siteId)];
+  }
+
+  fetchDB(requestBody)
+    .then((response) => {
+      const rows = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+        ? response
+        : [];
+      let record = null;
+      if (siteId && siteId !== "ALL") {
+        record = rows.find((row) => String(row.site_id) === String(siteId));
+      }
+      if (!record && rows.length) {
+        record = rows[0];
+      }
+      const loadFactor = record?.load_factor ?? null;
+      if (loadFactor === null || loadFactor === undefined) {
+        metric.firstChild.textContent = "-";
+        helper.textContent = "Load factor no disponible";
+        return;
+      }
+      const value = loadFactor <= 1 ? loadFactor * 100 : loadFactor;
+      metric.firstChild.textContent = `${value.toFixed(1)}%`;
+      metric.setAttribute(
+        "aria-label",
+        `Load factor ${metric.firstChild.textContent}`
+      );
+    })
+    .catch((err) => {
+      console.error("panels.js: load factor kpi failed", err);
+      helper.textContent = "Load factor no disponible";
+    });
+}
+
+function renderPfComplianceWidget(widget, container) {
+  resetWidgetBody(container, "kpi");
+  const wrapper = document.createElement("div");
+  wrapper.className = "widget-card__kpi-wrapper";
+  container.appendChild(wrapper);
+  appendSiteSelector(wrapper, widget, () =>
+    renderPfComplianceWidget(widget, container)
+  );
+
+  const metric = document.createElement("div");
+  metric.className = "widget-card__metric";
+  metric.textContent = "-";
+  const helper = document.createElement("small");
+  helper.textContent = "Cumplimiento PF";
+  metric.appendChild(helper);
+  wrapper.appendChild(metric);
+
+  const filters = widget.data_filters || {};
+  const siteId = filters.siteId || state.defaultSiteId || currentUserSiteId();
+  const today = formatDateISO(new Date());
+
+  const requestBody = {
+    table: "site_daily_kpi",
+    filter_map: {
+      kpi_date: [today],
+    },
+    select_columns: ["site_id", "pf_compliance_pct"],
+  };
+  if (siteId && siteId !== "ALL") {
+    requestBody.filter_map.site_id = [String(siteId)];
+  }
+
+  fetchDB(requestBody)
+    .then((response) => {
+      const rows = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+        ? response
+        : [];
+      let record = null;
+      if (siteId && siteId !== "ALL") {
+        record = rows.find((row) => String(row.site_id) === String(siteId));
+      }
+      if (!record && rows.length) {
+        record = rows[0];
+      }
+      const compliance = record?.pf_compliance_pct ?? null;
+      if (compliance === null || compliance === undefined) {
+        metric.firstChild.textContent = "-";
+        helper.textContent = "PF no disponible";
+        return;
+      }
+      metric.firstChild.textContent = formatPercent(compliance);
+      metric.setAttribute(
+        "aria-label",
+        `Cumplimiento de factor de potencia ${metric.firstChild.textContent}`
+      );
+    })
+    .catch((err) => {
+      console.error("panels.js: pf compliance kpi failed", err);
+      helper.textContent = "PF no disponible";
+    });
+}
+
+function renderDataFreshnessWidget(widget, container) {
+  resetWidgetBody(container, "kpi");
+  const wrapper = document.createElement("div");
+  wrapper.className = "widget-card__kpi-wrapper";
+  container.appendChild(wrapper);
+  appendSiteSelector(wrapper, widget, () =>
+    renderDataFreshnessWidget(widget, container)
+  );
+
+  const metric = document.createElement("div");
+  metric.className = "widget-card__metric";
+  metric.textContent = "-";
+  const helper = document.createElement("small");
+  helper.textContent = "Latencia de datos";
+  metric.appendChild(helper);
+  wrapper.appendChild(metric);
+
+  const filters = widget.data_filters || {};
+  const siteId = filters.siteId || state.defaultSiteId || currentUserSiteId();
+  const today = formatDateISO(new Date());
+
+  const requestBody = {
+    table: "site_daily_kpi",
+    filter_map: {
+      kpi_date: [today],
+    },
+    select_columns: ["site_id", "data_freshness_minutes"],
+  };
+  if (siteId && siteId !== "ALL") {
+    requestBody.filter_map.site_id = [String(siteId)];
+  }
+
+  fetchDB(requestBody)
+    .then((response) => {
+      const rows = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+        ? response
+        : [];
+      let record = null;
+      if (siteId && siteId !== "ALL") {
+        record = rows.find((row) => String(row.site_id) === String(siteId));
+      }
+      if (!record && rows.length) {
+        record = rows[0];
+      }
+      const freshness = record?.data_freshness_minutes ?? null;
+      if (freshness === null || freshness === undefined) {
+        metric.firstChild.textContent = "-";
+        helper.textContent = "Latencia no disponible";
+        return;
+      }
+      metric.firstChild.textContent = formatMinutes(freshness);
+      metric.setAttribute(
+        "aria-label",
+        `Latencia de datos ${metric.firstChild.textContent}`
+      );
+    })
+    .catch((err) => {
+      console.error("panels.js: data freshness kpi failed", err);
+      helper.textContent = "Latencia no disponible";
+    });
+}
+
+function renderActiveDevicesWidget(widget, container) {
+  resetWidgetBody(container, "kpi");
+  const wrapper = document.createElement("div");
+  wrapper.className = "widget-card__kpi-wrapper";
+  container.appendChild(wrapper);
+  appendSiteSelector(wrapper, widget, () =>
+    renderActiveDevicesWidget(widget, container)
+  );
+
+  const metric = document.createElement("div");
+  metric.className = "widget-card__metric";
+  metric.textContent = "-";
+  const helper = document.createElement("small");
+  helper.textContent = "Dispositivos activos último hora";
+  metric.appendChild(helper);
+  wrapper.appendChild(metric);
+
+  const filters = widget.data_filters || {};
+  const siteId = filters.siteId || state.defaultSiteId || currentUserSiteId();
+  const range = computePastHours(24);
+
+  const requestBody = {
+    table: "site_hourly_kpi",
+    filter_map: {
+      hour_start: `[${range.from}, ${range.to}]`,
+    },
+    select_columns: [
+      "site_id",
+      "hour_start",
+      "active_devices",
+      "total_devices",
+    ],
+  };
+  if (siteId && siteId !== "ALL") {
+    requestBody.filter_map.site_id = [String(siteId)];
+  }
+
+  fetchDB(requestBody)
+    .then((response) => {
+      const rows = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+        ? response
+        : [];
+      if (!rows.length) {
+        helper.textContent = "Sin actividad reciente";
+        return;
+      }
+      const sorted = rows
+        .slice()
+        .sort((a, b) => new Date(b.hour_start) - new Date(a.hour_start));
+      const record = sorted[0];
+      const active = record?.active_devices ?? null;
+      const total = record?.total_devices ?? null;
+      if (active === null || total === null || total === 0) {
+        metric.firstChild.textContent = "-";
+        helper.textContent = "Datos incompletos";
+        return;
+      }
+      const pct = (active / total) * 100;
+      metric.firstChild.textContent = `${active}/${total}`;
+      helper.textContent = `Activos (${pct.toFixed(0)}%)`;
+      metric.setAttribute(
+        "aria-label",
+        `Dispositivos activos ${active} de ${total}`
+      );
+    })
+    .catch((err) => {
+      console.error("panels.js: active devices kpi failed", err);
+      helper.textContent = "No se pudo calcular";
+    });
+}
+
 function renderChartWidget(widget, definition, container) {
   resetWidgetBody(container, "chart");
 
   const filters = {
-    siteId: widget.data_filters?.siteId || state.defaultSiteId || currentUserSiteId(),
+    siteId:
+      widget.data_filters?.siteId || state.defaultSiteId || currentUserSiteId(),
     deviceId: widget.data_filters?.deviceId || "ALL",
     dateRange: widget.data_filters?.dateRange || computeDateRange(),
   };
@@ -1032,7 +1790,12 @@ function renderChartWidget(widget, definition, container) {
       }
       removeLoading();
       const plotConfig = sanitisePlotConfig(config);
-      return Plotly.react(chartNode, cleanedFigure.data, cleanedFigure.layout, plotConfig);
+      return Plotly.react(
+        chartNode,
+        cleanedFigure.data,
+        cleanedFigure.layout,
+        plotConfig
+      );
     })
     .catch((err) => {
       removeLoading();
@@ -1056,10 +1819,10 @@ function buildChartRequest(slug, filters) {
     measurement_time: `[${dateRange.from} 00:00:00, ${dateRange.to} 23:59:59]`,
   };
   if (siteId && siteId !== "ALL") {
-    filter_map.site_id = "=" + siteId;
+    filter_map.site_id = [String(siteId)];
   }
   if (deviceId && deviceId !== "ALL") {
-    filter_map.device_id = "=" + deviceId;
+    filter_map.device_id = [String(deviceId)];
   }
 
   switch (slug) {
@@ -1170,6 +1933,451 @@ function buildChartRequest(slug, filters) {
           z: "power_w_avg",
         },
       };
+    case "histogram_today_chart": {
+      const range = computeTodayRange();
+      const map = {};
+      if (siteId && siteId !== "ALL") {
+        map.site_id = [String(siteId)];
+      }
+      if (deviceId && deviceId !== "ALL") {
+        map.device_id = [String(deviceId)];
+      }
+      map.measurement_time = `[${range.from}, ${range.to}]`;
+      return {
+        table: "measurements",
+        filter_map: map,
+        aggregation: [
+          {
+            group_by: ["site_id", "device_id"],
+            aggregations: {
+              current_a: ["avg"],
+            },
+            time_window: "H",
+            time_column: "measurement_time",
+          },
+        ],
+        chart: {
+          chart_type: "histogram",
+          x: "current_a_avg",
+          style: {
+            nbins: 24,
+            color: "device_id",
+          },
+        },
+      };
+    }
+    case "histogram_month_chart": {
+      const range = computeMonthRange();
+      const map = {};
+      if (siteId && siteId !== "ALL") {
+        map.site_id = [String(siteId)];
+      }
+      if (deviceId && deviceId !== "ALL") {
+        map.device_id = [String(deviceId)];
+      }
+      map.measurement_time = `[${range.from}, ${range.to}]`;
+      return {
+        table: "measurements",
+        filter_map: map,
+        aggregation: [
+          {
+            group_by: ["site_id", "device_id"],
+            aggregations: {
+              current_a: ["avg"],
+            },
+            time_window: "D",
+            time_column: "measurement_time",
+          },
+        ],
+        chart: {
+          chart_type: "histogram",
+          x: "current_a_avg",
+          style: {
+            nbins: 30,
+            color: "device_id",
+          },
+        },
+      };
+    }
+    case "scatter_today_chart": {
+      const range = computeTodayRange();
+      const map = {};
+      if (siteId && siteId !== "ALL") {
+        map.site_id = [String(siteId)];
+      }
+      if (deviceId && deviceId !== "ALL") {
+        map.device_id = [String(deviceId)];
+      }
+      map.measurement_time = `[${range.from}, ${range.to}]`;
+      return {
+        table: "measurements",
+        filter_map: map,
+        aggregation: [
+          {
+            group_by: ["site_id", "device_id"],
+            aggregations: {
+              current_a: ["avg"],
+              voltage_v: ["avg"],
+            },
+            time_window: "H",
+            time_column: "measurement_time",
+          },
+        ],
+        chart: {
+          chart_type: "scatter",
+          x: "current_a_avg",
+          y: "voltage_v_avg",
+          style: { color: "device_id", opacity: 0.75 },
+        },
+      };
+    }
+    case "scatter_month_chart": {
+      const range = computeMonthRange();
+      const map = {};
+      if (siteId && siteId !== "ALL") {
+        map.site_id = [String(siteId)];
+      }
+      if (deviceId && deviceId !== "ALL") {
+        map.device_id = [String(deviceId)];
+      }
+      map.measurement_time = `[${range.from}, ${range.to}]`;
+      return {
+        table: "measurements",
+        filter_map: map,
+        aggregation: [
+          {
+            group_by: ["site_id", "device_id"],
+            aggregations: {
+              current_a: ["avg"],
+              voltage_v: ["avg"],
+            },
+            time_window: "D",
+            time_column: "measurement_time",
+          },
+        ],
+        chart: {
+          chart_type: "scatter",
+          x: "current_a_avg",
+          y: "voltage_v_avg",
+          style: { color: "device_id", opacity: 0.75 },
+        },
+      };
+    }
+    case "timeseries_today_chart": {
+      const range = computeTodayRange();
+      const map = {};
+      if (siteId && siteId !== "ALL") {
+        map.site_id = [String(siteId)];
+      }
+      if (deviceId && deviceId !== "ALL") {
+        map.device_id = [String(deviceId)];
+      }
+      map.measurement_time = `[${range.from}, ${range.to}]`;
+      return {
+        table: "measurements",
+        filter_map: map,
+        aggregation: [
+          {
+            group_by: ["site_id", "device_id"],
+            aggregations: {
+              power_w: ["avg"],
+            },
+            time_window: "H",
+            time_column: "measurement_time",
+          },
+        ],
+        chart: {
+          chart_type: "line",
+          x: "measurement_time",
+          y: "power_w_avg",
+          style: { color: "device_id" },
+        },
+      };
+    }
+    case "timeseries_month_chart": {
+      const range = computeMonthRange();
+      const map = {};
+      if (siteId && siteId !== "ALL") {
+        map.site_id = [String(siteId)];
+      }
+      if (deviceId && deviceId !== "ALL") {
+        map.device_id = [String(deviceId)];
+      }
+      map.measurement_time = `[${range.from}, ${range.to}]`;
+      return {
+        table: "measurements",
+        filter_map: map,
+        aggregation: [
+          {
+            group_by: ["site_id", "device_id"],
+            aggregations: {
+              power_w: ["avg"],
+            },
+            time_window: "D",
+            time_column: "measurement_time",
+          },
+        ],
+        chart: {
+          chart_type: "line",
+          x: "measurement_time",
+          y: "power_w_avg",
+          style: { color: "device_id" },
+        },
+      };
+    }
+    case "bar_today_chart": {
+      const range = computeTodayRange();
+      const map = {};
+      if (siteId && siteId !== "ALL") {
+        map.site_id = [String(siteId)];
+      }
+      if (deviceId && deviceId !== "ALL") {
+        map.device_id = [String(deviceId)];
+      }
+      map.measurement_time = `[${range.from}, ${range.to}]`;
+      return {
+        table: "measurements",
+        filter_map: map,
+        aggregation: [
+          {
+            group_by: ["site_id", "device_id"],
+            aggregations: {
+              energy_wh: ["sum"],
+            },
+            time_window: "H",
+            time_column: "measurement_time",
+          },
+        ],
+        chart: {
+          chart_type: "bar",
+          x: "device_id",
+          y: "energy_wh_sum",
+          style: { color: "device_id" },
+        },
+      };
+    }
+    case "bar_month_chart": {
+      const range = computeMonthRange();
+      const map = {};
+      if (siteId && siteId !== "ALL") {
+        map.site_id = [String(siteId)];
+      }
+      if (deviceId && deviceId !== "ALL") {
+        map.device_id = [String(deviceId)];
+      }
+      map.measurement_time = `[${range.from}, ${range.to}]`;
+      return {
+        table: "measurements",
+        filter_map: map,
+        aggregation: [
+          {
+            group_by: ["site_id", "device_id"],
+            aggregations: {
+              energy_wh: ["sum"],
+            },
+            time_window: "D",
+            time_column: "measurement_time",
+          },
+        ],
+        chart: {
+          chart_type: "bar",
+          x: "device_id",
+          y: "energy_wh_sum",
+          style: { color: "device_id" },
+        },
+      };
+    }
+    case "heatmap_today_chart": {
+      const range = computeTodayRange();
+      const map = {};
+      if (siteId && siteId !== "ALL") {
+        map.site_id = [String(siteId)];
+      }
+      if (deviceId && deviceId !== "ALL") {
+        map.device_id = [String(deviceId)];
+      }
+      map.measurement_time = `[${range.from}, ${range.to}]`;
+      return {
+        table: "measurements",
+        filter_map: map,
+        aggregation: [
+          {
+            aggregations: {
+              power_w: ["avg"],
+            },
+            time_window: "H",
+            time_column: "measurement_time",
+          },
+        ],
+        chart: {
+          chart_type: "heatmap",
+          x: "hour",
+          y: "weekday",
+          z: "power_w_avg",
+        },
+      };
+    }
+    case "heatmap_month_chart": {
+      const range = computeMonthRange();
+      const map = {};
+      if (siteId && siteId !== "ALL") {
+        map.site_id = [String(siteId)];
+      }
+      map.measurement_time = `[${range.from}, ${range.to}]`;
+      return {
+        table: "measurements",
+        filter_map: map,
+        aggregation: [
+          {
+            aggregations: {
+              power_w: ["avg"],
+            },
+            time_window: "D",
+            time_column: "measurement_time",
+          },
+        ],
+        chart: {
+          chart_type: "heatmap",
+          x: "measurement_time",
+          y: "site_id",
+          z: "power_w_avg",
+        },
+      };
+    }
+    case "energy_last7_chart": {
+      const range = filters.dateRange || computeDateRange(7);
+      const map = {
+        kpi_date: `[${range.from}, ${range.to}]`,
+      };
+      if (filter_map.site_id) {
+        map.site_id = filter_map.site_id;
+      }
+      return {
+        table: "site_daily_kpi",
+        filter_map: map,
+        aggregation: [
+          {
+            group_by: ["site_id", "kpi_date"],
+            aggregations: {
+              total_energy_wh: ["sum"],
+            },
+          },
+        ],
+        chart: {
+          chart_type: "line",
+          x: "kpi_date",
+          y: "total_energy_wh_sum",
+          style: { color: "site_id", shape: "spline" },
+        },
+      };
+    }
+    case "power_factor_trend_chart": {
+      const range = filters.dateRange || computeDateRange(7);
+      const map = {
+        kpi_date: `[${range.from}, ${range.to}]`,
+      };
+      if (filter_map.site_id) {
+        map.site_id = filter_map.site_id;
+      }
+      return {
+        table: "site_daily_kpi",
+        filter_map: map,
+        aggregation: [
+          {
+            group_by: ["site_id", "kpi_date"],
+            aggregations: {
+              avg_power_factor: ["avg"],
+            },
+          },
+        ],
+        chart: {
+          chart_type: "line",
+          x: "kpi_date",
+          y: "avg_power_factor_avg",
+          style: { color: "site_id", shape: "spline" },
+        },
+      };
+    }
+    case "availability_trend_chart": {
+      const range = filters.dateRange || computeDateRange(3);
+      const map = {
+        hour_start: `[${range.from} 00:00:00, ${range.to} 23:59:59]`,
+      };
+      if (filter_map.site_id) {
+        map.site_id = filter_map.site_id;
+      }
+      return {
+        table: "site_hourly_kpi",
+        filter_map: map,
+        aggregation: [
+          {
+            group_by: ["site_id", "hour_start"],
+            aggregations: {
+              availability_pct: ["avg"],
+            },
+            time_window: "H",
+            time_column: "hour_start",
+          },
+        ],
+        chart: {
+          chart_type: "line",
+          x: "hour_start",
+          y: "availability_pct_avg",
+          style: { color: "site_id" },
+        },
+      };
+    }
+    case "device_energy_rank_chart": {
+      const range = filters.dateRange || computeDateRange(7);
+      const map = {
+        kpi_date: `[${range.from}, ${range.to}]`,
+      };
+      if (filter_map.site_id) {
+        map.site_id = filter_map.site_id;
+      }
+      return {
+        table: "device_daily_kpi",
+        filter_map: map,
+        aggregation: [
+          {
+            group_by: ["site_id", "device_id"],
+            aggregations: {
+              energy_wh_sum: ["sum"],
+            },
+          },
+        ],
+        chart: {
+          chart_type: "bar",
+          x: "device_id",
+          y: "energy_wh_sum_sum",
+          style: { color: "site_id" },
+        },
+      };
+    }
+    case "ingestion_lag_chart": {
+      const range = filters.dateRange || computeDateRange(14);
+      return {
+        table: "ingestion_run_kpi",
+        filter_map: {
+          run_date: `[${range.from}, ${range.to}]`,
+        },
+        aggregation: [
+          {
+            group_by: ["run_date"],
+            aggregations: {
+              ingestion_lag_minutes: ["avg"],
+              records_loaded: ["sum"],
+            },
+          },
+        ],
+        chart: {
+          chart_type: "line",
+          x: "run_date",
+          y: "ingestion_lag_minutes_avg",
+          style: { shape: "spline" },
+        },
+      };
+    }
     default:
       return null;
   }
@@ -1200,7 +2408,19 @@ async function addWidget(slug) {
   const definition = findDefinition(slug);
   if (!definition) return;
 
-  let widget = createWidgetInstance(definition);
+  const tempId = `temp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const placeholder = {
+    ...createWidgetInstance(definition),
+    id: tempId,
+    isLoading: true,
+  };
+
+  state.dashboard.push(placeholder);
+  renderDashboard();
+  setDirty(true);
+
+  let resolvedWidget = null;
+
   if (widgetsApiEnabled) {
     try {
       const response = await fetchJSON(API_ROUTES.attach, {
@@ -1210,20 +2430,35 @@ async function addWidget(slug) {
       if (response?.widget) {
         const normalised = normaliseWidgetPayload(response.widget);
         if (normalised) {
-          widget = normalised;
+          resolvedWidget = normalised;
         }
       }
-  } catch (err) {
-    console.warn("panels.js: attach endpoint unavailable", err);
-    if (!err || [404, 501, 503].includes(err.status)) {
-      widgetsApiEnabled = false;
+    } catch (err) {
+      console.warn("panels.js: attach endpoint unavailable", err);
+      if (!err || [404, 501, 503].includes(err.status)) {
+        widgetsApiEnabled = false;
+      }
     }
   }
+
+  const index = state.dashboard.findIndex((item) => item.id === tempId);
+  if (index !== -1) {
+    const base = resolvedWidget || placeholder;
+    state.dashboard[index] = {
+      ...base,
+      id: base.id ?? tempId,
+      slug: base.slug ?? placeholder.slug,
+      kind: base.kind ?? placeholder.kind,
+      title: base.title ?? placeholder.title,
+      data_filters: base.data_filters ?? placeholder.data_filters,
+      visual_config: base.visual_config ?? placeholder.visual_config,
+      isLoading: false,
+    };
+  } else if (resolvedWidget) {
+    state.dashboard.push({ ...resolvedWidget, isLoading: false });
   }
 
-  state.dashboard.push(widget);
   renderDashboard();
-  setDirty(true);
 }
 
 async function removeWidget(widgetId) {
@@ -1247,7 +2482,9 @@ function registerEvents() {
   const catalogRoot = document.getElementById("widget-catalog");
   const catalogList = catalogRoot?.querySelector(".widget-catalog");
   const catalogSearch = catalogRoot?.querySelector("#widget-search");
-  const catalogFilters = catalogRoot?.querySelectorAll('input[name="catalog-kind"]');
+  const catalogFilters = catalogRoot?.querySelectorAll(
+    'input[name="catalog-kind"]'
+  );
   const drawer = document.getElementById("widget-drawer");
   const drawerToggle = document.getElementById("widget-drawer-toggle");
   const drawerClose = document.getElementById("widget-drawer-close");
@@ -1422,4 +2659,21 @@ async function saveDashboard() {
       saveBtn.disabled = false;
     }
   }
+}
+function computeTodayRange() {
+  const today = formatDateISO(new Date());
+  return {
+    from: `${today} 00:00:00`,
+    to: `${today} 23:59:59`,
+  };
+}
+
+function computeMonthRange() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return {
+    from: `${formatDateISO(start)} 00:00:00`,
+    to: `${formatDateISO(end)} 23:59:59`,
+  };
 }

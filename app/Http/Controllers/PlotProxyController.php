@@ -55,7 +55,15 @@ class PlotProxyController extends Controller
             abort(422, 'El parámetro "table" es obligatorio.');
         }
 
-        $allowed = ['measurements', 'devices', 'sites', 'site_daily_kpi'];
+        $allowed = [
+            'measurements',
+            'devices',
+            'sites',
+            'site_daily_kpi',
+            'site_hourly_kpi',
+            'device_daily_kpi',
+            'ingestion_run_kpi',
+        ];
         if (!in_array($table, $allowed, true)) {
             abort(422, "La tabla solicitada ({$table}) no está permitida.");
         }
