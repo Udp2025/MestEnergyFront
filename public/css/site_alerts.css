@@ -1,263 +1,194 @@
-/* ============================================
-   Contenedor principal
-============================================ */
-.container {
-  min-height: 100vh;
-  padding: 20px; 
-}
+/* ====== Reset y tipografía ====== */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif; background: #f4f6f6; color: #223033; }
 
-/* ============================================
-   Main Content
-============================================ */
-.main-content {
-  display: flex;
-  flex-direction: column;
-}
-
-/* ============================================
-   Wrapper para sidebar y contenido derecho
-============================================ */
-.content-wrapper {
-  display: flex;
-  gap: 20px;
-  margin-top: 20px;
-  padding-left: 5rem;
-  padding-right: 5rem;
-}
-
-/* ============================================
-   Sidebar
-============================================ */
-.sidebar {
-  width: 280px;
-  background-color: #fff7f2;
-  color: #2c3e50;
+/* ====== Contenedor principal ====== */
+.alerts-page {
+  max-width: 1180px;
+  margin: 28px auto;
   padding: 20px;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  height: fit-content;
 }
 
-.sidebar-header h2 {
-  font-size: 24px;
-  margin-bottom: 20px;
-  color: #333;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 10px;
+/* ====== Header ====== */
+.alerts-header { text-align: center; margin-bottom: 18px; }
+.alerts-header h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #174044;
+  font-weight: 800;
+  letter-spacing: 0.1px;
+}
+.alerts-sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #7f8b8e;
 }
 
-.menu {
-  list-style: none;
-  margin-bottom: 20px;
-  padding: 0;
-}
-
-.menu-item {
-  padding: 10px 15px;
-  cursor: pointer;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  margin-bottom: 7px;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-  color: #333;
-  display: flex;
-  justify-content: space-between;
-}
-
-.menu-item:hover {
-  background-color: #f0f0f0;
-}
-
-.menu-item.active {
-  background-color: #d75a3a;
-  color: #fff7f2;
-}
-
-.menu-item .count {
-  background-color: #fff7f2;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  color: #d75a3a;
-}
-
-/* ============================================
-   Sección de filtros
-============================================ */
-.filters h3 {
-  font-size: 18px;
-  margin-bottom: 10px;
-  color: #333;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 5px;
-}
-
-.filter-group {
-  margin-bottom: 15px;
-}
-
-.filter-group label {
-  display: block;
-  font-size: 14px;
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-
-.filter-group select,
-.filter-group input[type="text"] {
+/* ====== Row de tarjetas resumen ====== */
+.summary-row { margin-top: 18px; margin-bottom: 22px; display:flex; justify-content:center; }
+.summary-card-wrapper {
+  display:flex;
+  gap: 14px;
   width: 100%;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  font-size: 14px;
+  max-width: 920px;
+  justify-content: flex-start;
 }
 
-.filter-group button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  background-color: #337ab7;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.filter-group button:hover {
-  background-color: #fff7f2;
-  color: #d75a3a;
-}
-
-/* ============================================
-   Contenido derecho
-============================================ */
-.right-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.main-header {
-  margin-bottom: 20px;
-}
-
-#searchInput {
-  width: 100%;
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-/* ============================================
-   Tabla de alertas
-============================================ */
-.alert-table-container {
-  margin-top: 20px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  overflow: hidden;
-  flex: 1;
-}
-
-.alert-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.alert-table th {
-  background-color: #f5f5f5;
-  padding: 12px 15px;
-  text-align: left;
-  font-weight: bold;
-  border-bottom: 2px solid #ddd;
-}
-
-.alert-table td {
-  padding: 12px 15px;
-  border-bottom: 1px solid #eee;
-}
-
-.alert-table tr:hover {
-  background-color: #f9f9f9;
-}
-
-/* Badges para severidad y estado */
-.badge {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-  text-transform: capitalize;
-}
-
-.badge.critical { background-color: #ff6b6b; color: white; }
-.badge.high { background-color: #ff9e7d; color: white; }
-.badge.medium { background-color: #ffe08c; color: #333; }
-.badge.active { background-color: #c8e6c9; color: #256029; }
-.badge.resolved { background-color: #e0e0e0; color: #333; }
-
-/* === Resumen de Alertas del Sistema === */
-.alerts-summary {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.alerts-summary-title {
-  font-size: 2.5rem;
-  color: #d75a3a;
-  margin-bottom: 1.5rem;
-}
-
-.alerts-summary-cards {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  margin-bottom: 30px;
-}
-
+/* tarjeta resumen pequeña */
 .summary-card {
-  background-color: #fff7f2;
-  border-radius: 8px;
-  padding: 2rem 1.5rem;
-  width: 200px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  box-shadow: 0 8px 22px rgba(14, 30, 30, 0.05);
+  width: 280px;
+}
+.card-info { display:flex; flex-direction:column; gap:4px; }
+.card-title { font-size: 13px; color: #606e70; font-weight:600; text-transform:none; }
+.card-number { font-size: 26px; font-weight:800; color: #d75a3a; }
+
+/* icono en cajita */
+.card-icon {
+  width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  background: rgba(215,90,58,0.06);
 }
 
-.summary-card .number {
-  font-size: 3rem;
-  font-weight: bold;
-  color: #d75a3a;
+/* variantes cromáticas */
+.card-critical .card-number { color: #b71c1c; }
+.card-high .card-number { color: #c65d11; }
+.card-medium .card-number { color: #b45309; }
+
+/* ====== Grid principal: left chart + right filters ====== */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 20px;
 }
 
-.summary-card .label {
-  margin-top: 0.5rem;
-  font-size: 1rem;
-  color: #a04a2a;
+/* cards base */
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 8px 22px rgba(14, 30, 30, 0.05);
 }
 
-/* ============================================
-   Responsividad
-============================================ */
-@media (max-width: 768px) {
-  .content-wrapper {
-    flex-direction: column;
-  }
-  
-  .sidebar {
-    width: 100%;
-    margin-bottom: 20px;
-  }
-  
-  .alerts-summary-cards {
-    flex-direction: column;
-    align-items: center;
-  }
+/* Chart area */
+.chart-card .card-heading, .table-card .card-heading { margin:0 0 12px; font-size:15px; color:#1d3a3c; font-weight:700; }
+.chart-box {
+  min-height: 260px;
+  border-radius:8px;
+  border: 1px solid #eef3f3;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: linear-gradient(180deg, #fbfdfc 0%, #ffffff 100%);
+}
+.chart-placeholder { color:#9aa8aa; font-size:14px; }
+
+/* tooltip personalizado (simulado en caso quieras mostrar) */
+.chart-tooltip {
+  position: absolute;
+  background:#ffffff;
+  border-radius:8px;
+  padding:10px;
+  box-shadow: 0 10px 30px rgba(14,30,30,0.08);
+  font-size:13px;
+  color:#2b3d3f;
+}
+
+/* ====== Filtros (aside) ====== */
+.filters { position: sticky; top: 24px; }
+.filters-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.filters-top h3 { margin:0; font-size:16px; color:#1c3a3b; }
+.reset-btn {
+  background: #fff;
+  border: 1px solid #e7efee;
+  padding:6px 10px;
+  border-radius:8px;
+  font-size:13px;
+  cursor:pointer;
+  color:#3f6b69;
+}
+
+/* inputs/combos de filtro */
+.filter-field { margin-bottom:12px; }
+.filter-field label { display:block; font-weight:700; font-size:13px; margin-bottom:6px; color:#4b6666; }
+.filter-field select, .filter-field input[type="text"] {
+  width:100%;
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid #e7efee;
+  background:#fff;
+  font-size:14px;
+}
+
+/* boton aplicar */
+.apply-btn {
+  width:100%;
+  padding:10px 12px;
+  background:#2b9e8a;
+  color:#fff;
+  font-weight:800;
+  border-radius:8px;
+  border:none;
+  cursor:pointer;
+}
+
+/* ====== Tabla de alertas ====== */
+.table-section { margin-top: 6px; }
+.table-wrap { overflow-x:auto; }
+.alerts-table {
+  width:100%;
+  border-collapse: collapse;
+  font-size:14px;
+  min-width: 880px;
+}
+.alerts-table thead th {
+  background:#f8f9f9;
+  color:#5d7474;
+  text-align:left;
+  padding:14px 12px;
+  font-weight:700;
+  border-bottom:1px solid #e6efef;
+  font-size:13px;
+}
+.alerts-table tbody td {
+  padding:12px;
+  border-bottom:1px solid #f2f6f6;
+  color:#223033;
+}
+.alerts-table tbody tr:hover { background: #fcfcfc; }
+
+/* badges (colores según imagen) */
+.badge {
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+  text-transform:lowercase;
+}
+.badge.critical { background:#ffefef; color:#b71c1c; border:1px solid rgba(183,28,28,0.06); }
+.badge.high { background:#fff5ec; color:#c65d11; border:1px solid rgba(198,93,17,0.06); }
+.badge.medium { background:#fff8e6; color:#b45309; border:1px solid rgba(180,83,9,0.06); }
+.badge.active { background:#ffecec; color:#b71c1c; border:1px solid rgba(183,28,28,0.06); }
+.badge.resolved { background:#e9f6ef; color:#1f6f3b; border:1px solid rgba(31,111,59,0.06); }
+
+/* ====== Responsivo ====== */
+@media (max-width: 1080px) {
+  .main-grid { grid-template-columns: 1fr 300px; }
+  .summary-card-wrapper { justify-content:center; gap:12px; }
+}
+@media (max-width: 760px) {
+  .alerts-page { padding:12px; }
+  .main-grid { grid-template-columns: 1fr; }
+  .filters { position: relative; top: auto; }
+  .summary-card { width: 100%; max-width: 360px; }
+  .summary-card-wrapper { flex-direction: column; align-items:center; gap:12px; }
+  .alerts-table { min-width: 640px; }
 }
