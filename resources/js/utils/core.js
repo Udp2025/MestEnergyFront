@@ -14,7 +14,18 @@
 
 import { csrfToken } from "./plot";
 
+let dbApiAvailable = true;
+
 export async function fetchDB(body) {
+  if (!dbApiAvailable) {
+    const error = new Error(
+      "El servicio de datos no está disponible en este entorno."
+    );
+    error.status = 503;
+    error.payload = { message: error.message };
+    error.isPlotError = true;
+    throw error;
+  }
   const res = await fetch("/charts/data", {
     method: "POST",
     headers: {
@@ -26,6 +37,9 @@ export async function fetchDB(body) {
   });
 
   if (!res.ok) {
+    if (res.status === 404 || res.status === 503) {
+      dbApiAvailable = false;
+    }
     let payload;
     try {
       payload = await res.json();
