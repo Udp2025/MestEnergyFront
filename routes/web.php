@@ -23,6 +23,7 @@ use App\Http\Controllers\ManageController;
 use App\Http\Controllers\optimizeController;
 use App\Http\Controllers\PermisosUserController;
 use App\Http\Controllers\SiteAlertsController;
+use App\Http\Controllers\CFEController;
 use App\Http\Controllers\SiteAlertsInController;
 use App\Http\Controllers\TiggersController;
 use App\Http\Controllers\visualizeController;
@@ -101,6 +102,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/heatmap', [HeatmapController::class, 'index'])->name('heatmap');
     Route::get('/general_clientes', [GeneralClientesController::class, 'index'])->name('general_clientes');
     Route::get('/site_alerts', [SiteAlertsController::class, 'index'])->name('site_alerts');
+    Route::get('/datos_cfe', [CFEController::class, 'index'])->name('datos_cfe');
     Route::get('/site_alerts_in', [SiteAlertsInController::class, 'index'])->name('site_alerts_in');
     Route::get('/tiggers', [TiggersController::class, 'index'])->name('tiggers');
     Route::get('/timeseries', [TimeSeriesController::class, 'index'])->name('timeseries');

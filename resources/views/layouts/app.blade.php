@@ -142,7 +142,7 @@
                 <ul>
                     <li class="mcst">
                         <i class="bi bi-database"></i>
-                        <a href="{{ route('clientes.index') }}" style="text-decoration: none; color: inherit;">
+                        <a href="{{route('datos_cfe')}}" style="text-decoration: none; color: inherit;">
                             <span>Datos CFE</span>
                         </a>
                     </li>

@@ -1,0 +1,69 @@
+
+
+/* Background page */
+body {
+background: #fbf0e9; /* soft peach */
+}
+
+.page-wrap{
+max-width: 1100px;
+margin: 28px auto;
+padding: 18px;
+}
+
+.filters-card{
+background: #fff;
+border-radius: 10px;
+box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+padding: 16px;
+display: flex;
+gap: 16px;
+align-items: flex-start;
+margin-bottom: 18px;
+}
+
+.filter-item{ flex: 1; }
+.filter-item label{ display:block; font-size:13px; color:#606060; margin-bottom:6px; }
+.filter-item select{ width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e6eefc; background:#f6fbff; }
+.small-note{ font-size:12px; color:#8b8b8b; margin-top:6px; }
+
+.main-card{
+background: #fff;
+border-radius: 12px;
+padding: 18px;
+box-shadow: 0 6px 22px rgba(200,160,140,0.06);
+}
+
+.card-header{
+display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;
+}
+.card-header h2{ margin:0; font-size:16px; }
+.muted{ color:#8a8a8a; font-size:13px; margin-top:4px }
+.card-actions{ display:flex; gap:8px; }
+.btn{ display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600; }
+.btn svg{ opacity:0.8 }
+.btn-light{ background:#f3f7fb; border:1px solid #e6eef8; color:#1f4fa1 }
+.btn-primary{ background:#caa18d; color:#fff; border:none; }
+.btn-outline{ background:transparent; border:1px solid #e8e8e8; color:#333; }
+
+.table-wrap{ overflow:auto; }
+.values-table{ width:100%; border-collapse:collapse; min-width:980px; }
+.values-table thead th{ text-align:left; padding:12px 10px; border-bottom:1px solid #f0f0f0; font-weight:700; color:#666; }
+.values-table tbody td{ padding:9px 10px; border-bottom:1px dashed #f2f2f2; vertical-align:middle; }
+.values-table td.mes{ width:140px; color:#555 }
+.values-table input.num{ width:100%; padding:8px 10px; border-radius:8px; border:1px solid #eee; background:#fbfcff; box-sizing:border-box; text-align:right; }
+.col-title small{ font-weight:400; color:#9aa; font-size:11px }
+.totals-row td{ font-weight:700; padding-top:12px; }
+.totals-row td.total{ text-align:right; }
+
+.card-footer{ display:flex; justify-content:space-between; align-items:center; padding-top:12px; }
+.actions-right{ display:flex; gap:10px }
+
+/* Responsive tweaks */
+@media (max-width:900px){
+.filters-card{ flex-direction:column; }
+.values-table{ min-width:720px }
+}
+
+/* Small aesthetic detail to match image */
+.values-table thead th, .values-table tbody td{ background:transparent }
