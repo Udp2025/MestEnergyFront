@@ -27,7 +27,6 @@ use App\Http\Controllers\CFEController;
 use App\Http\Controllers\SiteAlertsInController;
 use App\Http\Controllers\TiggersController;
 use App\Http\Controllers\visualizeController;
-use App\Http\Controllers\PanelController;
 use App\Http\Controllers\PreferenciasController;
 use App\Http\Controllers\WidgetController;
 use App\Http\Controllers\PerfilController;
@@ -43,9 +42,9 @@ Route::get('/', function () {
 })->name('login');
 
 // Ruta para el dashboard (requiere autenticación y verificación)
-Route::get('/dashboard', [PanelController::class, 'index'])
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+Route::get('/dashboard', function () {
+    return view('Panels.index');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/mi-perfil', function () {
     $user = Auth::user();
@@ -69,16 +68,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Rutas de panels (accesibles para todos los autenticados)
-    Route::get('/panels', [PanelController::class, 'index'])->name('panels.index');
-    Route::post('/panels/save', [PanelController::class, 'save'])->name('panels.save');
-    Route::get('/panels/get', [PanelController::class, 'get'])->name('panels.get');
-
-    // CRUD de panels
-    Route::get('/panels/create', [PanelController::class, 'create'])->name('panels.create');
-    Route::post('/panels', [PanelController::class, 'store'])->name('panels.store');
-    Route::get('/panels/{panel}', [PanelController::class, 'edit'])->name('panels.edit');
-    Route::put('/panels/{panel}', [PanelController::class, 'update'])->name('panels.update');
-    Route::delete('/panels/{panel}', [PanelController::class, 'destroy'])->name('panels.destroy');
+    Route::get('/panels', function () {
+        return view('Panels.index');
+    })->name('panels.index');
 
     // API para widgets del panel personalizable
     Route::prefix('api/widgets')->name('widgets.')->group(function () {

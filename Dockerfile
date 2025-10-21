@@ -80,7 +80,19 @@ RUN --mount=type=secret,id=app_env \
 ###############################
 # Final runtime image
 ###############################
-FROM php-base AS runtime
+FROM php:8.2-fpm AS runtime
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 1) Instala nginx + supervisor y libs requeridas por extensiones PHP
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      nginx supervisor curl ca-certificates git unzip \
+      libicu-dev libzip-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Extensiones PHP necesarias en ESTA MISMA ETAPA
+RUN docker-php-ext-install intl pdo_mysql zip
+
+WORKDIR /var/www/html
 
 # Copy application source
 COPY . ./
@@ -94,8 +106,30 @@ RUN set -eux; \
     mkdir -p storage/logs storage/framework/{cache,sessions,views} bootstrap/cache; \
     chown -R www-data:www-data storage bootstrap/cache
 
-USER www-data
+# Healthcheck simple (estático) — si no tienes ruta /healthz en Laravel
+RUN printf "%s\n" "<?php http_response_code(200); echo 'ok';" > public/healthz.php
+
+# Nginx + Supervisor
+# Nginx + Supervisor (rutas consistentes)
+#RUN rm -rf /etc/nginx/sites-enabled/* /etc/nginx/sites-available/* \
+#    && mkdir -p /etc/nginx/conf.d
+
+RUN mkdir -p /etc/nginx/conf.d
+
+# 🔧 Colócala como archivo principal, NO en conf.d
+COPY deploy/nginx.main.conf /etc/nginx/nginx.conf
+COPY deploy/nginx.conf /etc/nginx/conf.d/app.conf
+COPY deploy/supervisord.conf /etc/supervisor/supervisord.conf
+
+# ✅ Verificaciones (fallan el build si falta algo)
+RUN command -v supervisord && supervisord -v \
+ && nginx -v
 
 EXPOSE 80
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=80"]
+# Healthcheck (ajusta si usas otra ruta)
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=20s \
+  CMD curl -fsS http://localhost/healthz || exit 1
+
+USER root
+CMD ["supervisord","-n","-c","/etc/supervisor/supervisord.conf"]
