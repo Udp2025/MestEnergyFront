@@ -13,16 +13,29 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
+use App\Models\InfoFiscalUsuario;
+use App\Models\PlanUsuario;
+use Illuminate\Validation\ValidationException;
 
 
 class ClientesController extends Controller
 {
     public function index()
-    {
-        // Carga la relación 'files' y 'user' para cada cliente
-        $clientes = Cliente::with(['files', 'user'])->get();
-        return view('clientes.index', compact('clientes'));
-    }
+{
+    // Cargar relaciones necesarias (files, user, locaciones, medidores, reportes, etc.)
+    // Ajusta las relaciones cargadas según tu modelo para evitar N+1
+    $clientes = Cliente::with(['files', 'user', 'locaciones', 'areas', 'medidores', 'reportes'])
+                      ->orderBy('nombre')
+                      ->get();
+
+    // Clientes cuyo estado_cliente == 2 (Onboarding)
+    $onboardingClients = $clientes->filter(function($c) {
+        return intval($c->estado_cliente) === 2;
+    })->values();
+
+    return view('clientes.index', compact('clientes', 'onboardingClients'));
+}
+
 
     // Mostrar el formulario para crear un nuevo cliente
     public function create()
@@ -52,6 +65,7 @@ class ClientesController extends Controller
         return redirect()->route('clientes.index')->with('success', 'Cliente creado correctamente.');
     }*/
 
+        /*
     public function store(Request $request)
     {
         // Reglas de validación (nota: chequea unicidad tanto en clientes como en users)
@@ -124,7 +138,121 @@ class ClientesController extends Controller
                             ->withInput()
                             ->with('error', 'No se pudo crear el cliente/usuario. ' . $e->getMessage());
         }
+    }*/
+
+
+   
+
+    public function store(Request $request)
+{
+    $rules = [
+        'nombre' => 'required|string|max:255',
+        'rfc'    => 'required|string|max:50',
+        'email'  => 'required|email|unique:clientes,email|unique:users,email',
+        'telefono' => 'nullable|string|max:50',
+        'calle' => 'required|string',
+        'numero' => 'nullable|string',
+        'colonia' => 'nullable|string',
+        'codigo_postal' => 'required|string|max:10',
+        'ciudad' => 'required|string',
+        'estado' => 'required|string',
+        'pais' => 'required|string',
+        // ...
+    ];
+
+    $validator = Validator::make($request->all(), $rules);
+
+    if ($validator->fails()) {
+        // Si es petición AJAX (o espera JSON) devolvemos 422 con mensajes
+        if ($request->expectsJson() || $request->isJson() || $request->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        // Si no, redirigimos con errores
+        return redirect()->back()->withErrors($validator)->withInput();
     }
+
+    DB::beginTransaction();
+    try {
+        $input = $request->only([
+            'nombre','rfc','email','telefono','calle','numero','colonia',
+            'codigo_postal','ciudad','estado','pais','cambio_dolar','site',
+            'tarifa_region','factor_carga','latitud','longitud','contacto_nombre',
+            // 'estado_cliente','capacitacion' // los seteamos manualmente abajo
+        ]);
+
+        // valores por defecto garantizados desde backend
+        $input['capacitacion'] = 0;                                   // siempre 0
+        $input['estado_cliente'] = 2;                                 // por defecto 2
+
+        // si por alguna razón viene en $request (no debería), prefieres sobreescribir:
+        // $input['capacitacion'] = $request->has('capacitacion') ? 1 : 0;
+        // $input['estado_cliente'] = $request->input('estado_cliente', 2);
+
+        $cliente = Cliente::create($input);
+
+        // info fiscal
+        $infoFiscal = InfoFiscalUsuario::create([
+            'cliente_id' => $cliente->id,
+            'razon_social' => $request->input('razon_fiscal', $request->input('razon_social') ?? $request->input('nombre')),
+            'regimen_fiscal' => $request->input('regimen'),
+            'domicilio_fiscal' => $request->input('domicilio'),
+            'uso_cfdi' => $request->input('uso_cfdi'),
+            'contrato_aceptado' => $request->has('contrato_aceptado') ? 1 : 0,
+            'notas' => $request->input('notas_contrato'),
+            'csf' => $request->input('csf')
+        ]);
+
+        // plan
+        $plan = PlanUsuario::create([
+            'cliente_id' => $cliente->id,
+            'plan' => $request->input('plan'),
+            'monto' => $request->input('mrr'),
+            'ciclo' => $request->input('ciclo'),
+            'fecha_corte' => $request->input('dia_corte'),
+            'metodo_pago' => $request->input('metodo_pago'),
+            'fact_automatica' => $request->has('fact_auto') ? 1 : 0,
+            'recordatorios_pago' => $request->has('recordatorios') ? 1 : 0,
+        ]);
+
+        // usuario
+        $tempPassword = Str::random(10);
+        $user = User::create([
+            'name' => $cliente->nombre,
+            'email' => $cliente->email,
+            'password' => Hash::make($tempPassword),
+            'cliente_id' => $cliente->id
+        ]);
+
+        DB::commit();
+
+        if ($request->expectsJson() || $request->isJson() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Cliente creado correctamente',
+                'temp_password' => $tempPassword,
+                'cliente_id' => $cliente->id
+            ], 201);
+        }
+
+        return redirect()->route('clientes.index')->with('success', 'Cliente y usuario creados correctamente.')->with('temp_password', $tempPassword);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        // log opcional: \Log::error($e->getMessage());
+
+        if ($request->expectsJson() || $request->isJson() || $request->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear cliente: ' . $e->getMessage()
+            ], 500);
+        }
+
+        return redirect()->back()->withInput()->with('error', 'No se pudo crear el cliente/usuario. ' . $e->getMessage());
+    }
+}
 
 
     // Mostrar un cliente con sus archivos relacionados y usuarios (si los hay)
@@ -241,4 +369,20 @@ class ClientesController extends Controller
 
         return response()->json($query->get());
     }
+
+    public function updateStatus(Request $request, Cliente $cliente)
+{
+    // Espera: { estado: 'Activo' | 'Inactivo' } enviado desde el front
+    $estado = $request->input('estado', null);
+
+    if (is_null($estado)) {
+        return response()->json(['success' => false, 'message' => 'Estado no proporcionado'], 400);
+    }
+
+    $cliente->estado = $estado;
+    $cliente->save();
+
+    return response()->json(['success' => true, 'estado' => $cliente->estado]);
+}
+
 }

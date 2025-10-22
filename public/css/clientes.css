@@ -333,3 +333,37 @@
   .modal-dialog { width: 100%; }
   .create-client-modal .btn-close { right: 10px; top: 8px; width:34px; height:34px; }
 }
+
+
+/* Onboarding list specific */
+.onboarding-grid { padding: 16px; }
+.onboarding-list { display:flex; flex-direction:column; gap:14px; }
+.onboard-card {
+  display:flex;
+  gap:18px;
+  align-items:center;
+  background:#fff;
+  padding:14px;
+  border-radius:12px;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.04);
+}
+.onboard-left { flex: 1.2; }
+.onboard-middle { flex: 1.4; display:flex; flex-direction:column; gap:6px; }
+.onboard-right { flex: 0.9; display:flex; flex-direction:column; gap:10px; align-items:flex-end; }
+
+.onboard-title .c-link { font-size:16px; font-weight:800; color: var(--accent); text-decoration:none; }
+.onboard-meta { color:#8f7f78; font-size:13px; margin-top:6px; }
+
+.progress-percent { font-weight:700; color:var(--accent); margin-top:6px; font-size:14px; }
+
+.onboard-actions { display:flex; gap:8px; align-items:center; }
+.onboard-actions .btn.small { padding:6px 9px; border-radius:8px; }
+.onboard-actions .continue { background:var(--accent); color:#fff; padding:8px 12px; border-radius:999px; text-decoration:none; }
+
+.empty-onboarding { padding:22px; color:#7a6a63; text-align:center; background:#fff; border-radius:10px; }
+
+/* Responsive: que las tarjetas apilen en pantallas pequeñas */
+@media (max-width:900px) {
+  .onboard-card { flex-direction:column; align-items:flex-start; }
+  .onboard-right { align-self:stretch; align-items:flex-start; width:100%; }
+}

@@ -35,6 +35,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\Admin; // Importa el middleware
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ApiDataController;
+use App\Http\Controllers\PostalCodeController;
 
 // Rutas públicas
 Route::get('/', function () {
@@ -114,6 +115,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/charts/plot', [PlotProxyController::class, 'plot'])->name('charts.plot');
     Route::post('/charts/data', [PlotProxyController::class, 'data'])->name('charts.data');
  
+    Route::get('/api/postal-codes/{cp}', [PostalCodeController::class, 'lookup']);
+    Route::get('/clientes', [ClientesController::class,'index'])->name('clientes.index');
+    Route::post('/clientes', [ClientesController::class,'store'])->name('clientes.store');
+    // status update route
+    Route::post('/clientes/update-status/{cliente}', [ClientesController::class,'updateStatus']);
+    Route::get('/api/postal-codes/{cp}', [PostalCodeController::class,'lookup']);
+
 
  
  

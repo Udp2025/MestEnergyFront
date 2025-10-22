@@ -13,20 +13,12 @@ class Cliente extends Model
     protected $table = 'clientes';
 
     protected $fillable = [
-        'nombre',
-        'razon_social',
-        'email',
-        'telefono',
-        'calle',
-        'numero',
-        'colonia',
-        'codigo_postal',
-        'ciudad',
-        'estado',
-        'pais',
-        'cambio_dolar',
-        'site'
+    'nombre','rfc','email','telefono','calle','numero','colonia',
+    'codigo_postal','ciudad','estado','pais','cambio_dolar','site',
+    'tarifa_region','factor_carga','latitud','longitud','contacto_nombre',
+    'estado_cliente','capacitacion'
     ];
+
     protected $hidden = [
         'password',
         // Agrega otros campos que necesites ocultar
@@ -55,5 +47,15 @@ public function user() {
     
     public function reportes() {
         return $this->hasMany(Reportes::class);
+    }
+
+    public function infoFiscal()
+    {
+    return $this->hasOne(InfoFiscalUsuario::class, 'cliente_id');
+    }
+
+    public function planUsuario()
+    {
+    return $this->hasOne(PlanUsuario::class, 'cliente_id');
     }
 }

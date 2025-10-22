@@ -108,74 +108,96 @@
 
       </section>
 
-      <!-- PANEL: ONBOARDING -->
-      <section id="panel-onboarding" class="panel" role="tabpanel" aria-labelledby="tab-onboarding">
+      <!-- PANEL: ONBOARDING (REEMPLAZAR BLOQUE EXISTENTE) -->
+<section id="panel-onboarding" class="panel" role="tabpanel" aria-labelledby="tab-onboarding">
 
-        <div class="kpi-wrap">
-          <div class="kpi-card small">
-            <div class="kpi-number">{{ $clientes->where('estatus','Onboarding')->count() }}</div>
-            <div class="kpi-label">Clientes en onboarding</div>
-          </div>
-          <div class="kpi-card small">
-            @php
-              $avg = $clientes->where('estatus','Onboarding')->count() ? round($clientes->where('estatus','Onboarding')->avg('progreso') ?? 0) : 0;
-            @endphp
-            <div class="kpi-number">{{ $avg }}%</div>
-            <div class="kpi-label">Promedio avance</div>
-          </div>
-          <div class="kpi-card small">
-            <div class="kpi-number">0</div>
-            <div class="kpi-label">Listos para Go-Live</div>
-          </div>
-          <div class="kpi-card small">
-            <div class="kpi-number">2</div>
-            <div class="kpi-label">Pendientes de capacitación</div>
-          </div>
+  <div class="kpi-wrap">
+    <div class="kpi-card small">
+      <div class="kpi-number">{{ $onboardingClients->count() }}</div>
+      <div class="kpi-label">En onboarding</div>
+    </div>
+    <div class="kpi-card small">
+      @php
+        $avg = $onboardingClients->count() ? round($onboardingClients->avg(function($c){ return $c->progreso ?? 0; })) : 0;
+      @endphp
+      <div class="kpi-number">{{ $avg }}%</div>
+      <div class="kpi-label">Promedio avance</div>
+    </div>
+    <div class="kpi-card small">
+      <div class="kpi-number">{{ $onboardingClients->where('progreso', '>=', 100)->count() }}</div>
+      <div class="kpi-label">Listos para Go-Live</div>
+    </div>
+    <div class="kpi-card small">
+      <div class="kpi-number">{{ $onboardingClients->where('capacitacion', 1)->count() }}</div>
+      <div class="kpi-label">Capacitación agendada</div>
+    </div>
 
-          <div class="kpi-action">
-            <button class="btn-add" data-bs-toggle="modal" data-bs-target="#createClientModal">+ Agregar cliente</button>
-          </div>
-        </div>
+    <div class="kpi-action">
+      <button class="btn-add" data-bs-toggle="modal" data-bs-target="#createClientModal">+ Agregar cliente</button>
+    </div>
+  </div>
 
-        <div class="table-card onboarding-card">
-          <table class="onboard-table">
-            <thead>
-              <tr>
-                <th>Cliente</th><th>Owner</th><th>Progreso</th><th>Próximo paso</th><th>Fecha objetivo</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              @foreach ($clientes->where('estatus','Onboarding') as $cliente)
-                <tr>
-                  <td>
-                    <div class="c-name"><strong>{{ $cliente->nombre }}</strong><div class="c-sub">{{ $cliente->razon_social }}</div></div>
-                  </td>
-                  <td>{{ $cliente->owner_name ?? '—' }}</td>
-                  <td class="progress-td">
-                    <div class="progress-line" aria-hidden="true">
-                      <div class="progress-bar" style="width: {{ $cliente->progreso ?? 10 }}%"></div>
-                    </div>
-                    <div class="chips">
-                      @php $steps = ['Contrato','Datos fiscales','Alta de sitios','Configuración de sensores','Facturación','Capacitación','Go-Live']; @endphp
-                      @php $done = round((($cliente->progreso ?? 0) / 100) * count($steps)); @endphp
-                      @foreach($steps as $i => $s)
-                        <span class="chip {{ $i < $done ? 'done' : '' }}">{{ $s }}</span>
-                      @endforeach
-                    </div>
-                  </td>
-                  <td>{{ $cliente->proximo_paso ?? '—' }}</td>
-                  <td>{{ optional($cliente->fecha_objetivo)->format('Y-m-d') ?? '—' }}</td>
-                  <td>
-                    <a class="btn small edit" href="#" title="Editar"><i class="fas fa-pen"></i></a>
-                    <a class="btn continue" href="#" title="Continuar">Continuar</a>
-                  </td>
-                </tr>
-              @endforeach
-            </tbody>
-          </table>
-        </div>
+  <div class="table-card onboarding-card onboarding-grid">
+    @if($onboardingClients->isEmpty())
+      <div class="empty-onboarding">
+        <p>No hay clientes en onboarding.</p>
+      </div>
+    @else
+      <div class="onboarding-list">
+        @foreach($onboardingClients as $cliente)
+          @php
+            $progreso = intval($cliente->progreso ?? 0);
+            // pasos estáticos como en la UI; se marca "done" según progreso
+            $steps = ['Contrato','Datos fiscales','Alta de sitios','Configuración','Facturación','Capacitación','Go-Live'];
+            $done = intval(round(($progreso / 100) * count($steps)));
+          @endphp
 
-      </section>
+          <article class="onboard-card">
+            <div class="onboard-left">
+              <div class="onboard-title">
+                <a href="{{ route('clientes.show', $cliente) }}" class="c-link">{{ $cliente->nombre }}</a>
+                <div class="c-sub">{{ $cliente->razon_social ?? '' }}</div>
+              </div>
+              <div class="onboard-meta">
+                <div><strong>Owner:</strong> {{ $cliente->owner_name ?? ($cliente->user->name ?? '—') }}</div>
+                <div><strong>Contacto:</strong> {{ $cliente->contacto_nombre ?? '—' }}</div>
+              </div>
+            </div>
+
+            <div class="onboard-middle">
+              <div class="progress-td">
+                <div class="progress-line" aria-hidden="true">
+                  <div class="progress-bar" style="width: {{ $progreso > 100 ? 100 : $progreso }}%"></div>
+                </div>
+                <div class="progress-percent">{{ $progreso }}%</div>
+
+                <div class="chips">
+                  @foreach($steps as $i => $s)
+                    <span class="chip {{ $i < $done ? 'done' : '' }}">{{ $s }}</span>
+                  @endforeach
+                </div>
+              </div>
+            </div>
+
+            <div class="onboard-right">
+              <div class="next-step">
+                <div><strong>Próximo paso:</strong> {{ $cliente->proximo_paso ?? '—' }}</div>
+                <div><strong>Fecha objetivo:</strong> {{ optional($cliente->fecha_objetivo)->format('Y-m-d') ?? '—' }}</div>
+              </div>
+
+              <div class="onboard-actions">
+                <a href="{{ route('clientes.show', $cliente) }}" class="btn small edit" title="Ver detalle"><i class="fas fa-eye"></i></a>
+                <button class="btn small edit" data-bs-toggle="modal" data-bs-target="#editClientModal{{ $cliente->id }}" title="Editar"><i class="fas fa-pen"></i></button>
+                <a href="#" class="btn continue" onclick="handleContinueOnboarding({{ $cliente->id }})">Continuar</a>
+              </div>
+            </div>
+          </article>
+        @endforeach
+      </div> {{-- onboarding-list --}}
+    @endif
+  </div>
+
+</section>
 
     </main>
   </div>
@@ -202,36 +224,107 @@
         <form id="createClientForm">
           <div class="steps">
             <!-- Step 1 -->
-            <section class="step-panel active" data-step="1">
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Nombre legal</label>
-                  <input name="nombre" type="text" class="form-control" placeholder="Razón social" required>
-                </div>
-                <div class="form-group">
-                  <label>RFC</label>
-                  <input name="rfc" type="text" class="form-control" placeholder="XAXX010101000" >
-                </div>
+            <!-- Step 1: Generales (añadir/actualizar campos) -->
+<!-- Step 1: Generales (campos completos como inputs) -->
+<section class="step-panel active" data-step="1">
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Nombre legal</label>
+      <input name="nombre" type="text" class="form-control" required>
+    </div>
 
-                <div class="form-group">
-                  <label>Ciudad</label>
-                  <input name="ciudad" type="text" class="form-control" placeholder="Ciudad, Estado">
-                </div>
-                <div class="form-group">
-                  <label>Contacto</label>
-                  <input name="contacto" type="text" class="form-control" placeholder="Nombre del responsable">
-                </div>
+    <div class="form-group">
+      <label>RFC</label>
+      <input name="rfc" type="text" class="form-control">
+    </div>
 
-                <div class="form-group">
-                  <label>Email</label>
-                  <input name="email" type="email" class="form-control" placeholder="contacto@empresa.com">
-                </div>
-                <div class="form-group">
-                  <label>Teléfono</label>
-                  <input name="telefono" type="tel" class="form-control" placeholder="+52...">
-                </div>
-              </div>
-            </section>
+    <div class="form-group">
+      <label>Email</label>
+      <input name="email" type="email" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label>Teléfono</label>
+      <input name="telefono" type="tel" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label>Calle</label>
+      <input name="calle" type="text" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label>Número</label>
+      <input name="numero" type="text" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label>Colonia</label>
+      <input name="colonia" type="text" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label>Código postal</label>
+      <input id="codigo_postal" name="codigo_postal" type="text" class="form-control" maxlength="5" required>
+    </div>
+
+    <!-- ahora son inputs normales (no selects) -->
+    <div class="form-group">
+      <label>Ciudad</label>
+      <input id="ciudad_input" name="ciudad" type="text" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label>Estado</label>
+      <input id="estado_input" name="estado" type="text" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label>País</label>
+      <input id="pais_input" name="pais" type="text" class="form-control" value="México">
+    </div>
+
+    <div class="form-group">
+      <label>Cambio de Dólar</label>
+      <input name="cambio_dolar" type="number" step="0.01" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label>Latitud</label>
+      <input name="latitud" type="text" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label>Longitud</label>
+      <input name="longitud" type="text" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label>Contacto nombre</label>
+      <input name="contacto_nombre" type="text" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label>Tarifa región</label>
+      <input name="tarifa_region" type="text" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label>Factor carga</label>
+      <input name="factor_carga" type="text" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label>Site (número)</label>
+      <input name="site" type="number" class="form-control">
+    </div>
+
+    
+
+  </div>
+</section>
+
+
 
             <!-- Step 2 -->
             <section class="step-panel" data-step="2">
@@ -373,7 +466,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // TABS (mostrar solo panel activo)
+
+  // --- TABS (mostrar solo panel activo) ---
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => {
@@ -389,7 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Toggle status (fetch)
+  // --- Toggle status (fetch) ---
   document.querySelectorAll('.toggle-status').forEach(toggle => {
     toggle.addEventListener('change', function() {
       const id = this.dataset.id;
@@ -415,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Search
+  // --- Search local simple ---
   const search = document.getElementById('searchCliente');
   if (search) {
     search.addEventListener('input', () => {
@@ -426,7 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Si el servidor devuelve que abra un modal específico
+  // --- Abrir modales si el servidor lo indica ---
   const hasErrors = {{ $errors->any() ? 'true' : 'false' }};
   const editModalId = @json(session('edit_modal'));
   if(editModalId){
@@ -436,10 +530,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cm = document.getElementById('createClientModal');
     if(cm) new bootstrap.Modal(cm).show();
   }
-});
 
-
-document.addEventListener('DOMContentLoaded', () => {
+  // --- Stepper / Modal create client ---
   const modal = document.getElementById('createClientModal');
   if(!modal) return;
 
@@ -461,10 +553,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const panel = modal.querySelector(`.step-panel[data-step="${current}"]`);
     if(panel) panel.classList.add('active');
 
-    // stepper buttons active state
     stepBtns.forEach(b => b.classList.toggle('active', parseInt(b.dataset.step) === current));
 
-    // footer controls
     currentStepEl.textContent = current;
     prevBtn.disabled = current === 1;
     if(current === total){
@@ -475,7 +565,6 @@ document.addEventListener('DOMContentLoaded', () => {
       createBtn.classList.add('d-none');
     }
 
-    // update summary when entering last step
     if(current === total) updateSummary();
   }
 
@@ -492,71 +581,107 @@ document.addEventListener('DOMContentLoaded', () => {
       contrato: data.get('contrato_aceptado') ? 'Aceptado' : 'Pendiente'
     };
 
-    summaryBox.innerHTML = `
-      <div><strong>Cliente:</strong> ${text.cliente}</div>
-      <div><strong>Régimen:</strong> ${text.regimen}</div>
-      <div><strong>Uso CFDI:</strong> ${text.uso}</div>
-      <div><strong>Plan:</strong> ${text.plan}</div>
-      <div><strong>MRR:</strong> ${text.mrr}</div>
-      <div><strong>Ciclo/Día corte:</strong> ${text.ciclo} / ${text.dia}</div>
-      <div><strong>Contrato:</strong> ${text.contrato}</div>
-    `;
+    if (summaryBox) {
+      summaryBox.innerHTML = `
+        <div><strong>Cliente:</strong> ${text.cliente}</div>
+        <div><strong>Régimen:</strong> ${text.regimen}</div>
+        <div><strong>Uso CFDI:</strong> ${text.uso}</div>
+        <div><strong>Plan:</strong> ${text.plan}</div>
+        <div><strong>MRR:</strong> ${text.mrr}</div>
+        <div><strong>Ciclo/Día corte:</strong> ${text.ciclo} / ${text.dia}</div>
+        <div><strong>Contrato:</strong> ${text.contrato}</div>
+      `;
+    }
   }
 
-  // Next / Prev handlers
   nextBtn.addEventListener('click', () => showStep(current + 1));
   prevBtn.addEventListener('click', () => showStep(current - 1));
-
-  // Stepper click
   stepBtns.forEach(b => b.addEventListener('click', () => showStep(parseInt(b.dataset.step))));
-
-  // When modal shown -> reset to step 1
   modal.addEventListener('show.bs.modal', () => {
     showStep(1);
     form.reset();
-    // ensure toggle visual state if any
   });
 
-  // handle submit (aquí podrías cambiar por request AJAX o submit normal)
+  // Submit: envía todo (clientes + info_fiscal + plan) al endpoint /clientes
   form.addEventListener('submit', (ev) => {
-    ev.preventDefault();
-    // ejemplo simple: recopilar y enviar por fetch
-    const fd = new FormData(form);
-    const payload = {};
-    fd.forEach((v, k) => payload[k] = v);
+  ev.preventDefault();
 
-    // Puedes enviar a tu ruta /clientes con fetch POST (aquí un ejemplo)
-    fetch("{{ route('clientes.store') }}", {
-      method: "POST",
-      headers: {
-        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-        "Accept": "application/json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    })
-    .then(r => r.json())
-    .then(res => {
-      if(res.success){
-        // cerrar modal, refrescar o insertar nuevo cliente en la tabla
+  // limpia mensajes previos
+  const errorBoxId = 'create-client-errors';
+  let errorBox = modal.querySelector('#' + errorBoxId);
+  if (!errorBox) {
+    errorBox = document.createElement('div');
+    errorBox.id = errorBoxId;
+    errorBox.style.marginBottom = '12px';
+    modal.querySelector('.modal-body').prepend(errorBox);
+  }
+  errorBox.innerHTML = '';
+
+  const fd = new FormData(form);
+  const payload = {};
+  fd.forEach((v, k) => { payload[k] = v; });
+
+  // Forzar defaults y leer los checkbox que sí existen
+  payload.capacitacion = 0; // ya no hay switch, por defecto 0
+  payload.estado_cliente = 2; // por defecto 2
+
+  payload.contrato_aceptado = form.querySelector('input[name="contrato_aceptado"]')?.checked ? 1 : 0;
+  payload.fact_auto = form.querySelector('input[name="fact_auto"]')?.checked ? 1 : 0;
+  payload.recordatorios = form.querySelector('input[name="recordatorios"]')?.checked ? 1 : 0;
+
+  fetch("{{ route('clientes.store') }}", {
+    method: "POST",
+    headers: {
+      "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(async (response) => {
+    const contentType = response.headers.get('content-type') || '';
+    // Si devuelve JSON, parsear
+    if (contentType.includes('application/json')) {
+      const data = await response.json();
+      if (response.ok) {
+        // éxito
         const bsModal = bootstrap.Modal.getInstance(modal);
-        if(bsModal) bsModal.hide();
-        window.location.reload(); // o actualizar con DOM
+        if (bsModal) bsModal.hide();
+        // opcional: mostrar toast con data.temp_password
+        window.location.reload();
+      } else if (response.status === 422) {
+        // errores de validación
+        let html = '<div class="alert alert-danger"><ul>';
+        const errors = data.errors || {};
+        for (const field in errors) {
+          errors[field].forEach(msg => {
+            html += `<li>${msg}</li>`;
+          });
+        }
+        html += '</ul></div>';
+        errorBox.innerHTML = html;
       } else {
-        // mostrar errores (mejor manejar validación en el servidor)
-        alert(res.message || 'Error al crear cliente');
+        // otros errores
+        errorBox.innerHTML = `<div class="alert alert-danger">${data.message || 'Error desconocido'}</div>`;
       }
-    })
-    .catch(e => {
-      console.error(e);
-      alert('Error al enviar datos');
-    });
+    } else {
+      // Si el servidor respondió HTML (no debería si controlador está correcto), mostrarlo en consola
+      const text = await response.text();
+      console.error('Respuesta inesperada (HTML):', text);
+      errorBox.innerHTML = `<div class="alert alert-danger">Respuesta inesperada del servidor. Revisa la consola.</div>`;
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    errorBox.innerHTML = `<div class="alert alert-danger">Error al enviar datos: ${err.message}</div>`;
   });
-
-  // inicializa en caso de que se abra por server-side (si $errors, etc)
-  showStep(1);
 });
 
+
+  // Inicializa en step 1
+  showStep(1);
+
+}); // end DOMContentLoaded
 </script>
 
 @endsection
