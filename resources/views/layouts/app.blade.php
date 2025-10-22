@@ -74,22 +74,6 @@
                             </a>
                         </li>
                     </ul>
-                    <ul>
-                        <li class="mcst">
-                            <i class="bi bi-geo-alt"></i>
-                            <a href="{{ route('clientes.index') }}" style="text-decoration: none; color: inherit;">
-                                <span>Locaciones</span>
-                            </a>
-                        </li>
-                    </ul>
-                    <ul>
-                        <li class="mcst">
-                            <i class="bi bi-crosshair"></i>
-                            <a href="{{ route('clientes.index') }}" style="text-decoration: none; color: inherit;">
-                                <span>Áreas / Zonas</span>
-                            </a>
-                        </li>
-                    </ul>
                 @endif
 
                 @if(auth()->check() && auth()->user()->role === 'normal' && auth()->user()->cliente)
@@ -109,13 +93,13 @@
                     <li class="mcst">
                         <i class="bi bi-radar"></i>
                         <a href="" style="text-decoration: none; color: inherit;">
-                            <span>Sensores / Medidores</span>
+                            <span>Vinculación sensores</span>
                         </a>
                     </li>
                     <li class="mcst">
                         <i class="bi bi-graph-up"></i>
                         <a href="" style="text-decoration: none; color: inherit;">
-                            <span>Consumo Energético</span>
+                            <span>Costos Estimados / Facturación</span>
                         </a>
                     </li>
                     <li class="mcst">
@@ -127,13 +111,7 @@
                     <li class="mcst">
                         <i class="bi bi-file-earmark-medical"></i>
                         <a href="" style="text-decoration: none; color: inherit;">
-                            <span>Costos Estimados / Facturación</span>
-                        </a>
-                    </li>
-                    <li class="mcst">
-                        <i class="bi bi-card-heading"></i>
-                        <a href="" style="text-decoration: none; color: inherit;">
-                            <span>Reportes Automáticos</span>
+                            <span>Reportes automáticos</span>
                         </a>
                     </li>
                 </ul>
@@ -164,7 +142,7 @@
                     <li class="mcst">
                         <i class="bi bi-database"></i>
                         <a href="{{ route('tarifas.index') }}" style="text-decoration: none; color: inherit;">
-                            <span>Fixed Inputs</span>
+                            <span>Inputs tarifas</span>
                         </a>
                     </li>
 
