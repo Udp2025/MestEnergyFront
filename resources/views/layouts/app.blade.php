@@ -92,7 +92,7 @@
                 <ul>
                     <li class="mcst">
                         <i class="bi bi-radar"></i>
-                        <a href="" style="text-decoration: none; color: inherit;">
+                        <a href="{{route('vincular_sensores')}}" style="text-decoration: none; color: inherit;">
                             <span>Vinculación sensores</span>
                         </a>
                     </li>
