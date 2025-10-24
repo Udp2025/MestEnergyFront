@@ -8,38 +8,29 @@ use Illuminate\Support\Facades\DB;
 class SensoresController extends Controller
 {
     public function index()
-    {
-        // Sensores
-        $sensors = DB::table('devices')
-            ->select('site_id', 'device_id', 'device_name', 'resolution_min')
-            ->orderBy('site_id')
-            ->orderBy('device_id')
-            ->get();
+{
+    // Traer sensores
+    $sensors = DB::table('devices')
+        ->select('site_id', 'device_id', 'device_name', 'resolution_min')
+        ->orderBy('site_id')
+        ->orderBy('device_id')
+        ->get();
 
-        // Clientes: nota usamos la tabla 'clientes'
-        $clients = DB::table('clientes') // <-- <--- aquí está el cambio
-            ->select('id', 'nombre', 'site')
-            ->orderBy('nombre')
-            ->get();
+    // Traer todos los clientes (ignoramos la columna 'site' para la vista)
+    $clients = DB::table('clientes')
+        ->select('id', 'nombre') // no necesitamos site aquí
+        ->orderBy('nombre')
+        ->get();
 
-        // Agrupar por site (casting a string para evitar mismatch '0' vs 0)
-        $clientsBySite = $clients->groupBy(function($c){
-            return (string) ($c->site ?? '0');
-        });
+    // Traer asignaciones actuales y keyear por "site:device"
+    $assignments = DB::table('device_client_assignments')
+        ->select('site_id','device_id','client_id','assigned_at')
+        ->get()
+        ->keyBy(function($a){ return $a->site_id . ':' . $a->device_id; });
 
-        // Asignaciones actuales (si creaste la tabla device_client_assignments)
-        $assignments = DB::table('device_client_assignments')
-            ->select('site_id','device_id','client_id','assigned_at')
-            ->get()
-            ->keyBy(function($a){ return $a->site_id . ':' . $a->device_id; });
+    return view('vincular_sensores', compact('sensors','clients','assignments'));
+}
 
-        return view('vincular_sensores', [
-            'sensors' => $sensors,
-            'clients' => $clients,               // lista completa
-            'clientsBySite' => $clientsBySite,   // agrupado por site
-            'assignments' => $assignments,
-        ]);
-    }
 
 
 
@@ -61,6 +52,7 @@ class SensoresController extends Controller
             ['site_id' => $site, 'device_id' => $device],
             ['client_id' => $client, 'assigned_at' => now(), 'updated_at' => now(), 'created_at' => now()]
         );
+
 
         return response()->json(['success' => true, 'message' => 'Vinculado correctamente']);
     }

@@ -135,7 +135,9 @@ Route::middleware('auth')->group(function () {
 Route::post('/sensores/vincular', [SensoresController::class, 'store'])->name('sensores.vincular'); // vincular 1
 Route::post('/sensores/vincular/bulk', [SensoresController::class, 'bulkAssign'])->name('sensores.vincular.bulk'); // vinculación en lote
 
-
+Route::get('/datos-cfe', [CFEController::class,'index'])->name('cfe.index');
+Route::get('/cfe/region', [CFEController::class,'getRegion']); // endpoint AJAX
+Route::post('/cfe', [CFEController::class,'store'])->name('cfe.store');
  
  
  

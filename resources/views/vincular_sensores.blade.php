@@ -78,20 +78,21 @@
 
           <div class="cell small">
             @php
-  $key = (string) ($s->site_id ?? '0');
-  $clientsForSite = $clientsBySite->has($key) ? $clientsBySite[$key] : collect();
-@endphp
+              $key = $s->site_id . ':' . $s->device_id;
+              $assigned = $assignments[$key] ?? null;
+            @endphp
 
-<select class="select assign-select">
-  <option value="">Selecciona un cliente...</option>
-  @forelse($clientsForSite as $c)
-    <option value="{{ $c->id }}" {{ $assigned && $assigned->client_id == $c->id ? 'selected' : '' }}>
-      {{ $c->nombre }}
-    </option>
-  @empty
-    <option value="">(No hay clientes para site {{ $s->site_id }})</option>
-  @endforelse
-</select>
+            <select class="select assign-select">
+              <option value="">Selecciona un cliente...</option>
+
+              @foreach($clients as $c)
+                <option value="{{ $c->id }}"
+                  {{ $assigned && intval($assigned->client_id) === intval($c->id) ? 'selected' : '' }}>
+                  {{ $c->nombre }}
+                </option>
+              @endforeach
+            </select>
+
 
           </div>
 
