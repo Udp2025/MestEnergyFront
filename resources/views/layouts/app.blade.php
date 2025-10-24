@@ -98,7 +98,7 @@
                     </li>
                     <li class="mcst">
                         <i class="bi bi-graph-up"></i>
-                        <a href="" style="text-decoration: none; color: inherit;">
+                        <a href="{{ route('clientes.clidash') }}" style="text-decoration: none; color: inherit;">
                             <span>Costos Estimados / Facturación</span>
                         </a>
                     </li>

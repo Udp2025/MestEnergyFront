@@ -97,7 +97,7 @@
                     </li>
                     <li class="mcst">
                         <i class="bi bi-graph-up"></i>
-                        <a href="" style="text-decoration: none; color: inherit;">
+                        <a href="{{ route('clientes.clidash') }}" style="text-decoration: none; color: inherit;">
                             <span>Costos Estimados / Facturación</span>
                         </a>
                     </li>
@@ -260,7 +260,7 @@
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('benchmarking') }}"><span>Benchmarking</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('energyflow') }}"><span>Energy Flow</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('clientes.clidash') }}"><span>Financial</span></a></li>
-                    <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{route('site_alerts_in')}}"><span>Operational Alerts</span></a></li>
+                    <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{route('site_alerts')}}"><span>Operational Alerts</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('tiggers') }}"><span>Triggers</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('manage') }}"><span>Manage Events</span></a></li>
                     <li><i class="fa fa-chevron-right" aria-hidden="true"></i> <a href="{{ route('groups') }}"><span>Groups</span></a></li>
