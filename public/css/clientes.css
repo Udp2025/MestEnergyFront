@@ -367,3 +367,152 @@
   .onboard-card { flex-direction:column; align-items:flex-start; }
   .onboard-right { align-self:stretch; align-items:flex-start; width:100%; }
 }
+
+
+/* ===========================
+   Estilos específicos - Modales
+   =========================== */
+
+/* Modal small (Confirmación) — usa IDs concretos para evitar choques */
+#confirmCapacitacionModal .modal-dialog,
+#confirmGoLiveModal .modal-dialog {
+  max-width: 420px;
+  width: 94%;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+#confirmCapacitacionModal .modal-content,
+#confirmGoLiveModal .modal-content {
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, var(--panel), rgba(255,255,255,0.98));
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 22px 48px rgba(0,0,0,0.12);
+  overflow: hidden;
+  padding: 0;
+}
+
+/* Header */
+#confirmCapacitacionModal .modal-header,
+#confirmGoLiveModal .modal-header {
+  padding: 14px 18px;
+  border-bottom: none;
+  background: transparent;
+}
+#confirmCapacitacionModal .modal-title,
+#confirmGoLiveModal .modal-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #4b382f;
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+/* Body centrado y agradable */
+#confirmCapacitacionModal .modal-body,
+#confirmGoLiveModal .modal-body {
+  padding: 18px;
+  text-align: center;
+  color: #7a6a63;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  background: transparent;
+}
+
+/* Mensaje con icono visual (usa pseudo element) */
+#confirmCapacitacionModal .modal-body::before,
+#confirmGoLiveModal .modal-body::before {
+  content: "⚠";
+  display: inline-block;
+  font-size: 34px;
+  line-height: 1;
+  margin-bottom: 8px;
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
+  background: rgba(184,73,54,0.08);
+  color: var(--accent);
+  padding-top: 6px;
+  vertical-align: middle;
+}
+
+/* Footer / botones centrados */
+#confirmCapacitacionModal .modal-footer,
+#confirmGoLiveModal .modal-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  padding: 14px 18px;
+  border-top: none;
+  background: transparent;
+}
+
+/* Botones estilizados respetando paleta */
+#confirmCapacitacionModal .modal-footer .btn,
+#confirmGoLiveModal .modal-footer .btn {
+  min-width: 110px;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+/* Confirmar (primario) */
+#confirmCapacitacionModal .modal-footer .btn.btn-primary,
+#confirmGoLiveModal .modal-footer .btn.btn-primary {
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  border: none;
+  box-shadow: 0 10px 26px rgba(184,73,54,0.12);
+}
+#confirmCapacitacionModal .modal-footer .btn.btn-primary:hover,
+#confirmGoLiveModal .modal-footer .btn.btn-primary:hover {
+  transform: translateY(-2px);
+}
+
+/* Cancelar (secundario) */
+#confirmCapacitacionModal .modal-footer .btn.btn-secondary,
+#confirmGoLiveModal .modal-footer .btn.btn-secondary {
+  background: #fff;
+  color: #5b463f;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+#confirmCapacitacionModal .modal-footer .btn.btn-secondary:hover,
+#confirmGoLiveModal .modal-footer .btn.btn-secondary:hover {
+  transform: translateY(-1px);
+}
+
+/* Pequeños ajustes: que el botón confirmar resalte en móviles */
+@media (max-width: 480px) {
+  #confirmCapacitacionModal .modal-footer,
+  #confirmGoLiveModal .modal-footer { flex-direction: column-reverse; gap: 8px; }
+  #confirmCapacitacionModal .modal-footer .btn.btn-primary,
+  #confirmGoLiveModal .modal-footer .btn.btn-primary {
+    width: 100%;
+  }
+  #confirmCapacitacionModal .modal-footer .btn.btn-secondary,
+  #confirmGoLiveModal .modal-footer .btn.btn-secondary {
+    width: 100%;
+  }
+}
+
+/* Si quieres un estado visual después de confirmar (check animado):
+   añade la clase .confirmed al modal.content vía JS y aplica esto */
+#confirmCapacitacionModal .modal-content.confirmed,
+#confirmGoLiveModal .modal-content.confirmed {
+  animation: popSuccess .34s ease forwards;
+}
+@keyframes popSuccess {
+  0% { transform: scale(0.98); box-shadow: 0 14px 36px rgba(0,0,0,0.08); }
+  60% { transform: scale(1.02); box-shadow: 0 26px 60px rgba(0,0,0,0.12); }
+  100% { transform: scale(1); box-shadow: 0 18px 40px rgba(0,0,0,0.10); }
+}
+
+/* Chip pequeño dentro de modal si lo usas */
+#confirmCapacitacionModal .chip,
+#confirmGoLiveModal .chip {
+  display:inline-flex; gap:8px; align-items:center;
+  padding:6px 10px; border-radius:999px;
+  background: var(--panel); border:1px solid rgba(0,0,0,0.03);
+  color:#5b463f; font-weight:700;
+}

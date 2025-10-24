@@ -3,112 +3,9 @@
 @section('title', 'Vinculación rápida — Mest Energy')
 
 @section('content')
-<style>
-  :root{
-    --bg: #caa18d; 
-    --accent: #b84936;
-    --accent-dark: #8f422e;
-    --panel: rgba(0,0,0,0.06);
-    --card: rgba(255,255,255,0.85);
-    --text: #2b1f18;
-    --muted: rgba(43,31,24,0.65);
-    --glass: rgba(255,255,255,0.06);
-    --radius: 12px;
-  }
 
-  
-
-  .page {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1fr 360px;
-    gap: 22px;
-  }
-
-  header.breadcrumbs {
-    grid-column: 1 / -1;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-  }
-
-  .title {
-    font-size: 20px;
-    font-weight: 700;
-  }
-  .subtitle { color: var(--muted); font-size: 13px; }
-
-  .controls { display:flex; gap:12px; align-items:center; }
-  .btn {
-    background: var(--accent);
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 10px;
-    cursor: pointer;
-    box-shadow: 0 6px 14px rgba(0,0,0,0.12);
-    font-weight:600;
-  }
-  .btn.ghost{
-    background: transparent;
-    color: var(--text);
-    border: 1px solid rgba(0,0,0,0.06);
-  }
-
-  /* tarjetas de métricas */
-  .metrics { display:flex; gap:14px; margin: 10px 0 18px 0; }
-  .metric {
-    background: var(--card);
-    padding: 14px 16px;
-    border-radius: var(--radius);
-    width: 100%;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-    display:flex; flex-direction:column; gap:6px;
-  }
-  .metric .num { font-size:22px; font-weight:700; }
-  .metric .label { font-size:12px; color:var(--muted); }
-
-  .main-panel {
-    background: rgba(255,255,255,0.06);
-    border-radius: var(--radius);
-    padding: 18px;
-    min-height: 560px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.02), 0 6px 20px rgba(0,0,0,0.06);
-  }
-
-  .search-row { display:flex; gap:12px; margin: 8px 0 18px 0; }
-  .search { flex:1; padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,0.06); background: rgba(255,255,255,0.85); }
-  .pill { background: var(--card); padding:8px 12px; border-radius: 999px; align-self:center; font-size:13px; }
-
-  /* tabla estilo "tarjetas" */
-  .table { width:100%; border-collapse:collapse; }
-  .thead { display:flex; gap:8px; color:var(--muted); font-size:12px; padding: 8px 6px; }
-  .row { display:flex; gap:8px; align-items:center; padding:12px 6px; border-radius:10px; margin-bottom:10px; background: rgba(255,255,255,0.02); }
-  .cell { flex:1; font-size:13px; }
-  .cell.small { flex:0 0 160px; }
-  .select { padding:8px 10px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); background: white; }
-  .action { display:flex; gap:8px; }
-  .link-btn { background: transparent; padding:8px 12px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); cursor:pointer; }
-
-  /* sidebar */
-  .sidebar { display:flex; flex-direction:column; gap:12px; }
-  .card { background: var(--card); padding:14px; border-radius:12px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
-  .donut { display:flex; align-items:center; justify-content:center; height:200px; }
-  .legend { display:flex; gap:8px; align-items:center; margin-top:8px; }
-  .legend .dot { width:12px; height:12px; border-radius:50%; }
-
-  .notes { font-size:13px; color:var(--muted); }
-
-  footer.small { grid-column:1 / -1; margin-top:18px; color:var(--muted); font-size:12px; }
-
-  /* responsiveness */
-  @media (max-width: 980px){
-    .page{ grid-template-columns: 1fr; }
-    .sidebar{ order: 2; }
-  }
-</style>
+<link rel="stylesheet" href="{{ asset('css/sensores.css') }}">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 
 <div class="page">
   <header class="breadcrumbs">
@@ -118,77 +15,92 @@
     </div>
 
     <div class="controls">
-      <button class="btn ghost">Asignar seleccionados</button>
-      <button class="btn">+ Nuevo cliente</button>
+      <button id="bulkAssignBtn" class="btn ghost">Asignar seleccionados</button>
+      <a href="/clients/create" class="btn">+ Nuevo cliente</a>
     </div>
   </header>
 
   <div>
     <div class="metrics">
       <div class="metric">
-        <div class="num">4</div>
-        <div class="label">Clientes registrados</div>
-      </div>
-      <div class="metric">
-        <div class="num">7</div>
+        <div class="num">{{ $sensors->count() }}</div>
         <div class="label">Sensores totales</div>
       </div>
       <div class="metric">
-        <div class="num">2</div>
+        <div class="num">{{ $clients->count() }}</div>
+
+        <div class="label">Clientes</div>
+      </div>
+      <div class="metric">
+        <div class="num">—</div>
         <div class="label">Asignados</div>
       </div>
       <div class="metric">
-        <div class="num">5</div>
+        <div class="num">—</div>
         <div class="label">Pendientes por vincular</div>
       </div>
     </div>
 
     <div class="main-panel">
       <div class="search-row">
-        <input class="search" placeholder="Buscar por ID, modelo o fase..." />
+        <input id="searchInput" class="search" placeholder="Buscar por ID, modelo o fase..." />
         <div class="pill">Base activa</div>
-        <div class="pill">Pendientes: 5</div>
+        <div class="pill">Pendientes: —</div>
       </div>
 
       <div>
         <div class="thead">
+          <div class="cell" style="flex:0 0 40px;">OK</div>
           <div class="cell" style="flex:0 0 120px;">SENSOR</div>
           <div class="cell">MODELO</div>
-          <div class="cell">FASE</div>
-          <div class="cell">ÚLTIMO CONTACTO</div>
+          <div class="cell">SITE</div>
+          <div class="cell">RESOLUCIÓN (min)</div>
           <div class="cell small">ASIGNAR A CLIENTE</div>
           <div class="cell" style="flex:0 0 90px; text-align:right;">ACCIÓN</div>
         </div>
 
-        <!-- filas de ejemplo -->
+        @foreach($sensors as $s)
         @php
-          $rows = [
-            ['id'=>'SEN-1001','modelo'=>'ME-CT-300','fase'=>'Trifásico','contacto'=>'2025-10-20 14:12'],
-            ['id'=>'SEN-1002','modelo'=>'ME-CT-300','fase'=>'Monofásico','contacto'=>'2025-10-21 08:33'],
-            ['id'=>'SEN-1004','modelo'=>'ME-CT-600','fase'=>'Trifásico','contacto'=>'2025-10-21 09:11'],
-            ['id'=>'SEN-1006','modelo'=>'ME-CT-300','fase'=>'Monofásico','contacto'=>'2025-10-15 17:55'],
-            ['id'=>'SEN-1007','modelo'=>'ME-CT-300','fase'=>'Monofásico','contacto'=>'2025-10-21 12:03']
-          ];
+          $key = $s->site_id . ':' . $s->device_id;
+          $assigned = $assignments[$key] ?? null;
+          $clientsForSite = $clientsBySite[$s->site_id] ?? [];
         @endphp
 
-        @foreach($rows as $r)
-        <div class="row" data-id="{{ $r['id'] }}">
-          <div class="cell" style="flex:0 0 120px; font-weight:700;">{{ $r['id'] }}</div>
-          <div class="cell">{{ $r['modelo'] }}</div>
-          <div class="cell">{{ $r['fase'] }}</div>
-          <div class="cell">{{ $r['contacto'] }}</div>
-          <div class="cell small">
-            <select class="select assign-select">
-              <option value="">Selecciona un cliente...</option>
-              <option value="1">Cliente A</option>
-              <option value="2">Cliente B</option>
-              <option value="3">Cliente C</option>
-            </select>
+        <div class="row" data-site="{{ $s->site_id }}" data-device="{{ $s->device_id }}">
+          <div class="cell" style="flex:0 0 40px;">
+            <input type="checkbox" class="row-checkbox" />
           </div>
+
+          <div class="cell" style="flex:0 0 120px; font-weight:700;">{{ $s->device_name ?? ($s->site_id . '-' . $s->device_id) }}</div>
+          <div class="cell">{{ $s->device_name }}</div>
+          <div class="cell">{{ $s->site_id }}</div>
+          <div class="cell">{{ $s->resolution_min }}</div>
+
+          <div class="cell small">
+            @php
+  $key = (string) ($s->site_id ?? '0');
+  $clientsForSite = $clientsBySite->has($key) ? $clientsBySite[$key] : collect();
+@endphp
+
+<select class="select assign-select">
+  <option value="">Selecciona un cliente...</option>
+  @forelse($clientsForSite as $c)
+    <option value="{{ $c->id }}" {{ $assigned && $assigned->client_id == $c->id ? 'selected' : '' }}>
+      {{ $c->nombre }}
+    </option>
+  @empty
+    <option value="">(No hay clientes para site {{ $s->site_id }})</option>
+  @endforelse
+</select>
+
+          </div>
+
           <div class="cell" style="flex:0 0 90px; text-align:right;">
             <div class="action">
-              <button class="link-btn" onclick="viewDetails('{{ $r['id'] }}')">Ver</button>
-              <button class="btn" onclick="vincular(this)" disabled>Vincular</button>
+              <button class="link-btn" onclick="viewDetails('{{ $s->site_id }}','{{ $s->device_id }}')">Ver</button>
+              <button class="btn single-assign" onclick="vincular(this)" data-site="{{ $s->site_id }}" data-device="{{ $s->device_id }}" {{ $assigned ? 'disabled' : '' }}>
+                {{ $assigned ? 'Vinculado' : 'Vincular' }}
+              </button>
             </div>
           </div>
         </div>
@@ -207,13 +119,10 @@
       </div>
 
       <div class="donut">
-        <!-- donut SVG simple -->
         <svg width="180" height="180" viewBox="0 0 42 42" class="donut-svg">
           <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="rgba(0,0,0,0.06)" stroke-width="8"></circle>
-          <!-- asignados 40% -->
           <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="var(--accent)" stroke-width="8"
                   stroke-dasharray="40 60" stroke-dashoffset="25" transform="rotate(-90 21 21)"></circle>
-          <!-- pendientes 60% -->
           <circle cx="21" cy="21" r="9" fill="var(--panel)" />
         </svg>
       </div>
@@ -233,7 +142,7 @@
       <div style="font-weight:700; margin-bottom:8px;">Pasos rápidos</div>
       <ol class="notes">
         <li>Confirma que el sensor esté activo (último contacto reciente).</li>
-        <li>Selecciona el cliente en la columna "Asignar a cliente".</li>
+        <li>Selecciona el cliente en la columna "Asignar a cliente".li>
         <li>Presiona <strong>Vincular</strong> para completar.</li>
       </ol>
     </div>
@@ -242,28 +151,129 @@
 </div>
 
 <script>
+  // CSRF para fetch
+  const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+  // Habilitar el botón vincular por fila cuando haya selección
   document.querySelectorAll('.row').forEach(function(row){
     const sel = row.querySelector('.assign-select');
-    const btn = row.querySelector('.btn');
+    const btn = row.querySelector('.single-assign');
+    if(!sel || !btn) return;
     sel.addEventListener('change', function(){
       btn.disabled = sel.value === '';
+      if (!btn.disabled) btn.textContent = 'Vincular';
     });
   });
 
   function vincular(el){
     const row = el.closest('.row');
-    const id = row.dataset.id;
+    const site = el.dataset.site;
+    const device = el.dataset.device;
     const cliente = row.querySelector('.assign-select').value;
     if(!cliente) return alert('Selecciona un cliente');
-    // aquí llamar a tu endpoint para vincular, por ahora demo
-    alert('Vinculando ' + id + ' al cliente ' + cliente);
-    el.disabled = true; el.textContent = 'Vinculado';
+    el.disabled = true;
+    el.textContent = 'Guardando...';
+
+    fetch("{{ route('sensores.vincular') }}", {
+      method: 'POST',
+      headers: {
+        'Content-Type':'application/json',
+        'X-CSRF-TOKEN': token,
+        'Accept':'application/json'
+      },
+      body: JSON.stringify({
+        site_id: site,
+        device_id: device,
+        client_id: cliente
+      })
+    })
+    .then(r => r.json())
+    .then(j => {
+      if(j.success){
+        el.textContent = 'Vinculado';
+        el.disabled = true;
+      } else {
+        el.textContent = 'Vincular';
+        el.disabled = false;
+        alert(j.message || 'Error al vincular');
+      }
+    })
+    .catch(e => {
+      console.error(e);
+      el.textContent = 'Vincular';
+      el.disabled = false;
+      alert('Error de conexión');
+    });
   }
 
-  function viewDetails(id){
-    alert('Abrir detalles de ' + id);
+  function viewDetails(site, device){
+    alert('Abrir detalles: site ' + site + ' device ' + device);
+    // aquí podrías abrir un modal con más info usando fetch a un endpoint
   }
+
+  // Bulk assign
+  document.getElementById('bulkAssignBtn').addEventListener('click', function(){
+    const rows = Array.from(document.querySelectorAll('.row'));
+    const assignments = [];
+
+    rows.forEach(r => {
+      const checkbox = r.querySelector('.row-checkbox');
+      if(!checkbox || !checkbox.checked) return;
+      const sel = r.querySelector('.assign-select');
+      if(!sel || sel.value === '') return; // ignorar si no hay cliente seleccionado
+      assignments.push({
+        site_id: r.dataset.site,
+        device_id: r.dataset.device,
+        client_id: sel.value
+      });
+    });
+
+    if(assignments.length === 0) return alert('Selecciona filas y clientes para asignar.');
+
+    if(!confirm(`Vas a vincular ${assignments.length} sensores. Continuar?`)) return;
+
+    this.disabled = true;
+    this.textContent = 'Asignando...';
+
+    fetch("{{ route('sensores.vincular.bulk') }}", {
+      method: 'POST',
+      headers: {
+        'Content-Type':'application/json',
+        'X-CSRF-TOKEN': token,
+        'Accept':'application/json'
+      },
+      body: JSON.stringify({ assignments })
+    })
+    .then(r => r.json())
+    .then(j => {
+      if(j.success){
+        alert(j.message || 'Vinculaciones realizadas');
+        // marcar botones como vinculados
+        document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+          const r = cb.closest('.row');
+          const btn = r.querySelector('.single-assign');
+          if(btn){ btn.disabled = true; btn.textContent = 'Vinculado'; }
+          cb.checked = false;
+        });
+      } else {
+        alert(j.message || 'Error al vincular en lote');
+      }
+    })
+    .catch(e => { console.error(e); alert('Error de conexión'); })
+    .finally(() => {
+      this.disabled = false;
+      this.textContent = 'Asignar seleccionados';
+    });
+  });
+
+  // (Opcional) búsqueda local simple
+  document.getElementById('searchInput').addEventListener('input', function(){
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.row').forEach(r => {
+      const text = r.textContent.toLowerCase();
+      r.style.display = text.includes(q) ? '' : 'none';
+    });
+  });
 </script>
 
 @endsection
-

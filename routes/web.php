@@ -124,6 +124,17 @@ Route::middleware('auth')->group(function () {
     Route::post('/clientes/update-status/{cliente}', [ClientesController::class,'updateStatus']);
     Route::get('/api/postal-codes/{cp}', [PostalCodeController::class,'lookup']);
 
+    // rutas para acciones onboarding (poner dentro del group auth si aplica)
+    Route::post('clientes/{cliente}/capacitacion', [App\Http\Controllers\ClientesController::class, 'confirmCapacitacion'])
+        ->name('clientes.capacitacion');
+
+    Route::post('clientes/{cliente}/go-live', [App\Http\Controllers\ClientesController::class, 'confirmGoLive'])
+        ->name('clientes.go_live');
+
+        Route::get('/sensores/vincular', [SensoresController::class, 'index'])->name('sensores.index');
+Route::post('/sensores/vincular', [SensoresController::class, 'store'])->name('sensores.vincular'); // vincular 1
+Route::post('/sensores/vincular/bulk', [SensoresController::class, 'bulkAssign'])->name('sensores.vincular.bulk'); // vinculación en lote
+
 
  
  

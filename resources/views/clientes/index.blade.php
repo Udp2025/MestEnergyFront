@@ -84,10 +84,14 @@
                   <td>{{ $cliente->medidores->count() }}</td>
                   <td>{{ $cliente->reportes->count() }}</td>
                   <td>
-                    <span class="pill {{ \Illuminate\Support\Str::slug(strtolower($cliente->estado ?? 'sin')) }}">
-                      {{ $cliente->estado ?? '—' }}
+                    @php
+                      $estadoLabel = $catalogoEstados[$cliente->estado_cliente] ?? null;
+                    @endphp
+                    <span class="pill {{ \Illuminate\Support\Str::slug(strtolower($estadoLabel ?? 'sin')) }}">
+                      {{ $estadoLabel ?? '—' }}
                     </span>
                   </td>
+
                   <td class="actions">
                     <a href="{{ route('clientes.show', $cliente) }}" class="icon-btn" title="Ver"><i class="fas fa-eye"></i></a>
                     <button class="icon-btn" data-bs-toggle="modal" data-bs-target="#editClientModal{{ $cliente->id }}" title="Editar"><i class="fas fa-edit"></i></button>
@@ -147,8 +151,8 @@
         @foreach($onboardingClients as $cliente)
           @php
             $progreso = intval($cliente->progreso ?? 0);
-            // pasos estáticos como en la UI; se marca "done" según progreso
-            $steps = ['Contrato','Datos fiscales','Alta de sitios','Configuración','Facturación','Capacitación','Go-Live'];
+            $steps = ['Configuración sensores','Capacitación','Go-Live'];
+            // misma lógica: cuántos pasos completados según el progreso
             $done = intval(round(($progreso / 100) * count($steps)));
           @endphp
 
@@ -172,10 +176,25 @@
                 <div class="progress-percent">{{ $progreso }}%</div>
 
                 <div class="chips">
-                  @foreach($steps as $i => $s)
-                    <span class="chip {{ $i < $done ? 'done' : '' }}">{{ $s }}</span>
-                  @endforeach
-                </div>
+  {{-- 1: Configuración sensores -> link a la ruta --}}
+  <a href="{{ route('vincular_sensores') }}" class="chip {{ $done >= 1 ? 'done' : '' }}">
+    Configuración sensores
+  </a>
+
+  {{-- 2: Capacitación -> abre modal --}}
+  <button type="button"
+          class="chip btn-capacitacion {{ $done >= 2 || $cliente->capacitacion ? 'done' : '' }}"
+          data-cliente-id="{{ $cliente->id }}">
+    Capacitación
+  </button>
+
+  {{-- 3: Go-Live -> abre modal --}}
+  <button type="button"
+          class="chip btn-go-live {{ $cliente->estado_cliente == 1 ? 'done' : '' }}"
+          data-cliente-id="{{ $cliente->id }}">
+    Go-Live
+  </button>
+</div>
               </div>
             </div>
 
@@ -459,6 +478,44 @@
   </div>
 </div>
 
+<!-- Modal Confirmar Capacitación -->
+<div class="modal fade" id="confirmCapacitacionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar Capacitación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Confirmas que se recibió la capacitación para este cliente?</p>
+      </div>
+      <div class="modal-footer">
+        <button id="capacitacionCancel" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button id="capacitacionConfirm" type="button" class="btn btn-primary">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmar Go-Live -->
+<div class="modal fade" id="confirmGoLiveModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar Go-Live</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Deseas poner a este cliente como activo (Go-Live)?</p>
+      </div>
+      <div class="modal-footer">
+        <button id="goLiveCancel" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button id="goLiveConfirm" type="button" class="btn btn-primary">Sí, poner activo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -466,6 +523,87 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+
+  // Variables globales de modales
+const confirmCapModalEl = document.getElementById('confirmCapacitacionModal');
+const confirmGoModalEl = document.getElementById('confirmGoLiveModal');
+let pendingClienteId = null;
+
+if (confirmCapModalEl) {
+  const capModal = new bootstrap.Modal(confirmCapModalEl);
+
+  // click en chip capacitacion -> abrir modal y setear id
+  document.querySelectorAll('.btn-capacitacion').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pendingClienteId = btn.dataset.clienteId;
+      capModal.show();
+    });
+  });
+
+  // confirmar
+  document.getElementById('capacitacionConfirm').addEventListener('click', () => {
+    if (!pendingClienteId) return;
+    fetch(`/clientes/${pendingClienteId}/capacitacion`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      },
+      body: JSON.stringify({})
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        // recargar para reflejar cambios (más sencillo)
+        window.location.reload();
+      } else {
+        alert(res.message || 'Error al actualizar capacitación');
+      }
+    })
+    .catch(e => {
+      console.error(e);
+      alert('Error al comunicar con el servidor');
+    });
+  });
+}
+
+if (confirmGoModalEl) {
+  const goModal = new bootstrap.Modal(confirmGoModalEl);
+
+  // click en chip go-live -> abrir modal
+  document.querySelectorAll('.btn-go-live').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pendingClienteId = btn.dataset.clienteId;
+      goModal.show();
+    });
+  });
+
+  // confirmar go-live
+  document.getElementById('goLiveConfirm').addEventListener('click', () => {
+    if (!pendingClienteId) return;
+    fetch(`/clientes/${pendingClienteId}/go-live`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+      },
+      body: JSON.stringify({})
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        window.location.reload();
+      } else {
+        alert(res.message || 'Error al marcar Go-Live');
+      }
+    })
+    .catch(e => {
+      console.error(e);
+      alert('Error al comunicar con el servidor');
+    });
+  });
+}
+
 
   // --- TABS (mostrar solo panel activo) ---
   document.querySelectorAll('.tab-btn').forEach(btn => {

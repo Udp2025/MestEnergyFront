@@ -22,8 +22,6 @@ class ClientesController extends Controller
 {
     public function index()
 {
-    // Cargar relaciones necesarias (files, user, locaciones, medidores, reportes, etc.)
-    // Ajusta las relaciones cargadas según tu modelo para evitar N+1
     $clientes = Cliente::with(['files', 'user', 'locaciones', 'areas', 'medidores', 'reportes'])
                       ->orderBy('nombre')
                       ->get();
@@ -33,8 +31,12 @@ class ClientesController extends Controller
         return intval($c->estado_cliente) === 2;
     })->values();
 
-    return view('clientes.index', compact('clientes', 'onboardingClients'));
+    // Cargar catálogo de estados (id => estado)
+    $catalogoEstados = DB::table('catalogo_estados_usuarios')->pluck('estado', 'id')->toArray();
+
+    return view('clientes.index', compact('clientes', 'onboardingClients', 'catalogoEstados'));
 }
+
 
 
     // Mostrar el formulario para crear un nuevo cliente
@@ -384,5 +386,45 @@ class ClientesController extends Controller
 
     return response()->json(['success' => true, 'estado' => $cliente->estado]);
 }
+
+/**
+ * Marca la capacitación como recibida (capacitacion = 1)
+ */
+public function confirmCapacitacion(Request $request, Cliente $cliente)
+{
+    try {
+        $cliente->capacitacion = 1;
+        $cliente->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Capacitación registrada',
+            'cliente_id' => $cliente->id
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
+
+/**
+ * Pone al cliente como Go-Live (por ejemplo: estado_cliente = 1)
+ */
+public function confirmGoLive(Request $request, Cliente $cliente)
+{
+    try {
+        // Si quieres otro id para "activo" cambia aquí
+        $cliente->estado_cliente = 1;
+        $cliente->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cliente puesto como activo (Go-Live)',
+            'cliente_id' => $cliente->id
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
+
 
 }
