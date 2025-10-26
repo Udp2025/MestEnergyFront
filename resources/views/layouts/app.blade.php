@@ -23,6 +23,8 @@
                 'canViewAllSites' => false,
             ],
         ];
+        $currentUser = Auth::user();
+        $isSuperAdmin = $currentUser?->isSuperAdmin();
     @endphp
     <script>
         window.App = @json($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -33,6 +35,7 @@
 <body>
     <div class="custom-container">
         <!-- Sidebar -->
+        @if($isSuperAdmin)
         <div class="custom-sidebar" id="sidebar">
             <!-- Logo y botón para minimizar -->
             <div class="custom-logo-section">
@@ -99,7 +102,7 @@
                     <li class="mcst">
                         <i class="bi bi-graph-up"></i>
                         <a href="{{ route('clientes.clidash') }}" style="text-decoration: none; color: inherit;">
-                            <span>Costos Estimados / Facturación</span>
+                            <span>Costos y Facturación</span>
                         </a>
                     </li>
                     <li class="mcst">
@@ -142,7 +145,7 @@
                     <li class="mcst">
                         <i class="bi bi-database"></i>
                         <a href="{{ route('tarifas.index') }}" style="text-decoration: none; color: inherit;">
-                            <span>Inputs tarifas</span>
+                            <span>Tarifas</span>
                         </a>
                     </li>
 
@@ -189,6 +192,7 @@
                 </a>
             </div>
         </div>
+        @endif
 
         <!-- Contenido principal -->
         <div class="custom-main-content">
@@ -243,18 +247,19 @@
                 @yield('content')
             </main>
         </div>
+
+        @include('layouts.partials.client-sidebar')
     </div>
 
     <!-- Scripts -->
     <script>
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('toggle-btn');
-        const logoText = document.getElementById('logo-text');
-
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            logoText.classList.toggle('hidden');
-        });
+        if (toggleBtn && sidebar) {
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('collapsed');
+            });
+        }
 
         function updateTime() {
             const now = new Date();
@@ -262,25 +267,39 @@
         }
         setInterval(updateTime, 1000);
 
-        document.getElementById('avatar').addEventListener('click', function() {
-            var profileMenu = document.getElementById('profile-menu');
-            profileMenu.style.display = (profileMenu.style.display === 'block') ? 'none' : 'block';
-        });
+        const avatar = document.getElementById('avatar');
+        const profileMenu = document.getElementById('profile-menu');
+        if (avatar && profileMenu) {
+            avatar.addEventListener('click', function() {
+                profileMenu.style.display = (profileMenu.style.display === 'block') ? 'none' : 'block';
+            });
+        }
 
-        document.getElementById('notification-icon').addEventListener('click', function() {
-            var notifications = document.getElementById('notifications');
-            notifications.style.display = (notifications.style.display === 'block') ? 'none' : 'block';
-        });
+        const notificationIcon = document.getElementById('notification-icon');
+        const notifications = document.getElementById('notifications');
+        if (notificationIcon && notifications) {
+            notificationIcon.addEventListener('click', function() {
+                notifications.style.display = (notifications.style.display === 'block') ? 'none' : 'block';
+            });
+        }
 
         // Cerrar el menú de perfil y notificaciones al hacer clic fuera
         window.addEventListener('click', function(event) {
-            if (!event.target.closest('#avatar')) {
-                document.getElementById('profile-menu').style.display = 'none';
+            if (profileMenu && !event.target.closest('#avatar')) {
+                profileMenu.style.display = 'none';
             }
-            if (!event.target.closest('#notification-icon')) {
-                document.getElementById('notifications').style.display = 'none';
+            if (notifications && !event.target.closest('#notification-icon')) {
+                notifications.style.display = 'none';
             }
         });
+
+        const sidebarRight = document.getElementById('sidebar-right');
+        const toggleBtnRight = document.getElementById('toggle-btn-right');
+        if (toggleBtnRight && sidebarRight) {
+            toggleBtnRight.addEventListener('click', () => {
+                sidebarRight.classList.toggle('collapsed');
+            });
+        }
     </script>
 </body>
 

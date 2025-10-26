@@ -12,26 +12,27 @@
 
 :root {
   /* Paleta personalizada */
-  --color-accent: #914C2E;        /* Marrón oscuro principal */
-  --color-accent-hover: #A77058;  /* Versión más clara para hover */
-  --color-surface: #E8DAD4;       /* Fondo suave */
-  --color-bg: #ffffff;            /* Blanco puro para contrastar */
-  --color-border: #A77058;        /* Borde en tono medio */
-  --color-text: rgb(184, 73, 54);        /* Texto principal en acento oscuro */
-  --color-text-light: #A77058;    /* Texto secundario en tono medio */
+  --color-accent: #914c2e; /* Marrón oscuro principal */
+  --color-accent-hover: #a77058; /* Versión más clara para hover */
+  --color-surface: #e8dad4; /* Fondo suave */
+  --color-bg: #ffffff; /* Blanco puro para contrastar */
+  --color-border: #a77058; /* Borde en tono medio */
+  --color-text: rgb(184, 73, 54); /* Texto principal en acento oscuro */
+  --color-text-light: #a77058; /* Texto secundario en tono medio */
   --color-shadow: rgba(0, 0, 0, 0.05);
 
   /* Espaciados */
   --gap-lg: 32px;
   --gap-md: 24px;
   --gap-sm: 16px;
+  --gap-xs: 8px;
 
   /* Bordes */
   --radius: 8px;
 
   /* Tipografía */
   --font-base: 16px;
-  --font-stack: 'Roboto', sans-serif;
+  --font-stack: "Roboto", sans-serif;
 
   /* Transiciones */
   --trans-fast: 0.2s ease-in-out;
@@ -45,7 +46,7 @@ html {
   color: var(--color-text);
   overflow: hidden;
 }
-body{
+body {
   background-color: rgb(255, 246, 237) !important;
 }
 /* Enlaces y botones sin estilos por defecto */
@@ -74,26 +75,57 @@ button {
 ----------------------------------*/
 
 .custom-content {
-   overflow: auto;
+  overflow: auto;
 }
 
-.custom-sidebar {
-  width: 250px;
-  border-right: 1px solid var(--color-border);
+.custom-sidebar,
+.custom-sidebar-right {
+  flex: 0 0 260px;
+  width: 260px;
   display: flex;
   flex-direction: column;
   transition: width var(--trans-fast);
   overflow: hidden;
+  background: #fff;
 }
 
-.custom-sidebar.collapsed {
+.custom-sidebar {
+  border-right: 1px solid var(--color-border);
+}
+
+.custom-sidebar-right {
+  border-left: 1px solid var(--color-border);
+  background: #fff;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05);
+}
+
+.custom-sidebar.collapsed,
+.custom-sidebar-right.collapsed {
+  flex: 0 0 70px;
   width: 70px;
+}
+
+.custom-sidebar.collapsed .custom-logo {
+  display: none;
 }
 
 .custom-logo-section {
   display: flex;
   align-items: center;
   padding: var(--gap-md);
+}
+
+.custom-logo-section--right {
+  justify-content: flex-end;
+}
+
+.custom-logo-section--right .custom-toggle-btn {
+  margin-left: 0;
+}
+
+.custom-sidebar.collapsed .custom-logo-section,
+.custom-sidebar-right.collapsed .custom-logo-section {
+  justify-content: center;
 }
 
 .custom-logo {
@@ -122,57 +154,56 @@ button {
    AJUSTES COLLAPSED SIDEBAR
 ----------------------------------*/
 
-/* Centrar los ítems del menú y quitar paddings */
-.custom-sidebar.collapsed .custom-menu-section li {
-  justify-content: center;  /* centra icono */
-  padding: var(--gap-sm) 0; /* sólo padding vertical */
+.custom-sidebar.collapsed .custom-menu-section li,
+.custom-sidebar-right.collapsed .custom-menu-section li {
+  justify-content: center;
+  padding: 16px 0;
+  gap: 0;
+  min-height: 32px;
+  position: relative;
 }
 
-/* Asegurar que el <i> no tenga márgenes extra */
-.custom-sidebar.collapsed .custom-menu-section li i {
+.custom-sidebar.collapsed .custom-menu-section li i,
+.custom-sidebar-right.collapsed .custom-menu-section li i {
   margin: 0;
+  font-size: 1.35rem;
+  line-height: 1;
 }
 
-/* Ocultar el texto de span (en caso de que aún estuviera) */
-.custom-sidebar.collapsed .custom-menu-section li span {
-  display: none !important;
+.custom-sidebar.collapsed .custom-menu-section li span,
+.custom-sidebar-right.collapsed .custom-menu-section li span {
+  display: none;
 }
 
-/* Centrar el logout */
+.custom-sidebar.collapsed .custom-menu-section li a {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.custom-sidebar-right.collapsed .custom-menu-section {
+  display: none;
+}
+
+.custom-sidebar-right.collapsed {
+  align-items: stretch;
+}
+
 .custom-sidebar.collapsed .custom-logout {
-  padding: var(--gap-md) 0;
+  padding: var(--gap-sm) 0 var(--gap-md);
   text-align: center;
 }
 
-/* Ajustar el toggle button para que no se mueva */
-.custom-sidebar.collapsed .custom-toggle-btn {
-  right: 50%;
-  transform: translateX(50%);
+.custom-sidebar.collapsed .custom-logout a {
+  justify-content: center;
+  gap: 0;
+  font-size: 0;
 }
 
-/* Opcional: mostrar tooltip al hacer hover sobre iconos */
-.custom-sidebar.collapsed .custom-menu-section li {
-  position: relative;
+.custom-sidebar.collapsed .custom-logout a i {
+  font-size: 1.35rem;
+  margin: 0;
 }
-.custom-sidebar.collapsed .custom-menu-section li span {
-  position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--color-bg);
-  color: var(--color-text);
-  padding: 4px 8px;
-  border-radius: var(--radius);
-  box-shadow: 0 2px 6px var(--color-shadow);
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--trans-fast);
-}
-.custom-sidebar.collapsed .custom-menu-section li:hover span {
-  opacity: 1;
-}
-
 
 /* Menú */
 .custom-menu-section {
@@ -180,9 +211,23 @@ button {
   padding: var(--gap-md);
 }
 
+.custom-menu-section > h3 {
+  font-weight: 700;
+  margin: var(--gap-md) 0 var(--gap-sm);
+}
+
+.custom-sidebar.collapsed .custom-menu-section > h3 {
+  display: none;
+  margin: 0;
+}
+
+.custom-menu-section > h3:first-child {
+  margin-top: 0;
+}
+
 .custom-menu-title {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
   text-transform: uppercase;
   margin-bottom: var(--gap-sm);
   color: var(--color-text-light);
@@ -191,10 +236,26 @@ button {
 
 .custom-sidebar.collapsed .custom-menu-title {
   opacity: 0;
+  height: 0;
+  margin: 0;
+  overflow: hidden;
 }
 
 .custom-menu-section ul {
   list-style: none;
+  margin: 0 0 var(--gap-md);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+.custom-sidebar.collapsed .custom-menu-section {
+  padding: var(--gap-xs) 0;
+}
+
+.custom-sidebar.collapsed .custom-menu-section ul {
+  gap: var(--gap-xs);
+  margin: 0 0 var(--gap-xs);
 }
 
 .custom-menu-section li {
@@ -205,6 +266,10 @@ button {
   border-radius: var(--radius);
   transition: background var(--trans-fast);
   font-size: 0.9rem;
+}
+
+.custom-menu-section li span {
+  white-space: nowrap;
 }
 
 .custom-menu-section li:hover {
@@ -247,7 +312,7 @@ button {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #F9EDE3;
+  background: #f9ede3;
   overflow: hidden;
 }
 
@@ -456,32 +521,15 @@ button {
   }
 }
 
-
-ol, ul {
+ol,
+ul {
   padding-left: 0 !important;
 }
 
-.cardbg{
-  background-color: #FBF4EF !important;
+.cardbg {
+  background-color: #fbf4ef !important;
 }
 
-.custom-sidebar-right {
-  width: 250px;
-  
-  height: 100vh;
-  background: #f8f4f0; /* o el color que necesites */
-  box-shadow: -2px 0 5px rgba(0,0,0,0.1);
-  display: flex;
-  flex-direction: column;
-  transition: width 0.3s;
-  z-index: 100; /* para que esté encima del contenido */
-}
-
-/* Versión colapsable si la quieres igual que la izquierda */
-.custom-sidebar-right.collapsed {
-  width: 60px;
-}
-
-.mcst{
+.mcst {
   color: #b84936 !important;
 }
