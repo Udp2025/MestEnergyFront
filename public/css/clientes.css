@@ -315,9 +315,12 @@
   transform: translateY(-1px);
 }
 
-/* Cuerpo del modal con padding cómodo */
+/* Cuerpo del modal con padding cómodo y scroll interno */
 .create-client-modal .modal-body{
   padding: 18px 22px;
+  max-height: 70vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* Footer con separación y botones estilizados */

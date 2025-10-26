@@ -32,6 +32,7 @@ use App\Http\Controllers\PreferenciasController;
 use App\Http\Controllers\WidgetController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\PlotProxyController;
+use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\Admin; // Importa el middleware
 use Illuminate\Support\Facades\Auth;
@@ -48,9 +49,7 @@ Route::get('/dashboard', function () {
     return redirect()->route('home');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::get('/home', function () {
-    return view('home');
-})->middleware(['auth', 'verified'])->name('home');
+Route::get('/home', HomeController::class)->middleware(['auth', 'verified'])->name('home');
 
 Route::get('/mi-perfil', function () {
     $user = Auth::user();
@@ -115,6 +114,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil');
     Route::post('/{cliente}/store-file', [ClientesController::class, 'uploadFile'])->name('clientes.store_file');
     Route::get('/clientes/{cliente}/download/{fileId}', [ClientesController::class, 'downloadFile'])->name('clientes.download_file');
+    Route::get('/clientes/{cliente}/contract', [ClientesController::class, 'downloadContract'])->name('clientes.contract.download');
+    Route::post('/clientes/{cliente}/contract', [ClientesController::class, 'updateContract'])->name('clientes.contract.update');
+    Route::delete('/clientes/{cliente}/contract', [ClientesController::class, 'deleteContract'])->name('clientes.contract.delete');
     Route::get('/usuarios', [UsuarioController::class, 'usuarios'])->name('usuarios');
     Route::get('clidash', [ClientesController::class, 'clidash'])->name('clientes.clidash');
 

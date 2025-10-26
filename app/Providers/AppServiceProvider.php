@@ -46,6 +46,8 @@ class AppServiceProvider extends ServiceProvider
             $view->with('auth_user_site', $site);
             $view->with('auth_user_id', $userId);
 
+            $isSuperAdmin = session('is_super_admin', (int) ($user?->cliente_id ?? -1) === 0);
+
             $view->with('authContext', [
                 'isAuthenticated' => (bool) $user,
                 'user' => $user
@@ -59,7 +61,7 @@ class AppServiceProvider extends ServiceProvider
                     ]
                     : null,
                 'abilities' => [
-                    'canViewAllSites' => (bool) $user?->isSuperAdmin(),
+                    'canViewAllSites' => $isSuperAdmin,
                 ],
             ]);
         });

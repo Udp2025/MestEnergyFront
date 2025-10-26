@@ -11,6 +11,8 @@
 
     // De igual forma para los archivos
     $files = $cliente->files ?? collect();
+    $infoFiscal = $cliente->infoFiscal;
+    $canManageContract = auth()->user()?->isSuperAdmin();
 @endphp
 
 <style>
@@ -183,6 +185,37 @@
     }
     .upload-section button:hover {
         background: #555;
+    }
+
+    .contract-section {
+        margin-top: 40px;
+        padding: 30px;
+        background: #f9f9f9;
+        border-radius: 12px;
+        border: 1px solid #eee;
+    }
+
+    .contract-section h2 {
+        margin-bottom: 16px;
+        font-size: 24px;
+        color: #333;
+    }
+
+    .contract-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .contract-form {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .contract-label {
+        font-weight: 600;
+        color: #555;
     }
 
     /* Sección de Archivos Subidos */
@@ -480,6 +513,37 @@
         </form>
     </div>
 
+    <div class="contract-section">
+        <h2>Contrato</h2>
+        @if($infoFiscal && $infoFiscal->csf)
+            <div class="contract-actions">
+                <a class="btn btn-primary" href="{{ route('clientes.contract.download', $cliente) }}">Descargar contrato</a>
+                @if($canManageContract)
+                    <form class="contract-form" method="POST" action="{{ route('clientes.contract.update', $cliente) }}" enctype="multipart/form-data">
+                        @csrf
+                        <label class="contract-label">Actualizar contrato (PDF, máx 10 MB)</label>
+                        <input class="form-control" type="file" name="contrato" accept="application/pdf" required>
+                        <button type="submit" class="btn btn-secondary">Reemplazar</button>
+                    </form>
+                    <form class="contract-form" method="POST" action="{{ route('clientes.contract.delete', $cliente) }}" onsubmit="return confirm('¿Eliminar contrato actual?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </form>
+                @endif
+            </div>
+        @elseif($canManageContract)
+            <form class="contract-form" method="POST" action="{{ route('clientes.contract.update', $cliente) }}" enctype="multipart/form-data">
+                @csrf
+                <label class="contract-label">Cargar contrato (PDF, máx 10 MB)</label>
+                <input class="form-control" type="file" name="contrato" accept="application/pdf" required>
+                <button type="submit" class="btn btn-primary">Subir contrato</button>
+            </form>
+        @else
+            <p>No hay contrato disponible.</p>
+        @endif
+    </div>
+
     <!-- Archivos Subidos -->
     <div class="file-list">
         @if($files->count() > 0)
@@ -490,7 +554,6 @@
                 </div>
             @endforeach
         @else
-            <p>No hay archivos subidos.</p>
         @endif
     </div>
 

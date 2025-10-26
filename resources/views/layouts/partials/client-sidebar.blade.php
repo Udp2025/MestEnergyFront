@@ -1,6 +1,6 @@
 @php
     $user = Auth::user();
-    $isSuperAdmin = $user?->isSuperAdmin();
+    $isSuperAdmin = session('is_super_admin', (int) ($user?->cliente_id ?? -1) === 0);
     $shouldShowClientSidebar = $user && (!$isSuperAdmin || ($isSuperAdmin && request()->routeIs('clientes.show')));
 @endphp
 
@@ -31,12 +31,14 @@
                         <span>Información</span>
                     @endif
                 </li>
-                <li class="{{ request()->routeIs('general_clientes') ? 'custom-active' : '' }}">
-                    <i class="fas fa-circle" aria-hidden="true"></i>
-                    <a href="{{ route('general_clientes') }}">
-                        <span>Dashboard</span>
-                    </a>
-                </li>
+                @if($isSuperAdmin)
+                    <li class="{{ request()->routeIs('general_clientes') ? 'custom-active' : '' }}">
+                        <i class="fas fa-circle" aria-hidden="true"></i>
+                        <a href="{{ route('general_clientes') }}">
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                @endif
                 <li class="{{ request()->routeIs('visualize') ? 'custom-active' : '' }}">
                     <i class="fas fa-circle" aria-hidden="true"></i>
                     <a href="{{ route('visualize') }}">

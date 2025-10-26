@@ -24,7 +24,7 @@
             ],
         ];
         $currentUser = Auth::user();
-        $isSuperAdmin = $currentUser?->isSuperAdmin();
+        $isSuperAdmin = session('is_super_admin', (int) ($currentUser?->cliente_id ?? -1) === 0);
     @endphp
     <script>
         window.App = @json($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

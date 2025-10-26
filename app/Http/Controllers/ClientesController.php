@@ -159,7 +159,7 @@ class ClientesController extends Controller
         'ciudad' => 'required|string',
         'estado' => 'required|string',
         'pais' => 'required|string',
-        // ...
+        'contrato' => 'nullable|file|mimes:pdf|max:10240',
     ];
 
     $validator = Validator::make($request->all(), $rules);
@@ -195,6 +195,11 @@ class ClientesController extends Controller
 
         $cliente = Cliente::create($input);
 
+        $contractPath = null;
+        if ($request->hasFile('contrato')) {
+            $contractPath = $request->file('contrato')->store($this->contractStorageDirectory(), 's3');
+        }
+
         // info fiscal
         $infoFiscal = InfoFiscalUsuario::create([
             'cliente_id' => $cliente->id,
@@ -202,9 +207,9 @@ class ClientesController extends Controller
             'regimen_fiscal' => $request->input('regimen'),
             'domicilio_fiscal' => $request->input('domicilio'),
             'uso_cfdi' => $request->input('uso_cfdi'),
-            'contrato_aceptado' => $request->has('contrato_aceptado') ? 1 : 0,
+            'contrato_aceptado' => $request->boolean('contrato_aceptado') ? 1 : 0,
             'notas' => $request->input('notas_contrato'),
-            'csf' => $request->input('csf')
+            'csf' => $contractPath,
         ]);
 
         // plan
@@ -215,8 +220,8 @@ class ClientesController extends Controller
             'ciclo' => $request->input('ciclo'),
             'fecha_corte' => $request->input('dia_corte'),
             'metodo_pago' => $request->input('metodo_pago'),
-            'fact_automatica' => $request->has('fact_auto') ? 1 : 0,
-            'recordatorios_pago' => $request->has('recordatorios') ? 1 : 0,
+            'fact_automatica' => $request->boolean('fact_auto') ? 1 : 0,
+            'recordatorios_pago' => $request->boolean('recordatorios') ? 1 : 0,
         ]);
 
         // usuario
@@ -334,6 +339,88 @@ class ClientesController extends Controller
             abort(403, 'Acceso no autorizado');
         }
         return response()->download(storage_path('app/public/' . $file->file_path), $file->file_name);
+    }
+
+    public function downloadContract(Cliente $cliente)
+    {
+        $this->authorizeContractRead($cliente);
+
+        $infoFiscal = $cliente->infoFiscal;
+        if (!$infoFiscal || !$infoFiscal->csf) {
+            abort(404, 'Contrato no disponible.');
+        }
+
+        return Storage::disk('s3')->download(
+            $infoFiscal->csf,
+            Str::slug($cliente->nombre) . '-contrato.pdf'
+        );
+    }
+
+    public function updateContract(Request $request, Cliente $cliente)
+    {
+        $this->authorizeContractManage($cliente);
+
+        $request->validate([
+            'contrato' => 'required|file|mimes:pdf|max:10240',
+        ]);
+
+        $infoFiscal = $cliente->infoFiscal;
+        if (!$infoFiscal) {
+            abort(404, 'Información fiscal no disponible.');
+        }
+
+        if ($infoFiscal->csf) {
+            Storage::disk('s3')->delete($infoFiscal->csf);
+        }
+
+        $path = $request->file('contrato')->store($this->contractStorageDirectory(), 's3');
+        $infoFiscal->update(['csf' => $path]);
+
+        return redirect()->back()->with('success', 'Contrato actualizado correctamente.');
+    }
+
+    public function deleteContract(Cliente $cliente)
+    {
+        $this->authorizeContractManage($cliente);
+
+        $infoFiscal = $cliente->infoFiscal;
+        if (!$infoFiscal || !$infoFiscal->csf) {
+            return redirect()->back()->with('info', 'No existe contrato para eliminar.');
+        }
+
+        Storage::disk('s3')->delete($infoFiscal->csf);
+        $infoFiscal->update(['csf' => null]);
+
+        return redirect()->back()->with('success', 'Contrato eliminado correctamente.');
+    }
+
+    protected function authorizeContractRead(Cliente $cliente): void
+    {
+        $user = Auth::user();
+        if (!$user) {
+            abort(403, 'No autorizado.');
+        }
+
+        if ($user->isSuperAdmin() || (int) $user->cliente_id === (int) $cliente->id) {
+            return;
+        }
+
+        abort(403, 'No autorizado.');
+    }
+
+    protected function authorizeContractManage(Cliente $cliente): void
+    {
+        $user = Auth::user();
+        if (!$user || !$user->isSuperAdmin()) {
+            abort(403, 'No autorizado.');
+        }
+    }
+
+    protected function contractStorageDirectory(): string
+    {
+        $folder = config('filesystems.folders.contracts', 'frontend/contratos');
+
+        return trim($folder, '/');
     }
 
     /**

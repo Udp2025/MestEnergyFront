@@ -363,6 +363,11 @@
                 </div>
 
                 <div class="form-group full">
+                  <label>Contrato (PDF, máximo 10 MB)</label>
+                  <input name="contrato" type="file" class="form-control" accept="application/pdf">
+                </div>
+
+                <div class="form-group full">
                   <label>Domicilio fiscal</label>
                   <input name="domicilio" type="text" class="form-control" placeholder="">
                 </div>
@@ -741,7 +746,7 @@ if (confirmGoModalEl) {
   });
 
   // Submit: envía todo (clientes + info_fiscal + plan) al endpoint /clientes
-  form.addEventListener('submit', (ev) => {
+form.addEventListener('submit', (ev) => {
   ev.preventDefault();
 
   // limpia mensajes previos
@@ -755,59 +760,51 @@ if (confirmGoModalEl) {
   }
   errorBox.innerHTML = '';
 
-  const fd = new FormData(form);
-  const payload = {};
-  fd.forEach((v, k) => { payload[k] = v; });
+  const formData = new FormData(form);
+  formData.set('capacitacion', '0');
+  formData.set('estado_cliente', '2');
 
-  // Forzar defaults y leer los checkbox que sí existen
-  payload.capacitacion = 0; // ya no hay switch, por defecto 0
-  payload.estado_cliente = 2; // por defecto 2
+  const contratoAceptado = form.querySelector('input[name="contrato_aceptado"]');
+  const factAuto = form.querySelector('input[name="fact_auto"]');
+  const recordatorios = form.querySelector('input[name="recordatorios"]');
 
-  payload.contrato_aceptado = form.querySelector('input[name="contrato_aceptado"]')?.checked ? 1 : 0;
-  payload.fact_auto = form.querySelector('input[name="fact_auto"]')?.checked ? 1 : 0;
-  payload.recordatorios = form.querySelector('input[name="recordatorios"]')?.checked ? 1 : 0;
+  formData.set('contrato_aceptado', contratoAceptado && contratoAceptado.checked ? '1' : '0');
+  formData.set('fact_auto', factAuto && factAuto.checked ? '1' : '0');
+  formData.set('recordatorios', recordatorios && recordatorios.checked ? '1' : '0');
 
   fetch("{{ route('clientes.store') }}", {
     method: "POST",
     headers: {
       "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-      "Accept": "application/json",
-      "Content-Type": "application/json"
+      "Accept": "application/json"
     },
-    body: JSON.stringify(payload)
+    body: formData
   })
   .then(async (response) => {
     const contentType = response.headers.get('content-type') || '';
-    // Si devuelve JSON, parsear
-    if (contentType.includes('application/json')) {
-      const data = await response.json();
-      if (response.ok) {
-        // éxito
-        const bsModal = bootstrap.Modal.getInstance(modal);
-        if (bsModal) bsModal.hide();
-        // opcional: mostrar toast con data.temp_password
-        window.location.reload();
-      } else if (response.status === 422) {
-        // errores de validación
-        let html = '<div class="alert alert-danger"><ul>';
-        const errors = data.errors || {};
-        for (const field in errors) {
-          errors[field].forEach(msg => {
-            html += `<li>${msg}</li>`;
-          });
-        }
-        html += '</ul></div>';
-        errorBox.innerHTML = html;
-      } else {
-        // otros errores
-        errorBox.innerHTML = `<div class="alert alert-danger">${data.message || 'Error desconocido'}</div>`;
-      }
-    } else {
-      // Si el servidor respondió HTML (no debería si controlador está correcto), mostrarlo en consola
-      const text = await response.text();
-      console.error('Respuesta inesperada (HTML):', text);
-      errorBox.innerHTML = `<div class="alert alert-danger">Respuesta inesperada del servidor. Revisa la consola.</div>`;
+    const data = contentType.includes('application/json') ? await response.json() : null;
+
+    if (response.ok) {
+      const bsModal = bootstrap.Modal.getInstance(modal);
+      if (bsModal) bsModal.hide();
+      window.location.reload();
+      return;
     }
+
+    if (response.status === 422 && data?.errors) {
+      let html = '<div class="alert alert-danger"><ul>';
+      Object.values(data.errors).forEach(messages => {
+        messages.forEach(msg => {
+          html += `<li>${msg}</li>`;
+        });
+      });
+      html += '</ul></div>';
+      errorBox.innerHTML = html;
+      return;
+    }
+
+    const message = data?.message || 'Error desconocido';
+    errorBox.innerHTML = `<div class="alert alert-danger">${message}</div>`;
   })
   .catch(err => {
     console.error(err);

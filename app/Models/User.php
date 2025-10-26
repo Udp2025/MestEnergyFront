@@ -40,7 +40,7 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
-        return $this->role === self::ROLE_SUPER_ADMIN || (int) $this->cliente_id === 0;
+        return (int) $this->cliente_id === 0;
     }
 
     public function isClientUser(): bool

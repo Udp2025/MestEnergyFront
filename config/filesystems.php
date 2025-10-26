@@ -61,6 +61,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Common S3 Folder Prefixes
+    |--------------------------------------------------------------------------
+    |
+    | These optional paths let your application centralise the prefixes used
+    | for the different assets stored in S3. They may be customised through
+    | environment variables, keeping paths consistent across environments.
+    |
+    */
+
+    'folders' => [
+        'contracts' => env('AWS_S3_CONTRACTS_PATH', 'frontend/contratos'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Symbolic Links
     |--------------------------------------------------------------------------
     |

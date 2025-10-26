@@ -11,6 +11,10 @@ class GeneralClientesController extends Controller
      */
     public function index()
     {
+        if (!auth()->user()?->isSuperAdmin()) {
+            abort(403, 'No autorizado.');
+        }
+
         return view('general_clientes');
 
     }

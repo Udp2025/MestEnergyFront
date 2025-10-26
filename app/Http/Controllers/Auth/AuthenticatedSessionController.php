@@ -33,6 +33,22 @@ class AuthenticatedSessionController extends Controller
         // Usuario autenticado
         $user = Auth::user();
 
+        if (!$user) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            abort(403, 'No se pudo determinar el usuario autenticado.');
+        }
+
+        $isSuperAdmin = (int) $user->cliente_id === 0;
+
+        if (!$isSuperAdmin && $user->cliente_id === null) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            abort(403, 'El usuario no está vinculado a un cliente.');
+        }
+
         // Cargar solo los campos necesarios del cliente para ahorrar queries
         // incluimos 'id' porque es requerido por Eloquent cuando se limita columnas
         $user->load('cliente:id,site');
@@ -43,6 +59,7 @@ class AuthenticatedSessionController extends Controller
         // Guardar en sesión para que esté disponible en todo el proyecto
         $request->session()->put('user_id', $user->id);
         $request->session()->put('site', $site);
+        $request->session()->put('is_super_admin', $isSuperAdmin);
 
         // Redirigir a la URL intencional (dashboard u otra)
         return redirect()->intended(route('home', absolute: false));
@@ -57,7 +74,7 @@ class AuthenticatedSessionController extends Controller
         Auth::guard('web')->logout();
 
         // Limpiar las variables que guardamos en sesión
-        $request->session()->forget(['user_id', 'site']);
+        $request->session()->forget(['user_id', 'site', 'is_super_admin']);
 
         // Invalidar sesión y regenerar token CSRF
         $request->session()->invalidate();
