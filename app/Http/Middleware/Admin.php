@@ -22,7 +22,7 @@ class Admin
         }
 
         // Redirige a una ruta segura, por ejemplo, al dashboard, en caso de que el usuario no sea admin
-        return redirect()->route('dashboard')
+        return redirect()->route('home')
             ->with('error', 'No tienes permisos para acceder a esta sección.');
     }
 }

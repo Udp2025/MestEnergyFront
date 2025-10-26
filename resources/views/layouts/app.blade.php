@@ -29,6 +29,7 @@
     <script>
         window.App = @json($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     </script>
+    @stack('head')
     @vite(['resources/js/app.js', 'resources/css/app.css'])
 </head>
 
@@ -40,35 +41,25 @@
             <!-- Logo y botón para minimizar -->
             <div class="custom-logo-section">
                 <img src="{{ asset('images/ma_logo_bab.png') }}" alt="Logo" class="custom-logo">
-                <button class="custom-toggle-btn" id="toggle-btn">
-                    <i class="fas fa-bars"></i>
+                <button class="custom-toggle-btn" id="toggle-btn" aria-label="Contraer menú">
+                    <i class="fas fa-chevron-left"></i>
                 </button>
             </div>
 
             <!-- Menú -->
             <div class="custom-menu-section">
-                <h3 class="custom-menu-title">DASHBOARD GENERAL</h3>
+                <h3 class="custom-menu-title">General</h3>
                 
                 <ul>
-                    <li class="custom-active mcst">
+                    <li class="mcst {{ request()->routeIs('general_clientes') ? 'custom-active' : '' }}">
                         <i class="fa fa-th-large" aria-hidden="true"></i>
-                        <a href="{{ route('dashboard') }}" style="text-decoration: none; color: inherit;">
-                            
-                            <span>Vista General</span>
-                        </a>
-                    </li>
-                </ul>
-                <ul>
-                   <li class="mcst">
-                         <i class="fa fa-bell" aria-hidden="true"></i>
-                        <a href="{{route('site_alerts')}}" style="text-decoration: none; color: inherit;">
-                           
-                            <span>Alertas del sistema</span>
+                        <a href="{{ route('general_clientes') }}" style="text-decoration: none; color: inherit;">
+                            <span>Dashboard</span>
                         </a>
                     </li>
                 </ul>
                 @if(auth()->check() && auth()->user()->role === 'admin')
-                    <h3 class="custom-menu-title">GESTIÓN DE CLIENTES</h3>
+                    <h3 class="custom-menu-title">Gestión de Clientes</h3>
                     <ul>
                         <li class="mcst">
                             <i class="fas fa-user"></i>
@@ -91,7 +82,7 @@
                     </ul>
                 @endif
 
-                <h3 class="custom-menu-title">DATOS y MONITOREO</h3>
+                <h3 class="custom-menu-title">Datos y Monitoreo</h3>
                 <ul>
                     <li class="mcst">
                         <i class="bi bi-radar"></i>
@@ -100,13 +91,13 @@
                         </a>
                     </li>
                     <li class="mcst">
-                        <i class="bi bi-graph-up"></i>
+                        <i class="bi bi-coin"></i>
                         <a href="{{ route('clientes.clidash') }}" style="text-decoration: none; color: inherit;">
                             <span>Costos y Facturación</span>
                         </a>
                     </li>
                     <li class="mcst">
-                        <i class="bi bi-coin"></i>
+                        <i class="bi bi-graph-up"></i>
                         <a href="" style="text-decoration: none; color: inherit;">
                             <span>Pronostico de Consumo</span>
                         </a>
@@ -117,9 +108,16 @@
                             <span>Reportes automáticos</span>
                         </a>
                     </li>
+                    <li class="mcst">
+                         <i class="fa fa-bell" aria-hidden="true"></i>
+                        <a href="{{route('site_alerts')}}" style="text-decoration: none; color: inherit;">
+                           
+                            <span>Alertas del sistema</span>
+                        </a>
+                    </li>
                 </ul>
 
-                <h3 class="custom-menu-title">CONFIGURACION DE INPUTS</h3>
+                <h3 class="custom-menu-title">Datos de Proveedores</h3>
                 <ul>
                     <li class="mcst">
                         <i class="bi bi-database"></i>
@@ -143,7 +141,7 @@
                     -->
                    
                     <li class="mcst">
-                        <i class="bi bi-database"></i>
+                        <i class="bi bi-geo-alt"></i>
                         <a href="{{ route('tarifas.index') }}" style="text-decoration: none; color: inherit;">
                             <span>Tarifas</span>
                         </a>
@@ -198,13 +196,8 @@
         <div class="custom-main-content">
             <!-- Navbar -->
             <header class="custom-navbar">
-                <div class="custom-search-bar-container">
-                    <input type="text" class="custom-search-bar" placeholder="Buscar aquí...">
-                    <button class="custom-search-button">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
                 <div class="custom-navbar-right">
+                    <div class="custom-clock" id="time"></div>
                     <div class="custom-notification-icon" id="notification-icon">
                         <i class="fas fa-bell"></i>
                         <div class="custom-notifications" id="notifications">
@@ -256,15 +249,69 @@
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('toggle-btn');
         if (toggleBtn && sidebar) {
+            const toggleIcon = toggleBtn.querySelector('i');
+            const syncIcon = () => {
+                if (!toggleIcon) {
+                    return;
+                }
+                toggleIcon.classList.toggle('fa-chevron-left', !sidebar.classList.contains('collapsed'));
+                toggleIcon.classList.toggle('fa-chevron-right', sidebar.classList.contains('collapsed'));
+            };
+
             toggleBtn.addEventListener('click', () => {
                 sidebar.classList.toggle('collapsed');
+                syncIcon();
             });
+
+            syncIcon();
+        }
+
+        const clockLocale = 'es-MX';
+        const timeElement = document.getElementById('time');
+        const dateFormatter = typeof Intl !== 'undefined'
+            ? new Intl.DateTimeFormat(clockLocale, {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+            })
+            : null;
+
+        function formatTime(now) {
+            if (typeof Intl === 'undefined') {
+                return now.toTimeString().split(' ')[0];
+            }
+            try {
+                return new Intl.DateTimeFormat(clockLocale, {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    timeZoneName: 'short',
+                }).format(now);
+            } catch (_) {
+                return new Intl.DateTimeFormat(clockLocale, {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                }).format(now);
+            }
+        }
+
+        function capitalise(text) {
+            return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
         }
 
         function updateTime() {
+            if (!timeElement) {
+                return;
+            }
             const now = new Date();
-            document.getElementById('time').textContent = now.toLocaleTimeString();
+            const fecha = dateFormatter ? capitalise(dateFormatter.format(now)) : now.toDateString();
+            const hora = formatTime(now);
+            timeElement.textContent = `${fecha} · ${hora}`;
         }
+
+        updateTime();
         setInterval(updateTime, 1000);
 
         const avatar = document.getElementById('avatar');
@@ -296,9 +343,22 @@
         const sidebarRight = document.getElementById('sidebar-right');
         const toggleBtnRight = document.getElementById('toggle-btn-right');
         if (toggleBtnRight && sidebarRight) {
+            const rightToggleIcon = toggleBtnRight.querySelector('i');
+            const syncRightIcon = () => {
+                if (!rightToggleIcon) {
+                    return;
+                }
+                const isCollapsed = sidebarRight.classList.contains('collapsed');
+                rightToggleIcon.classList.toggle('fa-chevron-left', isCollapsed);
+                rightToggleIcon.classList.toggle('fa-chevron-right', !isCollapsed);
+            };
+
             toggleBtnRight.addEventListener('click', () => {
                 sidebarRight.classList.toggle('collapsed');
+                syncRightIcon();
             });
+
+            syncRightIcon();
         }
     </script>
 </body>

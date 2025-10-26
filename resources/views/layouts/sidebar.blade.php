@@ -123,7 +123,7 @@
       <img src="{{ asset('images/mest.jpeg') }}" alt="Logo" class="custom-logo">
       <h1 class="custom-logo-text" id="logo-text">Mest Analytics</h1>
       <button class="custom-toggle-btn" id="toggle-btn">
-        <i class="fas fa-bars"></i>
+        <i class="fas fa-chevron-left"></i>
       </button>
     </div>
 
@@ -132,9 +132,9 @@
       <h3 class="custom-menu-title">Menú</h3>
       <ul>
         <li class="custom-active">
-          <a href="{{ route('dashboard') }}" style="text-decoration: none; color: inherit;">
+          <a href="{{ route('general_clientes') }}" style="text-decoration: none; color: inherit;">
             <i class="fas fa-cube"></i>
-            <span>Vista General</span>
+            <span>Dashboard</span>
           </a>
         </li>
       </ul>
@@ -213,11 +213,25 @@
     const sidebar = document.getElementById('sidebar');
     const toggleBtn = document.getElementById('toggle-btn');
     const logoText = document.getElementById('logo-text');
+    const toggleIcon = toggleBtn.querySelector('i');
+
+    const syncIcon = () => {
+      if (!toggleIcon) {
+        return;
+      }
+      toggleIcon.classList.toggle('fa-chevron-left', !sidebar.classList.contains('collapsed'));
+      toggleIcon.classList.toggle('fa-chevron-right', sidebar.classList.contains('collapsed'));
+    };
 
     toggleBtn.addEventListener('click', () => {
       sidebar.classList.toggle('collapsed');
-      logoText.classList.toggle('hidden');
+      if (logoText) {
+        logoText.classList.toggle('hidden');
+      }
+      syncIcon();
     });
+
+    syncIcon();
   </script>
 </body>
 </html>

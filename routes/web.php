@@ -45,8 +45,12 @@ Route::get('/', function () {
 
 // Ruta para el dashboard (requiere autenticación y verificación)
 Route::get('/dashboard', function () {
-    return view('Panels.index');
+    return redirect()->route('home');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::get('/home', function () {
+    return view('home');
+})->middleware(['auth', 'verified'])->name('home');
 
 Route::get('/mi-perfil', function () {
     $user = Auth::user();

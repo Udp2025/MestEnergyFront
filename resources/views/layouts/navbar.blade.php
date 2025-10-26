@@ -275,7 +275,7 @@
   <header class="custom-navbar">
     <div class="navbar-left">
       <div class="navbar-logo">
-        <a href="{{ route('dashboard') }}">
+        <a href="{{ route('home') }}">
           <img src="{{ asset('images/mest.jpeg') }}" alt="Logo">
           <span>Mest Analytics</span>
         </a>

@@ -45,7 +45,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->put('site', $site);
 
         // Redirigir a la URL intencional (dashboard u otra)
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended(route('home', absolute: false));
     }
 
     /**
