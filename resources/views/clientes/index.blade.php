@@ -244,7 +244,7 @@
           <div class="steps">
             <!-- Step 1 -->
             <!-- Step 1: Generales (añadir/actualizar campos) -->
-<!-- Step 1: Generales (campos completos como inputs) -->
+<!-- Step 1: Generales -->
 <section class="step-panel active" data-step="1">
   <div class="form-grid">
     <div class="form-group">
@@ -278,29 +278,40 @@
     </div>
 
     <div class="form-group">
-      <label>Colonia</label>
-      <input name="colonia" type="text" class="form-control">
-    </div>
+    <label>Código postal</label>
+    <input id="codigo_postal" name="codigo_postal" type="text" class="form-control" maxlength="5" 
+           placeholder="Ej: 44100" onblur="buscarPorCP(this.value)">
+    <div id="cp-loading" class="loading" style="display: none;">Buscando en base local...</div>
+    <div id="cp-error" class="error-message" style="display: none; color: red; font-size: 12px;"></div>
+</div>
 
-    <div class="form-group">
-      <label>Código postal</label>
-      <input id="codigo_postal" name="codigo_postal" type="text" class="form-control" maxlength="5" required>
-    </div>
+<!-- Estado -->
+<div class="form-group">
+    <label>Estado</label>
+    <select id="estado_select" name="estado" class="form-control" required onchange="cargarMunicipios()">
+        <option value="">Selecciona un estado</option>
+    </select>
+</div>
 
-    <!-- ahora son inputs normales (no selects) -->
-    <div class="form-group">
-      <label>Ciudad</label>
-      <input id="ciudad_input" name="ciudad" type="text" class="form-control">
-    </div>
+<!-- Municipio -->
+<div class="form-group">
+    <label>Municipio/Ciudad</label>
+    <select id="municipio_select" name="ciudad" class="form-control" required onchange="cargarColonias()">
+        <option value="">Primero selecciona un estado</option>
+    </select>
+</div>
 
-    <div class="form-group">
-      <label>Estado</label>
-      <input id="estado_input" name="estado" type="text" class="form-control">
-    </div>
+<!-- Colonia -->
+<div class="form-group">
+    <label>Colonia</label>
+    <select id="colonia_select" name="colonia" class="form-control">
+        <option value="">Primero selecciona un municipio</option>
+    </select>
+</div>
 
     <div class="form-group">
       <label>País</label>
-      <input id="pais_input" name="pais" type="text" class="form-control" value="México">
+      <input id="pais_input" name="pais" type="text" class="form-control" value="México" readonly>
     </div>
 
     <div class="form-group">
@@ -337,9 +348,6 @@
       <label>Site (número)</label>
       <input name="site" type="number" class="form-control">
     </div>
-
-    
-
   </div>
 </section>
 
@@ -743,6 +751,7 @@ if (confirmGoModalEl) {
   modal.addEventListener('show.bs.modal', () => {
     showStep(1);
     form.reset();
+    limpiarDireccion();
   });
 
   // Submit: envía todo (clientes + info_fiscal + plan) al endpoint /clientes
@@ -818,5 +827,200 @@ form.addEventListener('submit', (ev) => {
 
 }); // end DOMContentLoaded
 </script>
+
+<script src="{{ asset('js/mexico-data.js') }}"></script>
+
+<script>
+ // JavaScript para selects dinámicos (versión local)
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Cargando datos locales de México...');
+    cargarEstados();
+});
+
+function cargarEstados() {
+    const estadoSelect = document.getElementById('estado_select');
+    
+    if (!estadoSelect) {
+        console.error('No se encontró el select de estados');
+        return;
+    }
+    
+    estadoSelect.innerHTML = '<option value="">Selecciona un estado</option>';
+    
+    mexicoData.estados.forEach(estado => {
+        const option = document.createElement('option');
+        option.value = estado;
+        option.textContent = estado;
+        estadoSelect.appendChild(option);
+    });
+    
+    console.log('Estados cargados:', mexicoData.estados.length);
+}
+
+function cargarMunicipios() {
+    const estadoSelect = document.getElementById('estado_select');
+    const municipioSelect = document.getElementById('municipio_select');
+    const coloniaSelect = document.getElementById('colonia_select');
+    
+    const estado = estadoSelect.value;
+    
+    if (!estado) {
+        municipioSelect.innerHTML = '<option value="">Selecciona un estado primero</option>';
+        coloniaSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
+        municipioSelect.disabled = true;
+        coloniaSelect.disabled = true;
+        return;
+    }
+    
+    municipioSelect.innerHTML = '<option value="">Cargando municipios...</option>';
+    municipioSelect.disabled = false;
+    coloniaSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
+    coloniaSelect.disabled = true;
+    
+    // Pequeño delay para simular carga
+    setTimeout(() => {
+        const municipios = mexicoData.municipios[estado] || ["No se encontraron municipios"];
+        
+        municipioSelect.innerHTML = '<option value="">Selecciona un municipio</option>';
+        municipios.forEach(municipio => {
+            const option = document.createElement('option');
+            option.value = municipio;
+            option.textContent = municipio;
+            municipioSelect.appendChild(option);
+        });
+        
+        console.log(`Municipios cargados para ${estado}:`, municipios.length);
+    }, 300);
+}
+
+function cargarColonias() {
+    const estadoSelect = document.getElementById('estado_select');
+    const municipioSelect = document.getElementById('municipio_select');
+    const coloniaSelect = document.getElementById('colonia_select');
+    
+    const estado = estadoSelect.value;
+    const municipio = municipioSelect.value;
+    
+    if (!estado || !municipio) {
+        coloniaSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
+        coloniaSelect.disabled = true;
+        return;
+    }
+    
+    coloniaSelect.innerHTML = '<option value="">Cargando colonias...</option>';
+    coloniaSelect.disabled = false;
+    
+    // Pequeño delay para simular carga
+    setTimeout(() => {
+        // En una implementación real, aquí buscarías colonias específicas
+        // Por ahora usamos colonias genéricas
+        const colonias = mexicoData.colonias.default;
+        
+        coloniaSelect.innerHTML = '<option value="">Selecciona una colonia</option>';
+        colonias.forEach(colonia => {
+            const option = document.createElement('option');
+            option.value = colonia;
+            option.textContent = colonia;
+            coloniaSelect.appendChild(option);
+        });
+        
+        // Si tenemos datos específicos para este municipio, los cargamos
+        const key = `${estado}-${municipio}`;
+        if (mexicoData.colonias[key]) {
+            mexicoData.colonias[key].forEach(colonia => {
+                const option = document.createElement('option');
+                option.value = colonia;
+                option.textContent = colonia;
+                coloniaSelect.appendChild(option);
+            });
+        }
+        
+        console.log(`Colonias cargadas para ${municipio}:`, colonias.length);
+    }, 300);
+}
+
+function buscarPorCP(cp) {
+    const cpLoading = document.getElementById('cp-loading');
+    const cpError = document.getElementById('cp-error');
+    const estadoSelect = document.getElementById('estado_select');
+    const municipioSelect = document.getElementById('municipio_select');
+    const coloniaSelect = document.getElementById('colonia_select');
+    
+    if (!cp || cp.length !== 5) {
+        if (cpError) {
+            cpError.textContent = 'El código postal debe tener 5 dígitos';
+            cpError.style.display = 'block';
+        }
+        return;
+    }
+    
+    if (cpLoading) cpLoading.style.display = 'block';
+    if (cpError) cpError.style.display = 'none';
+    
+    // Simular búsqueda con delay
+    setTimeout(() => {
+        if (cpLoading) cpLoading.style.display = 'none';
+        
+        const datosCP = mexicoData.codigosPostales[cp];
+        
+        if (datosCP) {
+            // Llenar automáticamente con los datos del CP
+            estadoSelect.value = datosCP.estado;
+            cargarMunicipios();
+            
+            setTimeout(() => {
+                municipioSelect.value = datosCP.municipio;
+                cargarColonias();
+                
+                setTimeout(() => {
+                    if (datosCP.colonia) {
+                        coloniaSelect.value = datosCP.colonia;
+                    }
+                }, 500);
+            }, 500);
+            
+            if (cpError) cpError.style.display = 'none';
+        } else {
+            if (cpError) {
+                cpError.textContent = 'Código postal no encontrado en la base local';
+                cpError.style.display = 'block';
+            }
+        }
+    }, 800);
+}
+
+function limpiarDireccion() {
+    const estadoSelect = document.getElementById('estado_select');
+    const municipioSelect = document.getElementById('municipio_select');
+    const coloniaSelect = document.getElementById('colonia_select');
+    const cpError = document.getElementById('cp-error');
+    const cpLoading = document.getElementById('cp-loading');
+    
+    if (estadoSelect) estadoSelect.value = '';
+    if (municipioSelect) {
+        municipioSelect.innerHTML = '<option value="">Selecciona un estado primero</option>';
+        municipioSelect.disabled = true;
+    }
+    if (coloniaSelect) {
+        coloniaSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
+        coloniaSelect.disabled = true;
+    }
+    if (cpError) cpError.style.display = 'none';
+    if (cpLoading) cpLoading.style.display = 'none';
+}
+
+// Inicializar cuando se abre el modal
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('createClientModal');
+    if (modal) {
+        modal.addEventListener('show.bs.modal', function() {
+            setTimeout(() => {
+                cargarEstados();
+            }, 100);
+        });
+    }
+});
+</script>
+
 
 @endsection

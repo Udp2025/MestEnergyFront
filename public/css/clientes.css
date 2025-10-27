@@ -519,3 +519,21 @@
   background: var(--panel); border:1px solid rgba(0,0,0,0.03);
   color:#5b463f; font-weight:700;
 }
+
+.loading {
+    color: #666;
+    font-size: 12px;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+select:disabled {
+    background-color: #f8f9fa;
+    opacity: 0.7;
+}
