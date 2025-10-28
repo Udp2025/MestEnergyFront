@@ -20,22 +20,29 @@ use Illuminate\Validation\ValidationException;
 
 class ClientesController extends Controller
 {
-    public function index()
-{
-    $clientes = Cliente::with(['files', 'user', 'locaciones', 'areas', 'medidores', 'reportes'])
-                      ->orderBy('nombre')
-                      ->get();
+   public function index()
+    {
+        $clientes = Cliente::with(['files', 'user', 'locaciones', 'areas', 'medidores', 'reportes'])
+                        ->orderBy('nombre')
+                        ->get();
 
-    // Clientes cuyo estado_cliente == 2 (Onboarding)
-    $onboardingClients = $clientes->filter(function($c) {
-        return intval($c->estado_cliente) === 2;
-    })->values();
+        // Clientes cuyo estado_cliente == 2 (Onboarding)
+        $onboardingClients = $clientes->filter(function($c) {
+            return intval($c->estado_cliente) === 2;
+        })->values();
 
-    // Cargar catálogo de estados (id => estado)
-    $catalogoEstados = DB::table('catalogo_estados_usuarios')->pluck('estado', 'id')->toArray();
+        // Cargar catálogo de estados (id => estado)
+        $catalogoEstados = DB::table('catalogo_estados_usuarios')->pluck('estado', 'id')->toArray();
 
-    return view('clientes.index', compact('clientes', 'onboardingClients', 'catalogoEstados'));
-}
+        // NUEVO: cargar catálogo de regiones (id, region)
+        $catalogoRegiones = DB::table('catalogo_regiones')->orderBy('region')->get();
+
+        // NUEVO: cargar grupo tarifarios (id, nombre, factor_carga)
+        $grupoTarifarios = DB::table('grupo_tarifarios')->orderBy('nombre')->get();
+
+        return view('clientes.index', compact('clientes', 'onboardingClients', 'catalogoEstados', 'catalogoRegiones', 'grupoTarifarios'));
+    }
+
 
 
 
@@ -263,11 +270,13 @@ class ClientesController extends Controller
 
 
     // Mostrar un cliente con sus archivos relacionados y usuarios (si los hay)
+    // Mostrar un cliente con sus archivos relacionados, usuario, info fiscal y plan
     public function show($id)
     {
-        $cliente = Cliente::with(['files', 'user'])->findOrFail($id);
-        $user = $cliente->user;
-        return view('clientes.show', compact('cliente', 'user'));
+        // cargamos relaciones necesarias para evitar N+1
+        $cliente = Cliente::with(['files', 'user', 'infoFiscal', 'planUsuario'])->findOrFail($id);
+
+        return view('clientes.show', compact('cliente'));
     }
 
     // Mostrar el formulario para editar un cliente

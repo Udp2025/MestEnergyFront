@@ -52,6 +52,12 @@
                 
                 <ul>
                     <li class="mcst {{ request()->routeIs('general_clientes') ? 'custom-active' : '' }}">
+                        <i class="fa fa-home" aria-hidden="true"></i>
+                        <a href="{{ route('home') }}" style="text-decoration: none; color: inherit;">
+                            <span>Home</span>
+                        </a>
+                    </li>
+                    <li class="mcst {{ request()->routeIs('general_clientes') ? 'custom-active' : '' }}">
                         <i class="fa fa-th-large" aria-hidden="true"></i>
                         <a href="{{ route('general_clientes') }}" style="text-decoration: none; color: inherit;">
                             <span>Dashboard</span>

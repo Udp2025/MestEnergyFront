@@ -336,13 +336,25 @@
 
     <div class="form-group">
       <label>Tarifa región</label>
-      <input name="tarifa_region" type="text" class="form-control">
+      <select name="tarifa_region" class="form-control" required>
+        <option value="">Selecciona una región</option>
+        @foreach($catalogoRegiones as $region)
+          <option value="{{ $region->id }}">{{ $region->region }}</option>
+        @endforeach
+      </select>
     </div>
 
     <div class="form-group">
       <label>Factor carga</label>
-      <input name="factor_carga" type="text" class="form-control">
+      <select name="factor_carga" class="form-control" required>
+        <option value="">Selecciona un grupo tarifario</option>
+        @foreach($grupoTarifarios as $g)
+          <option value="{{ $g->id }}" data-factor="{{ $g->factor_carga }}">{{ $g->nombre }}</option>
+        @endforeach
+      </select>
     </div>
+
+
 
     <div class="form-group">
       <label>Site (número)</label>

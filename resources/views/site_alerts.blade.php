@@ -121,6 +121,7 @@
               <th>Severidad</th>
               <th>Estado</th>
               <th>Responsable</th>
+              <th>Detalle</th>
             </tr>
           </thead>
           <tbody id="alertList">
@@ -131,6 +132,7 @@
               <td><span class="badge critical">critical</span></td>
               <td><span class="badge active">Active</span></td>
               <td>Vanessa Nest</td>
+              <td>Detalle de la alerta</td>
             </tr>
             <tr>
               <td>Mest Manufacturing</td>
@@ -138,6 +140,7 @@
               <td><span class="badge high">high</span></td>
               <td><span class="badge active">Active</span></td>
               <td>Robert Brown</td>
+              <td>Detalle de la alerta</td>
             </tr>
             <tr>
               <td>Mest Retail</td>
@@ -145,6 +148,7 @@
               <td><span class="badge medium">medium</span></td>
               <td><span class="badge active">Active</span></td>
               <td>Vanessa Gest</td>
+              <td>Detalle de la alerta</td>
             </tr>
             <tr>
               <td>Mest Hotels</td>
@@ -152,6 +156,7 @@
               <td><span class="badge medium">medium</span></td>
               <td><span class="badge active">Active</span></td>
               <td>Equipo NOC</td>
+              <td>Detalle de la alerta</td>
             </tr>
           </tbody>
         </table>
