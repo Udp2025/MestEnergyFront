@@ -276,6 +276,17 @@ class ClientesController extends Controller
         // cargamos relaciones necesarias para evitar N+1
         $cliente = Cliente::with(['files', 'user', 'infoFiscal', 'planUsuario'])->findOrFail($id);
 
+        session()->put([
+            'selected_cliente_id' => $cliente->id,
+            'selected_cliente_name' => $cliente->nombre,
+        ]);
+
+        $user = Auth::user();
+        $isSuperAdmin = session('is_super_admin', (int) ($user?->cliente_id ?? -1) === 0);
+        if ($isSuperAdmin) {
+            session()->put('site', $cliente->site);
+        }
+
         return view('clientes.show', compact('cliente'));
     }
 

@@ -74,7 +74,13 @@ class AuthenticatedSessionController extends Controller
         Auth::guard('web')->logout();
 
         // Limpiar las variables que guardamos en sesión
-        $request->session()->forget(['user_id', 'site', 'is_super_admin']);
+        $request->session()->forget([
+            'user_id',
+            'site',
+            'is_super_admin',
+            'selected_cliente_id',
+            'selected_cliente_name',
+        ]);
 
         // Invalidar sesión y regenerar token CSRF
         $request->session()->invalidate();
