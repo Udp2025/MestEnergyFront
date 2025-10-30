@@ -6,40 +6,51 @@
 
 <link rel="stylesheet" href="{{ asset('css/datos_cfe.css') }}">
 
+@if(session('success'))
+  <div class="alert alert-success">{{ session('success') }}</div>
+@endif
+@if(session('error'))
+  <div class="alert alert-danger">{{ session('error') }}</div>
+@endif
+
+@if ($errors->any())
+  <div class="alert alert-warning">
+    <strong>Errores de validación:</strong>
+    <ul>
+      @foreach ($errors->all() as $err)
+        <li>{{ $err }}</li>
+      @endforeach
+    </ul>
+  </div>
+@endif
+
+
 <div class="page-wrap">
 
   <!-- Top selectors card -->
+   <!-- Top selectors card -->
   <div class="filters-card">
     <div class="filter-item">
       <label for="region_select">Región (tarifa_region)</label>
       <select id="region_select" name="region_select">
         <option value="">Selecciona región</option>
-        <option>BAJA CALIFORNIA</option>
-        <option>BAJA CALIFORNIA SUR</option>
-        <option>BAJIO</option>
-        <option>CENTRO OCCIDENTE</option>
-        <option>CENTRO ORIENTE</option>
-        <option>CENTRO SUR</option>
-        <option>GOLFO CENTRO</option>
-        <option>GOLFO NORTE</option>
-        <option>JALISCO</option>
-        <option>NOROESTE</option>
-        <option>NORTE</option>
-        <option>ORIENTE</option>
-        <option>PENINSULAR</option>
-        <option>SURESTE</option>
-        <option>VALLE DE MEXICO CENTRO</option>
-        <option>VALLE DE MEXICO NORTE</option>
-        <option>VALLE DE MEXICO SUR</option>
+        @if(isset($regions) && $regions->count())
+          @foreach($regions as $reg)
+            <option value="{{ $reg->id }}" {{ old('region_select') == $reg->id ? 'selected' : '' }}>
+              {{ $reg->region }}
+            </option>
+          @endforeach
+        @endif
       </select>
     </div>
 
     <div class="filter-item">
       <label for="fijo">Fijo (cargo fijo)</label>
-      <input id="fijo" name="fijo" type="text" value="0" />
+      <input id="fijo" name="fijo" type="text" value="{{ old('fijo', '0') }}" />
       <div class="small-note">Cargo fijo por región</div>
     </div>
   </div>
+
 
   <!-- Main card -->
   <div class="main-card">
@@ -56,6 +67,9 @@
     <!-- Form: envia los arrays de meses -->
     <form method="POST" action="{{ route('cfe.store') }}" id="cfeForm">
       @csrf
+
+      <input type="hidden" name="region_select" id="region_select_hidden" value="{{ old('region_select', '') }}">
+      <input type="hidden" name="fijo" id="fijo_hidden" value="{{ old('fijo', '0') }}">
 
       <div class="table-wrap">
         <table class="values-table">
@@ -128,7 +142,14 @@
       });
     }
 
-    // sanitize inputs and event attach
+    // referencias
+    const regionSelect = document.getElementById('region_select');         // select visible (puede estar fuera del form)
+    const regionHidden = document.getElementById('region_select_hidden'); // hidden dentro del form
+    const fijoInp = document.getElementById('fijo');                     // input visible (puede estar fuera del form)
+    const fijoHidden = document.getElementById('fijo_hidden');           // hidden dentro del form
+    const cfeForm = document.getElementById('cfeForm');
+
+    // sanitize inputs and event attach (numerical inputs en la tabla)
     document.querySelectorAll('.num').forEach(function(inp){
       inp.addEventListener('input', function(){
         this.value = this.value.replace(/[^0-9\.,\-]/g,'');
@@ -141,51 +162,81 @@
       });
     });
 
-    // initial totals
+    // Inicializar totales al cargar
     document.addEventListener('DOMContentLoaded', function(){
+      // asegurar que los hidden reflejen los visibles al cargar
+      if(regionSelect && regionHidden) regionHidden.value = regionSelect.value || regionHidden.value;
+      if(fijoInp && fijoHidden) fijoHidden.value = fijoInp.value || fijoHidden.value;
+
       updateTotals();
     });
 
-    // when region changes => fetch defaults
-    const regionSelect = document.getElementById('region_select');
-    regionSelect && regionSelect.addEventListener('change', function(){
-      const region = this.value;
-      if(!region) return;
-      // fetch defaults for region
-      fetch('/cfe/region?region=' + encodeURIComponent(region))
-        .then(r => r.json())
-        .then(data => {
-          if(!data) return;
-          // set fijo
-          document.getElementById('fijo').value = (data.fijo !== null && data.fijo !== undefined) ? data.fijo : 0;
+    // cuando cambia el select de región -> sincronizar hidden y obtener defaults
+    if(regionSelect){
+      regionSelect.addEventListener('change', function(){
+        const regionId = this.value;
+        if(regionHidden) regionHidden.value = regionId || '';
 
-          // if payload has variable_* values, seed all months with those values
-          const v_base = data.variable_base ?? 0;
-          const v_inter = data.variable_intermedia ?? 0;
-          const v_punta = data.variable_punta ?? 0;
-          const v_dist = data.distribucion ?? 0;
-          const v_cap = data.capacidad ?? 0;
+        if(!regionId) return;
+        fetch('/cfe/region?region_id=' + encodeURIComponent(regionId))
+          .then(r => r.json())
+          .then(data => {
+            if(!data) return;
+            var fijoVal = (data.fijo !== null && data.fijo !== undefined) ? data.fijo : 0;
 
-          document.querySelectorAll('input[name^="base["]').forEach(i => i.value = v_base);
-          document.querySelectorAll('input[name^="intermedia["]').forEach(i => i.value = v_inter);
-          document.querySelectorAll('input[name^="punta["]').forEach(i => i.value = v_punta);
-          document.querySelectorAll('input[name^="distribucion["]').forEach(i => i.value = v_dist);
-          document.querySelectorAll('input[name^="capacidad["]').forEach(i => i.value = v_cap);
+            // actualizar visible y hidden de fijo
+            if(fijoInp) fijoInp.value = fijoVal;
+            if(fijoHidden) fijoHidden.value = fijoVal;
 
-          updateTotals();
-        })
-        .catch(err => {
-          console.error('Error al cargar región', err);
-        });
-    });
+            // seed meses con valores retornados
+            const v_base = (data.variable_base !== undefined && data.variable_base !== null) ? data.variable_base : 0;
+            const v_inter = (data.variable_intermedia !== undefined && data.variable_intermedia !== null) ? data.variable_intermedia : 0;
+            const v_punta = (data.variable_punta !== undefined && data.variable_punta !== null) ? data.variable_punta : 0;
+            const v_dist = (data.distribucion !== undefined && data.distribucion !== null) ? data.distribucion : 0;
+            const v_cap = (data.capacidad !== undefined && data.capacidad !== null) ? data.capacidad : 0;
 
-    // if user changes the fijo field, allow numbers only
-    const fijoInp = document.getElementById('fijo');
-    fijoInp && fijoInp.addEventListener('input', function(){
-      this.value = this.value.replace(/[^0-9\.,\-]/g,'');
-    });
+            document.querySelectorAll('input[name^="base["]').forEach(i => i.value = v_base);
+            document.querySelectorAll('input[name^="intermedia["]').forEach(i => i.value = v_inter);
+            document.querySelectorAll('input[name^="punta["]').forEach(i => i.value = v_punta);
+            document.querySelectorAll('input[name^="distribucion["]').forEach(i => i.value = v_dist);
+            document.querySelectorAll('input[name^="capacidad["]').forEach(i => i.value = v_cap);
+
+            updateTotals();
+          })
+          .catch(err => {
+            console.error('Error al cargar región', err);
+          });
+      });
+    }
+
+    // sincronizar el input fijo visible con su hidden cuando el usuario escriba
+    if(fijoInp && fijoHidden){
+      // inicial
+      fijoHidden.value = fijoInp.value || fijoHidden.value;
+
+      fijoInp.addEventListener('input', function(){
+        this.value = this.value.replace(/[^0-9\.,\-]/g,'');
+        fijoHidden.value = this.value;
+      });
+
+      fijoInp.addEventListener('blur', function(){
+        var v = parseFloat(this.value.replace(/,/g,'.'));
+        this.value = isNaN(v) ? 0 : v;
+        fijoHidden.value = this.value;
+        updateTotals();
+      });
+    }
+
+    // Antes de enviar el formulario, aseguramos que los hidden contienen los valores visibles
+    if(cfeForm){
+      cfeForm.addEventListener('submit', function(){
+        if(regionSelect && regionHidden) regionHidden.value = regionSelect.value || regionHidden.value;
+        if(fijoInp && fijoHidden) fijoHidden.value = fijoInp.value || fijoHidden.value;
+      });
+    }
 
   })();
 </script>
+
 
 @endsection

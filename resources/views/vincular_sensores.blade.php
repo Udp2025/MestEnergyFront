@@ -11,7 +11,7 @@
   <header class="breadcrumbs">
     <div>
       <div class="title">Vinculación rápida — Mest Energy</div>
-      <div class="subtitle">Asigna sensores activos de tu base de datos a clientes existentes en segundos.</div>
+      <div class="subtitle">Asigna sites a clientes existentes en segundos.</div>
     </div>
 
     <div class="controls">
@@ -23,12 +23,11 @@
   <div>
     <div class="metrics">
       <div class="metric">
-        <div class="num">{{ $sensors->count() }}</div>
-        <div class="label">Sensores totales</div>
+        <div class="num">{{ $sites->count() }}</div>
+        <div class="label">Sites totales</div>
       </div>
       <div class="metric">
         <div class="num">{{ $clients->count() }}</div>
-
         <div class="label">Clientes</div>
       </div>
       <div class="metric">
@@ -43,7 +42,7 @@
 
     <div class="main-panel">
       <div class="search-row">
-        <input id="searchInput" class="search" placeholder="Buscar por ID, modelo o fase..." />
+        <input id="searchInput" class="search" placeholder="Buscar por site id o nombre..." />
         <div class="pill">Base activa</div>
         <div class="pill">Pendientes: —</div>
       </div>
@@ -51,57 +50,50 @@
       <div>
         <div class="thead">
           <div class="cell" style="flex:0 0 40px;">OK</div>
-          <div class="cell" style="flex:0 0 120px;">SENSOR</div>
-          <div class="cell">MODELO</div>
-          <div class="cell">SITE</div>
-          <div class="cell">RESOLUCIÓN (min)</div>
+          <div class="cell" style="flex:0 0 220px;">SITE</div>
+          <div class="cell">SITE NAME</div>
           <div class="cell small">ASIGNAR A CLIENTE</div>
-          <div class="cell" style="flex:0 0 90px; text-align:right;">ACCIÓN</div>
+          <div class="cell" style="flex:0 0 140px; text-align:right;">ACCIÓN</div>
         </div>
 
-        @foreach($sensors as $s)
+        @foreach($sites as $site)
         @php
-          $key = $s->site_id . ':' . $s->device_id;
-          $assigned = $assignments[$key] ?? null;
-          $clientsForSite = $clientsBySite[$s->site_id] ?? [];
+          $assignedClient = $assignedBySite[$site->site_id] ?? null; // puede ser client id
         @endphp
 
-        <div class="row" data-site="{{ $s->site_id }}" data-device="{{ $s->device_id }}">
+        <div class="row" data-site="{{ $site->site_id }}">
           <div class="cell" style="flex:0 0 40px;">
             <input type="checkbox" class="row-checkbox" />
           </div>
 
-          <div class="cell" style="flex:0 0 120px; font-weight:700;">{{ $s->device_name ?? ($s->site_id . '-' . $s->device_id) }}</div>
-          <div class="cell">{{ $s->device_name }}</div>
-          <div class="cell">{{ $s->site_id }}</div>
-          <div class="cell">{{ $s->resolution_min }}</div>
+          <div class="cell" style="flex:0 0 220px; font-weight:700;">
+            <span class="site-id">#{{ $site->site_id }}</span> — <span class="site-name" data-site="{{ $site->site_id }}">{{ $site->site_name }}</span>
+          </div>
+
+          <div class="cell">{{ $site->site_name }}</div>
 
           <div class="cell small">
-            @php
-              $key = $s->site_id . ':' . $s->device_id;
-              $assigned = $assignments[$key] ?? null;
-            @endphp
-
             <select class="select assign-select">
-              <option value="">Selecciona un cliente...</option>
-
+              <option value="">— Ninguno —</option>
               @foreach($clients as $c)
                 <option value="{{ $c->id }}"
-                  {{ $assigned && intval($assigned->client_id) === intval($c->id) ? 'selected' : '' }}>
+                  {{ (intval($assignedClient) === intval($c->id)) ? 'selected' : '' }}>
                   {{ $c->nombre }}
                 </option>
               @endforeach
             </select>
-
-
           </div>
 
-          <div class="cell" style="flex:0 0 90px; text-align:right;">
+          <div class="cell" style="flex:0 0 140px; text-align:right;">
             <div class="action">
-              <button class="link-btn" onclick="viewDetails('{{ $s->site_id }}','{{ $s->device_id }}')">Ver</button>
-              <button class="btn single-assign" onclick="vincular(this)" data-site="{{ $s->site_id }}" data-device="{{ $s->device_id }}" {{ $assigned ? 'disabled' : '' }}>
-                {{ $assigned ? 'Vinculado' : 'Vincular' }}
+              <button class="link-btn" onclick="viewDetails('{{ $site->site_id }}')">Ver</button>
+              <button class="btn single-assign"
+                      onclick="vincular(this)"
+                      data-site="{{ $site->site_id }}"
+                      {{ $assignedClient ? '' : '' }}>
+                {{ $assignedClient ? 'Reasignar' : 'Vincular' }}
               </button>
+              <button class="link-btn" onclick="openEditModal({{ $site->site_id }}, '{{ addslashes($site->site_name) }}')">Editar site</button>
             </div>
           </div>
         </div>
@@ -136,14 +128,14 @@
 
     <div class="card">
       <div style="font-weight:700; margin-bottom:8px;">Últimas vinculaciones</div>
-      <div class="notes">Aún no hay movimientos. Asigna sensores para ver el historial aquí.</div>
+      <div class="notes">Aún no hay movimientos. Asigna sites para ver el historial aquí.</div>
     </div>
 
     <div class="card">
       <div style="font-weight:700; margin-bottom:8px;">Pasos rápidos</div>
       <ol class="notes">
-        <li>Confirma que el sensor esté activo (último contacto reciente).</li>
-        <li>Selecciona el cliente en la columna "Asignar a cliente".li>
+        <li>Confirma que el site exista en la base de datos.</li>
+        <li>Selecciona el cliente en la columna "Asignar a cliente".</li>
         <li>Presiona <strong>Vincular</strong> para completar.</li>
       </ol>
     </div>
@@ -151,28 +143,38 @@
 
 </div>
 
+<!-- Modal editar site -->
+<div id="editSiteModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h3>Editar nombre del site</h3>
+    <input id="editSiteNameInput" type="text" />
+    <div style="margin-top:10px;">
+      <button id="saveSiteNameBtn" class="btn">Guardar</button>
+      <button onclick="closeEditModal()" class="btn ghost">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script>
-  // CSRF para fetch
   const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-  // Habilitar el botón vincular por fila cuando haya selección
+  // Habilitar botones por fila cuando hay selección
   document.querySelectorAll('.row').forEach(function(row){
     const sel = row.querySelector('.assign-select');
     const btn = row.querySelector('.single-assign');
     if(!sel || !btn) return;
     sel.addEventListener('change', function(){
-      btn.disabled = sel.value === '';
-      if (!btn.disabled) btn.textContent = 'Vincular';
+      btn.disabled = false;
+      btn.textContent = sel.value ? 'Vincular' : 'Desasignar';
     });
   });
 
   function vincular(el){
     const row = el.closest('.row');
     const site = el.dataset.site;
-    const device = el.dataset.device;
-    const cliente = row.querySelector('.assign-select').value;
-    if(!cliente) return alert('Selecciona un cliente');
+    const cliente = row.querySelector('.assign-select').value; // puede ser '' => desasignar
     el.disabled = true;
+    const prevText = el.textContent;
     el.textContent = 'Guardando...';
 
     fetch("{{ route('sensores.vincular') }}", {
@@ -183,33 +185,32 @@
         'Accept':'application/json'
       },
       body: JSON.stringify({
-        site_id: site,
-        device_id: device,
-        client_id: cliente
+        site_id: parseInt(site),
+        client_id: cliente === '' ? null : parseInt(cliente)
       })
     })
     .then(r => r.json())
     .then(j => {
       if(j.success){
-        el.textContent = 'Vinculado';
+        el.textContent = cliente ? 'Vinculado' : 'Desasignado';
         el.disabled = true;
       } else {
-        el.textContent = 'Vincular';
+        el.textContent = prevText;
         el.disabled = false;
         alert(j.message || 'Error al vincular');
       }
     })
     .catch(e => {
       console.error(e);
-      el.textContent = 'Vincular';
+      el.textContent = prevText;
       el.disabled = false;
       alert('Error de conexión');
     });
   }
 
-  function viewDetails(site, device){
-    alert('Abrir detalles: site ' + site + ' device ' + device);
-    // aquí podrías abrir un modal con más info usando fetch a un endpoint
+  function viewDetails(site){
+    alert('Abrir detalles del site: ' + site);
+    // Implementa modal / fetch si quieres más datos del site
   }
 
   // Bulk assign
@@ -221,17 +222,16 @@
       const checkbox = r.querySelector('.row-checkbox');
       if(!checkbox || !checkbox.checked) return;
       const sel = r.querySelector('.assign-select');
-      if(!sel || sel.value === '') return; // ignorar si no hay cliente seleccionado
+      // allow unassign if selected blank
       assignments.push({
-        site_id: r.dataset.site,
-        device_id: r.dataset.device,
-        client_id: sel.value
+        site_id: parseInt(r.dataset.site),
+        client_id: sel && sel.value ? parseInt(sel.value) : null
       });
     });
 
     if(assignments.length === 0) return alert('Selecciona filas y clientes para asignar.');
 
-    if(!confirm(`Vas a vincular ${assignments.length} sensores. Continuar?`)) return;
+    if(!confirm(`Vas a vincular/desasignar ${assignments.length} sites. Continuar?`)) return;
 
     this.disabled = true;
     this.textContent = 'Asignando...';
@@ -249,13 +249,8 @@
     .then(j => {
       if(j.success){
         alert(j.message || 'Vinculaciones realizadas');
-        // marcar botones como vinculados
-        document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
-          const r = cb.closest('.row');
-          const btn = r.querySelector('.single-assign');
-          if(btn){ btn.disabled = true; btn.textContent = 'Vinculado'; }
-          cb.checked = false;
-        });
+        document.querySelectorAll('.row-checkbox:checked').forEach(cb => cb.checked = false);
+        // puedes refrescar la página o actualizar DOM según respuesta si lo prefieres
       } else {
         alert(j.message || 'Error al vincular en lote');
       }
@@ -267,12 +262,60 @@
     });
   });
 
-  // (Opcional) búsqueda local simple
+  // búsqueda local simple
   document.getElementById('searchInput').addEventListener('input', function(){
     const q = this.value.toLowerCase();
     document.querySelectorAll('.row').forEach(r => {
       const text = r.textContent.toLowerCase();
       r.style.display = text.includes(q) ? '' : 'none';
+    });
+  });
+
+  // --- Modal editar site ---
+  let editingSiteId = null;
+  function openEditModal(siteId, siteName){
+    editingSiteId = siteId;
+    document.getElementById('editSiteNameInput').value = siteName || '';
+    document.getElementById('editSiteModal').style.display = 'block';
+  }
+  function closeEditModal(){
+    editingSiteId = null;
+    document.getElementById('editSiteModal').style.display = 'none';
+  }
+  document.getElementById('saveSiteNameBtn').addEventListener('click', function(){
+    const name = document.getElementById('editSiteNameInput').value.trim();
+    if(!editingSiteId) return closeEditModal();
+    if(name.length === 0) return alert('El nombre no puede quedar vacío.');
+
+    this.disabled = true;
+    this.textContent = 'Guardando...';
+
+    fetch("{{ route('sites.updateName') }}", {
+      method: 'POST',
+      headers: {
+        'Content-Type':'application/json',
+        'X-CSRF-TOKEN': token,
+        'Accept':'application/json'
+      },
+      body: JSON.stringify({
+        site_id: editingSiteId,
+        site_name: name
+      })
+    })
+    .then(r => r.json())
+    .then(j => {
+      if(j.success){
+        // actualizar DOM
+        document.querySelectorAll('.site-name[data-site="'+editingSiteId+'"]').forEach(el => el.textContent = name);
+        closeEditModal();
+      } else {
+        alert(j.message || 'Error al actualizar nombre');
+      }
+    })
+    .catch(e => { console.error(e); alert('Error de conexión'); })
+    .finally(() => {
+      this.disabled = false;
+      this.textContent = 'Guardar';
     });
   });
 </script>

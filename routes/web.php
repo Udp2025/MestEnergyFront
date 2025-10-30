@@ -137,13 +137,14 @@ Route::middleware('auth')->group(function () {
     Route::post('clientes/{cliente}/go-live', [App\Http\Controllers\ClientesController::class, 'confirmGoLive'])
         ->name('clientes.go_live');
 
-        Route::get('/sensores/vincular', [SensoresController::class, 'index'])->name('sensores.index');
-Route::post('/sensores/vincular', [SensoresController::class, 'store'])->name('sensores.vincular'); // vincular 1
-Route::post('/sensores/vincular/bulk', [SensoresController::class, 'bulkAssign'])->name('sensores.vincular.bulk'); // vinculación en lote
+        Route::get('vincular-sensores', [SensoresController::class, 'index'])->name('sensores.index');
+Route::post('sensores/vincular', [SensoresController::class, 'store'])->name('sensores.vincular');
+Route::post('sensores/vincular/bulk', [SensoresController::class, 'bulkAssign'])->name('sensores.vincular.bulk');
+Route::post('sites/update-name', [SensoresController::class, 'updateSiteName'])->name('sites.updateName');
 
-Route::get('/datos-cfe', [CFEController::class,'index'])->name('cfe.index');
-Route::get('/cfe/region', [CFEController::class,'getRegion']); // endpoint AJAX
-Route::post('/cfe', [CFEController::class,'store'])->name('cfe.store');
+Route::get('/cfe/region', [CFEController::class, 'getRegion']);
+Route::post('/cfe/store', [CFEController::class, 'store'])->name('cfe.store');
+Route::get('/cfe', [CFEController::class, 'index'])->name('cfe.index');
  
  
  
