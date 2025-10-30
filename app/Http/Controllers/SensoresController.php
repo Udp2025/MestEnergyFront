@@ -121,8 +121,7 @@ class SensoresController extends Controller
 
         try {
             DB::table('sites')->where('site_id', (int)$data['site_id'])->update([
-                'site_name' => $data['site_name'],
-                'updated_at' => now()
+                'site_name' => $data['site_name']
             ]);
 
             return response()->json(['success' => true, 'message' => 'Nombre actualizado']);

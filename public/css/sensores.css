@@ -103,3 +103,81 @@
     .page{ grid-template-columns: 1fr; }
     .sidebar{ order: 2; }
   }
+
+  /* Modal overlay (centra el modal con flex) */
+.modal {
+  position: fixed;
+  inset: 0;                     /* top:0; right:0; bottom:0; left:0; */
+  display: none;                /* mostrado con JS -> usar 'flex' para centrar */
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45); /* overlay oscuro traslúcido */
+  z-index: 9999;
+  padding: 20px;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+      justify-items: center;
+}
+
+/* Contenido del modal centrado */
+.modal .modal-content {
+  width: 520px;
+  max-width: 96%;
+  /* requested background */
+  background: #f9ede3;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+  padding: 18px;
+  transform-origin: center;
+  animation: modal-pop .12s ease-out;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Cabecera y campos */
+.modal .modal-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+}
+.modal .modal-content input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+  background: rgba(0,0,0,0.18);
+  color: #fff;
+}
+
+/* Botones */
+.modal .modal-content .btn {
+  margin-right: 8px;
+  min-width: 90px;
+}
+.modal .modal-content .btn.ghost {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #fff;
+}
+
+/* Close/accessibility */
+.modal .modal-close {
+  position: absolute;
+  right: 20px;
+  top: 18px;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Animación */
+@keyframes modal-pop {
+  from { transform: translateY(-6px) scale(.995); opacity: 0; }
+  to   { transform: translateY(0) scale(1);     opacity: 1; }
+}
+
+/* Evitar scroll del body cuando el modal está abierto (aplicar clase .modal-open en body) */
+body.modal-open {
+  overflow: hidden;
+}
