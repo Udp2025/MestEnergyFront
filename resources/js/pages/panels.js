@@ -4,11 +4,26 @@ import {
   applyMapping,
   normalisePlotError,
   plotIsEmpty,
+  csrfToken,
 } from "../utils/plot";
 import { fetchDB, getSites } from "../utils/core";
 import { canViewAllSites, currentUserSiteId } from "../utils/auth";
 
 const DEFAULT_WIDGET_CATALOG = [
+  {
+    slug: "forecast_power_chart",
+    name: "Pronóstico de potencia (24 h)",
+    kind: "chart",
+    description:
+      "Predicción de la potencia para las próximas 24 horas con intervalo de confianza.",
+  },
+  {
+    slug: "anomaly_detection_chart",
+    name: "Detección de anomalías",
+    kind: "chart",
+    description:
+      "Identificación de puntos anómalos recientes en la serie de potencia.",
+  },
   {
     slug: "histogram_chart",
     name: "Histograma de corriente",
@@ -84,16 +99,14 @@ const DEFAULT_WIDGET_CATALOG = [
     slug: "bar_today_chart",
     name: "Energía por dispositivo (hoy)",
     kind: "chart",
-    description:
-      "Energía acumulada por dispositivo durante el día actual.",
+    description: "Energía acumulada por dispositivo durante el día actual.",
     source_dataset: "measurements",
   },
   {
     slug: "bar_month_chart",
     name: "Energía por dispositivo (mes)",
     kind: "chart",
-    description:
-      "Energía acumulada por dispositivo en el mes en curso.",
+    description: "Energía acumulada por dispositivo en el mes en curso.",
     source_dataset: "measurements",
   },
   {
@@ -106,16 +119,14 @@ const DEFAULT_WIDGET_CATALOG = [
     slug: "heatmap_today_chart",
     name: "Mapa de calor (hoy)",
     kind: "chart",
-    description:
-      "Mapa de calor de potencia por hora durante el día actual.",
+    description: "Mapa de calor de potencia por hora durante el día actual.",
     source_dataset: "measurements",
   },
   {
     slug: "heatmap_month_chart",
     name: "Mapa de calor (mes)",
     kind: "chart",
-    description:
-      "Mapa de calor diario de potencia durante el mes actual.",
+    description: "Mapa de calor diario de potencia durante el mes actual.",
     source_dataset: "measurements",
   },
   {
@@ -418,6 +429,49 @@ const PLOT_MODEBAR_REMOVALS = [
   "resetScale2d",
 ];
 
+async function fetchChart(config) {
+  const endpoint =
+    config && typeof config === "object" && config.endpoint
+      ? config.endpoint
+      : "/charts/plot";
+  const payload =
+    config &&
+    typeof config === "object" &&
+    Object.prototype.hasOwnProperty.call(config, "payload")
+      ? config.payload
+      : config;
+
+  if (endpoint === "/charts/plot") {
+    return fetchPlot(payload);
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRF-TOKEN": csrfToken(),
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload ?? {}),
+  });
+
+  if (!response.ok) {
+    let errorPayload;
+    try {
+      errorPayload = await response.json();
+    } catch (_) {
+      errorPayload = await response.text();
+    }
+    const error = new Error("Plot API request failed");
+    error.status = response.status;
+    error.payload = errorPayload;
+    error.isPlotError = true;
+    throw error;
+  }
+
+  return response.json();
+}
+
 function sanitisePlotFigure(figure = {}) {
   if (!figure || typeof figure !== "object") {
     return { data: [], layout: {} };
@@ -553,7 +607,10 @@ function createWidgetInstance(definition, overrides = {}) {
   if (/_today_/i.test(definition.slug) || /_today$/.test(definition.slug)) {
     const today = formatDateISO(new Date());
     filters.dateRange = { from: today, to: today };
-  } else if (/_month_/i.test(definition.slug) || /_month$/.test(definition.slug)) {
+  } else if (
+    /_month_/i.test(definition.slug) ||
+    /_month$/.test(definition.slug)
+  ) {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -1289,9 +1346,7 @@ function renderAvailabilityWidget(widget, container) {
         record = rows[0];
       }
       const pct =
-        record?.availability_pct_avg ??
-        record?.availability_pct ??
-        null;
+        record?.availability_pct_avg ?? record?.availability_pct ?? null;
       if (pct === null || pct === undefined) {
         metric.firstChild.textContent = "-";
         helper.textContent = "Sin datos de disponibilidad";
@@ -1721,9 +1776,15 @@ function renderChartWidget(widget, definition, container) {
     deviceId: widget.data_filters?.deviceId || "ALL",
     dateRange: widget.data_filters?.dateRange || computeDateRange(),
   };
+  if (widget.data_filters?.horizon) {
+    filters.horizon = Number(widget.data_filters.horizon);
+  }
+  if (widget.data_filters?.checkLast) {
+    filters.checkLast = Number(widget.data_filters.checkLast);
+  }
 
-  const requestBody = buildChartRequest(widget.slug, filters);
-  if (!requestBody) {
+  const requestConfig = buildChartRequest(widget.slug, filters);
+  if (!requestConfig) {
     container.innerHTML = `
       <div class="empty-state">
         <strong>Widget en desarrollo</strong>
@@ -1776,7 +1837,7 @@ function renderChartWidget(widget, definition, container) {
     }
   };
 
-  fetchPlot(requestBody)
+  fetchChart(requestConfig)
     .then(({ figure, config, mapping }) => {
       if (!container.isConnected) {
         removeLoading();
@@ -1834,6 +1895,60 @@ function buildChartRequest(slug, filters) {
   }
 
   switch (slug) {
+    case "forecast_power_chart": {
+      const range = computeDateRange(14);
+      const map = {};
+      if (siteId && siteId !== "ALL") {
+        map.site_id = [String(siteId)];
+      }
+      if (deviceId && deviceId !== "ALL") {
+        map.device_id = [String(deviceId)];
+      }
+      map.measurement_time = `[${range.from} 00:00:00, ${range.to} 23:59:59]`;
+      const horizon =
+        Number(filters.horizon) > 0 ? Number(filters.horizon) : 24;
+      return {
+        endpoint: "/ml/forecast",
+        payload: {
+          table: "measurements",
+          time_column: "measurement_time",
+          target_column: "power_w",
+          horizon,
+          frequency: "H",
+          up_sampling_agg_func: "avg",
+          include_conf_int: true,
+          filter_map: map,
+        },
+      };
+    }
+    case "anomaly_detection_chart": {
+      const hours =
+        Number(filters.checkLast) > 0 ? Number(filters.checkLast) : 72;
+      const lookback = Math.max(hours * 2, 168);
+      const range = computePastHours(lookback);
+      const map = {};
+      if (siteId && siteId !== "ALL") {
+        map.site_id = [String(siteId)];
+      }
+      if (deviceId && deviceId !== "ALL") {
+        map.device_id = [String(deviceId)];
+      }
+      map.measurement_time = `[${range.from}, ${range.to}]`;
+      return {
+        endpoint: "/ml/anomaly-detection",
+        payload: {
+          table: "measurements",
+          filter_map: map,
+          metric_column: "power_w",
+          time_column: "measurement_time",
+          frequency: "H",
+          up_sampling_agg_func: "avg",
+          check_last: hours,
+          pct_vote_count: 0.5,
+          threshold: 0.3,
+        },
+      };
+    }
     case "histogram_chart":
       return {
         table: "measurements",

@@ -13,6 +13,30 @@ class WidgetDefaults
     {
         return [
             [
+                'slug' => 'forecast_power_chart',
+                'name' => 'Pronóstico de potencia (24 h)',
+                'kind' => 'chart',
+                'description' => 'Predicción de la potencia para las próximas 24 horas con intervalo de confianza.',
+                'source_dataset' => 'measurements',
+                'default_config' => [
+                    'layout' => [
+                        'legend' => ['orientation' => 'h'],
+                    ],
+                ],
+            ],
+            [
+                'slug' => 'anomaly_detection_chart',
+                'name' => 'Detección de anomalías',
+                'kind' => 'chart',
+                'description' => 'Identificación de anomalías recientes en la serie de potencia.',
+                'source_dataset' => 'measurements',
+                'default_config' => [
+                    'layout' => [
+                        'legend' => ['orientation' => 'h'],
+                    ],
+                ],
+            ],
+            [
                 'slug' => 'histogram_chart',
                 'name' => 'Histograma de corriente',
                 'kind' => 'chart',
