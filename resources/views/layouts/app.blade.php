@@ -51,13 +51,13 @@
                 <h3 class="custom-menu-title">General</h3>
                 
                 <ul>
-                    <li class="mcst {{ request()->routeIs('general_clientes') ? 'custom-active' : '' }}">
+                    <li class="mcst {{ request()->routeIs('home') ? 'custom-active' : '' }}">
                         <i class="fa fa-home" aria-hidden="true"></i>
                         <a href="{{ route('home') }}" style="text-decoration: none; color: inherit;">
                             <span>Home</span>
                         </a>
                     </li>
-                    <li class="mcst {{ request()->routeIs('general_clientes') ? 'custom-active' : '' }}">
+                    <li class="mcst {{ request()->routeIs('general_clientes*') ? 'custom-active' : '' }}">
                         <i class="fa fa-th-large" aria-hidden="true"></i>
                         <a href="{{ route('general_clientes') }}" style="text-decoration: none; color: inherit;">
                             <span>Dashboard</span>
@@ -67,7 +67,7 @@
                 @if(auth()->check() && auth()->user()->role === 'admin')
                     <h3 class="custom-menu-title">Gestión de Clientes</h3>
                     <ul>
-                        <li class="mcst">
+                        <li class="mcst {{ request()->routeIs('clientes.*') ? 'custom-active' : '' }}">
                             <i class="fas fa-user"></i>
                             <a href="{{ route('clientes.index') }}" style="text-decoration: none; color: inherit;">
                                 <span>Clientes</span>
@@ -79,7 +79,7 @@
                 @if(auth()->check() && auth()->user()->role === 'normal' && auth()->user()->cliente)
                     <h3 class="custom-menu-title">Mi perfil</h3>
                     <ul>
-                        <li class="mcst">
+                        <li class="mcst {{ request()->routeIs('mi-perfil') ? 'custom-active' : '' }}">
                             <i class="fas fa-user"></i>
                             <a href="{{ route('mi-perfil') }}" style="text-decoration: none; color: inherit;">
                                 <span>Perfil</span>
@@ -90,13 +90,13 @@
 
                 <h3 class="custom-menu-title">Datos y Monitoreo</h3>
                 <ul>
-                    <li class="mcst">
+                    <li class="mcst {{ request()->routeIs('vincular_sensores') ? 'custom-active' : '' }}">
                         <i class="bi bi-radar"></i>
                         <a href="{{route('vincular_sensores')}}" style="text-decoration: none; color: inherit;">
                             <span>Vinculación sensores</span>
                         </a>
                     </li>
-                    <li class="mcst">
+                    <li class="mcst {{ request()->routeIs('clientes.clidash') ? 'custom-active' : '' }}">
                         <i class="bi bi-coin"></i>
                         <a href="{{ route('clientes.clidash') }}" style="text-decoration: none; color: inherit;">
                             <span>Costos y Facturación</span>
@@ -114,7 +114,7 @@
                             <span>Reportes automáticos</span>
                         </a>
                     </li>
-                    <li class="mcst">
+                    <li class="mcst {{ request()->routeIs('site_alerts') ? 'custom-active' : '' }}">
                          <i class="fa fa-bell" aria-hidden="true"></i>
                         <a href="{{route('site_alerts')}}" style="text-decoration: none; color: inherit;">
                            
@@ -125,7 +125,7 @@
 
                 <h3 class="custom-menu-title">Datos de Proveedores</h3>
                 <ul>
-                    <li class="mcst">
+                    <li class="mcst {{ request()->routeIs('datos_cfe') ? 'custom-active' : '' }}">
                         <i class="bi bi-database"></i>
                         <a href="{{route('datos_cfe')}}" style="text-decoration: none; color: inherit;">
                             <span>Datos CFE</span>
@@ -146,7 +146,7 @@
                     </li>
                     -->
                    
-                    <li class="mcst">
+                    <li class="mcst {{ request()->routeIs('tarifas.*') ? 'custom-active' : '' }}">
                         <i class="bi bi-geo-alt"></i>
                         <a href="{{ route('tarifas.index') }}" style="text-decoration: none; color: inherit;">
                             <span>Tarifas</span>
@@ -177,7 +177,7 @@
 
                 <h3 class="custom-menu-title">Sistema</h3>
                 <ul>
-                    <li class="mcst">
+                    <li class="mcst {{ request()->routeIs('config') ? 'custom-active' : '' }}">
                         <i class="fas fa-cog"></i>
                         <a href="{{ route('config') }}" style="text-decoration: none; color: inherit;">
                             <span>Configuración</span>
