@@ -2031,7 +2031,7 @@ function buildChartRequest(slug, filters) {
         ],
         chart: {
           chart_type: "bar",
-          x: "device_id",
+          x: "device_name",
           y: "energy_wh_sum",
           style: { orientation: "v", color: "device_id" },
         },
@@ -2273,9 +2273,9 @@ function buildChartRequest(slug, filters) {
         ],
         chart: {
           chart_type: "bar",
-          x: "device_id",
+          x: "device_name",
           y: "energy_wh_sum",
-          style: { color: "device_id" },
+          style: { orientation: "v", color: "device_id" },
         },
       };
     }
@@ -2304,9 +2304,9 @@ function buildChartRequest(slug, filters) {
         ],
         chart: {
           chart_type: "bar",
-          x: "device_id",
+          x: "device_name",
           y: "energy_wh_sum",
-          style: { color: "device_id" },
+          style: { orientation: "v", color: "device_id" },
         },
       };
     }
