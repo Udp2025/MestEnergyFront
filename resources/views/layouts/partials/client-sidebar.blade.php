@@ -136,5 +136,16 @@
                 </li>
             </ul>
         </nav>
+        @if(!$isSuperAdmin)
+            <div class="custom-logout">
+                <form id="client-sidebar-logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                    @csrf
+                </form>
+                <a href="#" onclick="event.preventDefault(); document.getElementById('client-sidebar-logout-form').submit();">
+                    <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                    <span>Cerrar sesión</span>
+                </a>
+            </div>
+        @endif
     </aside>
 @endif

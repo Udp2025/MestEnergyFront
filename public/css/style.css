@@ -211,18 +211,21 @@ button {
   align-items: stretch;
 }
 
-.custom-sidebar.collapsed .custom-logout {
+.custom-sidebar.collapsed .custom-logout,
+.custom-sidebar-right.collapsed .custom-logout {
   padding: var(--gap-sm) 0 var(--gap-md);
   text-align: center;
 }
 
-.custom-sidebar.collapsed .custom-logout a {
+.custom-sidebar.collapsed .custom-logout a,
+.custom-sidebar-right.collapsed .custom-logout a {
   justify-content: center;
   gap: 0;
   font-size: 0;
 }
 
-.custom-sidebar.collapsed .custom-logout a i {
+.custom-sidebar.collapsed .custom-logout a i,
+.custom-sidebar-right.collapsed .custom-logout a i {
   font-size: 1.35rem;
   margin: 0;
 }
