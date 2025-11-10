@@ -597,6 +597,71 @@ function findDefinition(slug) {
   );
 }
 
+const MAX_SUMMARY_LENGTH = 240;
+const FALLBACK_SUMMARY = {
+  chart: "Gráfica que resume tendencias energéticas recientes.",
+  kpi: "Indicador clave del estado operativo del sitio.",
+};
+
+function normaliseSummaryText(text) {
+  if (!text) return "";
+  const normalized = String(text).replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  if (normalized.length <= MAX_SUMMARY_LENGTH) {
+    return normalized;
+  }
+  return `${normalized.slice(0, MAX_SUMMARY_LENGTH - 1).trim()}…`;
+}
+
+function getWidgetSummary(widget = {}, definition = {}) {
+  const candidate =
+    widget.visual_config?.summary ||
+    widget.summary ||
+    definition.description ||
+    widget.description ||
+    null;
+  if (candidate) {
+    return normaliseSummaryText(candidate);
+  }
+  return definition.kind === "kpi"
+    ? FALLBACK_SUMMARY.kpi
+    : FALLBACK_SUMMARY.chart;
+}
+
+function createWidgetInfoBadge(widget, definition) {
+  const summary = getWidgetSummary(widget, definition);
+  if (!summary) return null;
+  const info = document.createElement("span");
+  info.className = "widget-card__info";
+  info.dataset.summary = summary;
+  info.setAttribute("title", summary);
+  info.setAttribute("aria-label", summary);
+  info.setAttribute("role", "note");
+  info.textContent = "i";
+  return info;
+}
+
+function syncInfoBadge(card, widget, definition) {
+  const actions = card.querySelector(".widget-card__header-actions");
+  if (!actions) return;
+  let info = actions.querySelector(".widget-card__info");
+  if (!info) {
+    info = createWidgetInfoBadge(widget, definition);
+    if (info) {
+      actions.insertBefore(info, actions.firstChild || null);
+    }
+    return;
+  }
+  const summary = getWidgetSummary(widget, definition);
+  if (!summary) {
+    info.remove();
+    return;
+  }
+  info.dataset.summary = summary;
+  info.setAttribute("title", summary);
+  info.setAttribute("aria-label", summary);
+}
+
 function createWidgetInstance(definition, overrides = {}) {
   const filters = {
     siteId: state.defaultSiteId ?? currentUserSiteId() ?? null,
@@ -971,8 +1036,16 @@ function renderWidgetCard(widget, definition) {
   headerInfo.appendChild(title);
   headerInfo.appendChild(meta);
 
+  const headerActions = document.createElement("div");
+  headerActions.className = "widget-card__header-actions";
+  const infoBadge = createWidgetInfoBadge(widget, definition);
+  if (infoBadge) {
+    headerActions.appendChild(infoBadge);
+  }
+  headerActions.appendChild(removeBtn);
+
   header.appendChild(headerInfo);
-  header.appendChild(removeBtn);
+  header.appendChild(headerActions);
 
   const body = document.createElement("div");
   body.className = "widget-card__body";
@@ -1035,6 +1108,8 @@ function updateWidgetCard(card, widget, definition) {
   if (removeButton) {
     removeButton.disabled = !!widget.isLoading;
   }
+
+  syncInfoBadge(card, widget, definition);
 
   if (!body) return;
 

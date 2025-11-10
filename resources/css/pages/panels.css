@@ -168,6 +168,13 @@
   gap: 0.75rem;
 }
 
+.widget-card__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 32px;
+}
+
 .widget-card__title {
   margin: 0;
   font-size: 1.05rem;
@@ -186,6 +193,94 @@
   background: rgba(206, 173, 109, 0.14);
   border-radius: 999px;
   padding: 0.25rem 0.65rem;
+}
+
+.widget-card__info {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(19, 42, 107, 0.12);
+  color: #132a6b;
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  cursor: default;
+}
+
+.widget-card:hover .widget-card__info,
+.widget-card:focus-within .widget-card__info {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.widget-card__info::after {
+  content: attr(data-summary);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  width: max-content;
+  max-width: 320px;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  background: #1f2937;
+  color: #ffffff;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.35);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  white-space: normal;
+  display: inline-block;
+  overflow: visible;
+  text-align: left;
+  font-weight: 500;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.widget-card__info::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 2px);
+  right: 8px;
+  border-width: 6px;
+  border-style: solid;
+  border-color: #1f2937 transparent transparent transparent;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.widget-card__info:hover::after,
+.widget-card__info:hover::before,
+.widget-card__info:focus-visible::after,
+.widget-card__info:focus-visible::before {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.widget-card__remove {
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.widget-card:hover .widget-card__remove,
+.widget-card:focus-within .widget-card__remove,
+.widget-card__remove:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .widget-card__body {
