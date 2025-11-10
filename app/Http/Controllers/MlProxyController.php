@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class MlProxyController extends PlotProxyController
+{
+    /**
+     * Proxy forecast requests to the upstream ML service.
+     */
+    public function forecast(Request $request): JsonResponse
+    {
+        return $this->forwardMl($request, '/ml/forecast');
+    }
+
+    /**
+     * Proxy anomaly detection requests to the upstream ML service.
+     */
+    public function anomaly(Request $request): JsonResponse
+    {
+        return $this->forwardMl($request, '/ml/anomaly-detection');
+    }
+
+    protected function forwardMl(Request $request, string $path): JsonResponse
+    {
+        if (!$this->shouldUseRemote()) {
+            abort(503, 'El servicio de ML no está disponible en este entorno.');
+        }
+
+        $payload = $request->all();
+        $this->ensureAllowedTable($payload);
+        $payload = $this->applySiteConstraints($request->user(), $payload);
+
+        return $this->forward($payload, $path);
+    }
+}

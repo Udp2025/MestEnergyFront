@@ -66,7 +66,12 @@ export const getDevices = (siteId) => {
     select_columns: ["device_id", "device_name"],
   };
 
-  if (siteId !== undefined && siteId !== null && siteId !== "ALL" && siteId !== "") {
+  if (
+    siteId !== undefined &&
+    siteId !== null &&
+    siteId !== "ALL" &&
+    siteId !== ""
+  ) {
     payload.filter_map = { site_id: "=" + siteId };
   }
 

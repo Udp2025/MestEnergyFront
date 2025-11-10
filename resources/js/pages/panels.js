@@ -6,23 +6,23 @@ import {
   plotIsEmpty,
   csrfToken,
 } from "../utils/plot";
-import { fetchDB, getSites } from "../utils/core";
+import { fetchDB, getSites, getDevices } from "../utils/core";
 import { canViewAllSites, currentUserSiteId } from "../utils/auth";
 
 const DEFAULT_WIDGET_CATALOG = [
   {
     slug: "forecast_power_chart",
-    name: "Pronóstico de potencia (24 h)",
+    name: "Pronóstico de potencia (7 días)",
     kind: "chart",
     description:
-      "Predicción de la potencia para las próximas 24 horas con intervalo de confianza.",
+      "Predicción diaria de la potencia para la próxima semana con intervalo de confianza.",
   },
   {
     slug: "anomaly_detection_chart",
-    name: "Detección de anomalías",
+    name: "Detección de anomalías (24 h)",
     kind: "chart",
     description:
-      "Identificación de puntos anómalos recientes en la serie de potencia.",
+      "Identificación de anomalías en las últimas 24 horas usando histórico extendido.",
   },
   {
     slug: "histogram_chart",
@@ -248,6 +248,20 @@ const state = {
 };
 
 const isSuperAdmin = canViewAllSites();
+const DEVICE_FILTER_WIDGETS = new Set([
+  "forecast_power_chart",
+  "anomaly_detection_chart",
+]);
+const deviceCache = new Map();
+
+function resolveSiteId(widget, options = {}) {
+  const allowAll = options.allowAll !== false;
+  const candidate = widget?.data_filters?.siteId;
+  if (candidate && (allowAll || candidate !== "ALL")) {
+    return candidate;
+  }
+  return state.defaultSiteId ?? currentUserSiteId() ?? null;
+}
 let isDirty = false;
 let widgetsApiEnabled = true;
 let isEditingMode = false;
@@ -385,14 +399,12 @@ function appendSiteSelector(container, widget, onChange) {
   const label = document.createElement("label");
   label.textContent = "Sitio";
   const select = document.createElement("select");
+  const resolvedSiteId = resolveSiteId(widget);
   state.sites.forEach((site) => {
     const option = document.createElement("option");
     option.value = site.site_id;
     option.textContent = site.site_name;
-    if (
-      String(widget.data_filters?.siteId ?? state.defaultSiteId) ===
-      site.site_id
-    ) {
+    if (resolvedSiteId && String(resolvedSiteId) === site.site_id) {
       option.selected = true;
     }
     select.appendChild(option);
@@ -778,6 +790,107 @@ async function ensureSites() {
   } catch (err) {
     console.warn("panels.js: unable to load site list", err);
   }
+}
+
+async function loadDevicesForSite(siteId) {
+  const key = siteId ? String(siteId) : "ALL";
+  if (deviceCache.has(key)) {
+    return deviceCache.get(key);
+  }
+  if (!siteId || siteId === "ALL") {
+    deviceCache.set(key, []);
+    return [];
+  }
+  try {
+    const response = await getDevices(siteId);
+    const rows = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+    const devices = rows.map((row) => ({
+      device_id: String(row.device_id ?? row.id),
+      device_name: row.device_name || `Dispositivo ${row.device_id ?? row.id}`,
+    }));
+    deviceCache.set(key, devices);
+    return devices;
+  } catch (err) {
+    console.warn("panels.js: unable to load devices for site", siteId, err);
+    deviceCache.set(key, []);
+    return [];
+  }
+}
+
+function appendDeviceSelector(container, widget, onChange) {
+  const siteId = resolveSiteId(widget, { allowAll: false });
+  if (!siteId) return null;
+  const controls = document.createElement("div");
+  controls.className = "widget-card__controls";
+  const label = document.createElement("label");
+  label.textContent = "Dispositivo";
+  const select = document.createElement("select");
+  select.disabled = true;
+  const loadingOption = document.createElement("option");
+  loadingOption.value = "";
+  loadingOption.textContent = "Cargando dispositivos…";
+  select.appendChild(loadingOption);
+  controls.appendChild(label);
+  controls.appendChild(select);
+  container.appendChild(controls);
+
+  loadDevicesForSite(siteId)
+    .then((devices) => {
+      select.innerHTML = "";
+      const allOption = document.createElement("option");
+      allOption.value = "ALL";
+      allOption.textContent = "Todos los dispositivos";
+      select.appendChild(allOption);
+      if (devices.length === 0) {
+        const emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.textContent = "Sin dispositivos";
+        emptyOption.disabled = true;
+        select.appendChild(emptyOption);
+      } else {
+        devices.forEach((device) => {
+          const option = document.createElement("option");
+          option.value = device.device_id;
+          option.textContent = device.device_name;
+          select.appendChild(option);
+        });
+      }
+      const selected =
+        String(widget.data_filters?.deviceId || "ALL") || "ALL";
+      if (
+        Array.from(select.options).some(
+          (option) => option.value === selected && !option.disabled
+        )
+      ) {
+        select.value = selected;
+      } else {
+        select.value = "ALL";
+        updateWidgetFilters(widget, { deviceId: "ALL" }).catch(() => {});
+      }
+    })
+    .catch((err) => {
+      console.warn("panels.js: unable to populate device selector", err);
+      select.innerHTML = "";
+      const allOption = document.createElement("option");
+      allOption.value = "ALL";
+      allOption.textContent = "Todos los dispositivos";
+      select.appendChild(allOption);
+      select.value = "ALL";
+    })
+    .finally(() => {
+      select.disabled = false;
+    });
+
+  select.addEventListener("change", async (event) => {
+    await updateWidgetFilters(widget, { deviceId: event.target.value });
+    onChange(event.target.value);
+  });
+
+  return controls;
 }
 
 function getSiteLabel(siteId) {
@@ -1845,9 +1958,11 @@ function renderActiveDevicesWidget(widget, container) {
 function renderChartWidget(widget, definition, container) {
   resetWidgetBody(container, "chart");
 
+  const siteId = resolveSiteId(widget, {
+    allowAll: !DEVICE_FILTER_WIDGETS.has(widget.slug),
+  });
   const filters = {
-    siteId:
-      widget.data_filters?.siteId || state.defaultSiteId || currentUserSiteId(),
+    siteId,
     deviceId: widget.data_filters?.deviceId || "ALL",
     dateRange: widget.data_filters?.dateRange || computeDateRange(),
   };
@@ -1888,12 +2003,21 @@ function renderChartWidget(widget, definition, container) {
       select.appendChild(option);
     });
     select.addEventListener("change", async (event) => {
-      await updateWidgetFilters(widget, { siteId: event.target.value });
+      await updateWidgetFilters(widget, {
+        siteId: event.target.value,
+        deviceId: "ALL",
+      });
       renderChartWidget(widget, definition, container);
     });
     controls.appendChild(label);
     controls.appendChild(select);
     wrapper.appendChild(controls);
+  }
+
+  if (DEVICE_FILTER_WIDGETS.has(widget.slug)) {
+    appendDeviceSelector(wrapper, widget, () =>
+      renderChartWidget(widget, definition, container)
+    );
   }
 
   const chartNode = document.createElement("div");
@@ -1971,7 +2095,7 @@ function buildChartRequest(slug, filters) {
 
   switch (slug) {
     case "forecast_power_chart": {
-      const range = computeDateRange(14);
+      const range = computeDateRange(1000);
       const map = {};
       if (siteId && siteId !== "ALL") {
         map.site_id = [String(siteId)];
@@ -1980,8 +2104,7 @@ function buildChartRequest(slug, filters) {
         map.device_id = [String(deviceId)];
       }
       map.measurement_time = `[${range.from} 00:00:00, ${range.to} 23:59:59]`;
-      const horizon =
-        Number(filters.horizon) > 0 ? Number(filters.horizon) : 24;
+      const horizon = Number(filters.horizon) > 0 ? Number(filters.horizon) : 7;
       return {
         endpoint: "/ml/forecast",
         payload: {
@@ -1989,8 +2112,8 @@ function buildChartRequest(slug, filters) {
           time_column: "measurement_time",
           target_column: "power_w",
           horizon,
-          frequency: "H",
-          up_sampling_agg_func: "avg",
+          frequency: "D",
+          up_sampling_agg_func: "sum",
           include_conf_int: true,
           filter_map: map,
         },
@@ -1998,8 +2121,8 @@ function buildChartRequest(slug, filters) {
     }
     case "anomaly_detection_chart": {
       const hours =
-        Number(filters.checkLast) > 0 ? Number(filters.checkLast) : 72;
-      const lookback = Math.max(hours * 2, 168);
+        Number(filters.checkLast) > 0 ? Number(filters.checkLast) : 24;
+      const lookback = Math.max(hours * 365, 1000);
       const range = computePastHours(lookback);
       const map = {};
       if (siteId && siteId !== "ALL") {
@@ -2017,10 +2140,8 @@ function buildChartRequest(slug, filters) {
           metric_column: "power_w",
           time_column: "measurement_time",
           frequency: "H",
-          up_sampling_agg_func: "avg",
+          up_sampling_agg_func: "sum",
           check_last: hours,
-          pct_vote_count: 0.5,
-          threshold: 0.3,
         },
       };
     }

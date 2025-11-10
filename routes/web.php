@@ -32,6 +32,7 @@ use App\Http\Controllers\PreferenciasController;
 use App\Http\Controllers\WidgetController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\PlotProxyController;
+use App\Http\Controllers\MlProxyController;
 use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\Admin; // Importa el middleware
@@ -122,6 +123,8 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/charts/plot', [PlotProxyController::class, 'plot'])->name('charts.plot');
     Route::post('/charts/data', [PlotProxyController::class, 'data'])->name('charts.data');
+    Route::post('/ml/forecast', [MlProxyController::class, 'forecast'])->name('ml.forecast');
+    Route::post('/ml/anomaly-detection', [MlProxyController::class, 'anomaly'])->name('ml.anomaly');
  
     Route::get('/api/postal-codes/{cp}', [PostalCodeController::class, 'lookup']);
     Route::get('/clientes', [ClientesController::class,'index'])->name('clientes.index');

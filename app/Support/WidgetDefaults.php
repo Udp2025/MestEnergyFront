@@ -14,9 +14,9 @@ class WidgetDefaults
         return [
             [
                 'slug' => 'forecast_power_chart',
-                'name' => 'Pronóstico de potencia (24 h)',
+                'name' => 'Pronóstico de potencia (7 días)',
                 'kind' => 'chart',
-                'description' => 'Predicción de la potencia para las próximas 24 horas con intervalo de confianza.',
+                'description' => 'Predicción diaria de la potencia para la próxima semana con intervalo de confianza.',
                 'source_dataset' => 'measurements',
                 'default_config' => [
                     'layout' => [
@@ -26,9 +26,9 @@ class WidgetDefaults
             ],
             [
                 'slug' => 'anomaly_detection_chart',
-                'name' => 'Detección de anomalías',
+                'name' => 'Detección de anomalías (24 h)',
                 'kind' => 'chart',
-                'description' => 'Identificación de anomalías recientes en la serie de potencia.',
+                'description' => 'Identificación de anomalías en las últimas 24 horas usando histórico extendido.',
                 'source_dataset' => 'measurements',
                 'default_config' => [
                     'layout' => [
