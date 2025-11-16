@@ -6,6 +6,7 @@
         'visualize',
         'heatmap',
         'benchmarking',
+        'anomaly',
         'forecast',
         'energyflow',
         'clientes.clidash',
@@ -100,6 +101,12 @@
                     <i class="fas fa-circle" aria-hidden="true"></i>
                     <a href="{{ route('benchmarking', $clientQueryParams) }}">
                         <span>Benchmarking</span>
+                    </a>
+                </li>
+                <li class="{{ request()->routeIs('anomaly') ? 'custom-active' : '' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i>
+                    <a href="{{ route('anomaly', $clientQueryParams) }}">
+                        <span>Detección de anomalías</span>
                     </a>
                 </li>
                 <li class="{{ request()->routeIs('forecast') ? 'custom-active' : '' }}">

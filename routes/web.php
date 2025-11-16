@@ -35,6 +35,7 @@ use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\PlotProxyController;
 use App\Http\Controllers\MlProxyController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\AnomalyController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\Admin; // Importa el middleware
 use Illuminate\Support\Facades\Auth;
@@ -105,6 +106,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/vincular_sensores', [SensoresController::class, 'index'])->name('vincular_sensores');
     Route::get('/site_alerts_in', [SiteAlertsInController::class, 'index'])->name('site_alerts_in');
     Route::get('/tiggers', [TiggersController::class, 'index'])->name('tiggers');
+    Route::get('/anomaly', [AnomalyController::class, 'index'])->name('anomaly');
     Route::get('/forecast', [ForecastController::class, 'index'])->name('forecast');
     Route::get('/timeseries', [TimeSeriesController::class, 'index'])->name('timeseries');
         Route::get('/histogram', [HistogramController::class, 'index'])->name('histogram');
