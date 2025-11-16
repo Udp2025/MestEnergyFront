@@ -35,9 +35,7 @@
         $selectedClientId = null;
     }
 
-    $shouldShowClientSidebar = $user && (
-        !$isSuperAdmin || $isClientContextRoute
-    );
+    $shouldShowClientSidebar = (bool) $user;
 @endphp
 
 @if($shouldShowClientSidebar)
@@ -53,8 +51,13 @@
         $clientQueryParams = ($isSuperAdmin && $clienteLinkId)
             ? ['cliente' => $clienteLinkId]
             : [];
+
+        $sidebarClasses = 'custom-sidebar-right';
+        if ($isSuperAdmin) {
+            $sidebarClasses .= ' collapsed'; // super admins see it globally but collapsed by default
+        }
     @endphp
-    <aside class="custom-sidebar-right" id="sidebar-right">
+    <aside class="{{ $sidebarClasses }}" id="sidebar-right">
         <div class="custom-logo-section custom-logo-section--right">
             <button class="custom-toggle-btn" id="toggle-btn-right" type="button" aria-label="Contraer menú del cliente">
                 <i class="fas fa-chevron-right"></i>
