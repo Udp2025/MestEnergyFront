@@ -1,5 +1,5 @@
 {{-- resources/views/scatter.blade.php --}}
-@extends('layouts.app')
+@extends('layouts.complete')
 @section('title', 'Scatter')
 @push('head')
   <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" defer></script>
@@ -18,7 +18,7 @@
     $canViewAllSites = $authContext['abilities']['canViewAllSites'] ?? false;
     $todayDate  = Carbon::today();
     $today      = $todayDate->format('Y-m-d');
-    $lastWeek   = $todayDate->copy()->subWeek()->format('Y-m-d');
+    $lastMonth   = $todayDate->copy()->subMonth()->format('Y-m-d');
 @endphp
 <div class="plot-page">
   <h1 class="plot-page__title">Dispersión</h1>
@@ -66,7 +66,7 @@
 
     {{-- === Date range ==================================================== --}}
     <label>Desde:
-        <input type="date" name="from" id="from" value="{{ $lastWeek }}">
+        <input type="date" name="from" id="from" value="{{ $lastMonth }}">
     </label>
     <label>Hasta:
         <input type="date" name="to"   id="to"   value="{{ $today }}">
@@ -142,6 +142,7 @@
 
     <div class="chart-container">
         <div id="scatterChart" class="plot-chart" style="max-height:600px"></div>
+        <p class="plot-hint">Filtros avanzados: selecciona la frecuencia de re-muestreo y las funciones de agregación para X/Y, además de la dimensión usada para colorear los puntos.</p>
     </div>
   </section>
 </div>

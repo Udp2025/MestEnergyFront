@@ -1,3 +1,12 @@
 .plot-card .chart-container {
   margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 16px;
+}
+
+.plot-chart {
+  width: 100%;
+  min-height: 520px;
 }

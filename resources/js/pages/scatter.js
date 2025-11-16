@@ -20,15 +20,15 @@ import {
 
 /* ---------- Dates ------------------------------------------------- */
 const TODAY_DATE = new Date();
-const LAST_WEEK_DATE = new Date(TODAY_DATE.getTime() - 7 * 24 * 60 * 60 * 1e3);
+const LAST_MONTH_DATE = new Date(TODAY_DATE.getTime() - 30 * 24 * 60 * 60 * 1e3);
 const TODAY = fmtDate(TODAY_DATE);
-const LAST_WEEK = fmtDate(LAST_WEEK_DATE);
+const LAST_MONTH = fmtDate(LAST_MONTH_DATE);
 
 /* ---------- Defaults --------------------------------------------- */
 const DEFAULTS = {
   metric1: "current_a",
   metric2: "voltage_v",
-  from: LAST_WEEK,
+  from: LAST_MONTH,
   to: TODAY,
   freq: "5min",
   agg1: "original",

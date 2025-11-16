@@ -79,3 +79,17 @@
   margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
+/* Plot layout overrides */
+.plot-card .chart-container {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 16px;
+}
+
+.plot-chart {
+  width: 100%;
+  min-height: 520px;
+}

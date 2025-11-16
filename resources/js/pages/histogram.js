@@ -20,14 +20,14 @@ import {
 
 /* ---------- Dates ------------------------------------------------- */
 const TODAY_DATE = new Date();
-const LAST_WEEK_DATE = new Date(TODAY_DATE.getTime() - 7 * 24 * 60 * 60 * 1e3);
+const LAST_MONTH_DATE = new Date(TODAY_DATE.getTime() - 30 * 24 * 60 * 60 * 1e3);
 const TODAY = fmtDate(TODAY_DATE);
-const LAST_WEEK = fmtDate(LAST_WEEK_DATE);
+const LAST_MONTH = fmtDate(LAST_MONTH_DATE);
 
 /* ---------- Defaults --------------------------------------------- */
 const DEFAULTS = {
   metric1: "current_a",
-  from: LAST_WEEK,
+  from: LAST_MONTH,
   to: TODAY,
   freq: "5min",
   agg1: "original",
@@ -57,7 +57,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const deviceSel = $("device");
   const freqSel = $("freq");
   const agg1Sel = $("agg1");
-  let colorBy = "device_id";
   const bins = $("bins");
 
   /* ----- Site / device dropdowns --------------------------------- */
@@ -100,7 +99,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     if (isAdmin) {
       await loadSites();
-      colorBy = "site_id";
       siteSel?.addEventListener("change", async () => {
         activeSiteId = siteSel.value;
         await loadDevices();
@@ -156,7 +154,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       ...(deviceSel.value !== "ALL" && { device_id: "=" + deviceSel.value }),
     };
 
-    const colorDict = deviceSel.value === "ALL" ? { color: colorBy } : {};
+    const colorDict = { color: "device_id" };
 
     const nbinsDict = bins.value === "" ? {} : { nbins: parseInt(bins.value) };
 

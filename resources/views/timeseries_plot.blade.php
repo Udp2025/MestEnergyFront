@@ -1,13 +1,13 @@
-{{-- resources/views/histogram.blade.php --}}
+{{-- resources/views/timeseries_plot.blade.php --}}
 @extends('layouts.complete')
-@section('title', 'histogram')
+@section('title','Serie temporal')
 @push('head')
   <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" defer></script>
 @endpush
 
 @vite([
-    'resources/js/pages/histogram.js',       
-    'resources/css/pages/histogram.css',
+    'resources/js/pages/timeseries.js',
+    'resources/css/pages/timeseries.css',
     'resources/css/plot/common.css'
 ])
 
@@ -18,10 +18,9 @@
     $canViewAllSites = $authContext['abilities']['canViewAllSites'] ?? false;
     $todayDate  = Carbon::today();
     $today      = $todayDate->format('Y-m-d');
-    $lastMonth   = $todayDate->copy()->subMonth()->format('Y-m-d');
 @endphp
 <div class="plot-page">
-  <h1 class="plot-page__title">Histograma</h1>
+  <h1 class="plot-page__title">Serie temporal</h1>
 
   <section class="plot-card">
     <form id="plot-filters" class="plot-filters">
@@ -40,25 +39,21 @@
         <select id="device" name="device" required></select>
     </label>
 
-    {{-- === X-axis metric ================================================= --}}
+    {{-- === Metric ========================================================= --}}
     <label>
-        Métrica X:
-        <select name="metric1" id="metric1">
-            <option value="current_a" selected>Corriente</option>
-            <option value="voltage_v">Voltaje</option>
-            <option value="power_w">Potencia</option>
+        Métrica:
+        <select name="metric" id="metric">
+            <option value="power_w" selected>Potencia</option>
             <option value="energy_wh">Energía</option>
+            <option value="current_a">Corriente</option>
+            <option value="voltage_v">Voltaje</option>
             <option value="power_factor">Factor Potencia</option>
         </select>
     </label>
 
-    {{-- === Date range ==================================================== --}}
-    <label>Desde:
-        <input type="date" name="from" id="from" value="{{ $lastMonth }}">
-    </label>
-    <label>Hasta:
-        <input type="date" name="to"   id="to"   value="{{ $today }}">
-    </label>
+    {{-- === Date range (start fixed) ===================================== --}}
+    <input type="hidden" name="from" id="from" value="{{ \Carbon\Carbon::today()->subMonth()->format('Y-m-d') }}">
+    <input type="hidden" name="to"   id="to"   value="{{ $today }}">
 
     <button
       type="button"
@@ -71,16 +66,14 @@
     </button>
 
     <div class="advanced-filters" data-advanced-container>
-      {{-- === Resampling window ============================================ --}}
       <label>Frecuencia:
-        <select name="freq" id="freq">
-            <option value="5min" selected>5min</option>
+        <select name="period" id="period">
             <option value="H">Hora</option>
             <option value="2H">2h</option>
             <option value="4H">4h</option>
             <option value="6H">6h</option>
             <option value="12H">12h</option>
-            <option value="D">Día</option>
+            <option value="D" selected>Día</option>
             <option value="BD">Día laboral</option>
             <option value="W">Semana</option>
             <option value="BW">Quincena</option>
@@ -91,21 +84,14 @@
         </select>
       </label>
 
-      {{-- === Aggregations ================================================== --}}
-      <label>Función X:
-        <select name="agg1" id="agg1" disabled>
-            <option value="original" selected>Original</option>
-            <option value="avg">Promedio</option>
+      <label>Función:
+        <select name="agg" id="agg">
+            <option value="avg" selected>Promedio</option>
             <option value="sum">Suma</option>
             <option value="min">Mín</option>
             <option value="max">Máx</option>
             <option value="std">Desv. Estándar</option>
         </select>
-      </label>
-
-      {{-- BINS (optional) ------------------------------------------------ --}}
-      <label>Bins máx:
-        <input type="number" id="bins" name="bins" min="3" placeholder="auto">
       </label>
     </div>
 
@@ -114,8 +100,8 @@
     </form>
 
     <div class="chart-container">
-        <div id="histogramChart" class="plot-chart" style="max-height:600px"></div>
-        <p class="plot-hint">Filtros avanzados: controla la frecuencia de re-muestreo, la función de agregación y el número máximo de bins para distribuir la métrica.</p>
+        <div id="lineChart" class="plot-chart" style="max-height:640px"></div>
+        <p class="plot-hint">Filtros avanzados: ajusta la frecuencia de muestreo y la función de agregación aplicada a la métrica seleccionada.</p>
     </div>
   </section>
 </div>
