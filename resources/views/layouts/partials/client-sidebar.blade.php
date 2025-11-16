@@ -6,6 +6,7 @@
         'visualize',
         'heatmap',
         'benchmarking',
+        'forecast',
         'energyflow',
         'clientes.clidash',
         'site_alerts',
@@ -96,6 +97,12 @@
                     <i class="fas fa-circle" aria-hidden="true"></i>
                     <a href="{{ route('benchmarking', $clientQueryParams) }}">
                         <span>Benchmarking</span>
+                    </a>
+                </li>
+                <li class="{{ request()->routeIs('forecast') ? 'custom-active' : '' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i>
+                    <a href="{{ route('forecast', $clientQueryParams) }}">
+                        <span>Pronóstico de Consumo</span>
                     </a>
                 </li>
                 <li class="{{ request()->routeIs('energyflow') ? 'custom-active' : '' }}">

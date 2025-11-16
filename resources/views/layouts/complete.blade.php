@@ -102,12 +102,6 @@
                         </a>
                     </li>
                     <li class="mcst">
-                        <i class="bi bi-graph-up"></i>
-                        <a href="" style="text-decoration: none; color: inherit;">
-                            <span>Pronostico de Consumo</span>
-                        </a>
-                    </li>
-                    <li class="mcst">
                         <i class="bi bi-file-earmark-medical"></i>
                         <a href="" style="text-decoration: none; color: inherit;">
                             <span>Reportes automáticos</span>

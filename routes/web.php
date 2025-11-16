@@ -15,6 +15,7 @@ use App\Http\Controllers\configController; // Asegúrate de que el nombre de la 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnergyflowController;
 use App\Http\Controllers\GraphController;
+use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\HeatmapController;
 use App\Http\Controllers\GeneralClientesController;
@@ -104,6 +105,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/vincular_sensores', [SensoresController::class, 'index'])->name('vincular_sensores');
     Route::get('/site_alerts_in', [SiteAlertsInController::class, 'index'])->name('site_alerts_in');
     Route::get('/tiggers', [TiggersController::class, 'index'])->name('tiggers');
+    Route::get('/forecast', [ForecastController::class, 'index'])->name('forecast');
     Route::get('/timeseries', [TimeSeriesController::class, 'index'])->name('timeseries');
         Route::get('/histogram', [HistogramController::class, 'index'])->name('histogram');
     Route::get('/benchmarking', [BarController::class, 'index'])->name('benchmarking');
