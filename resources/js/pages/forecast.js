@@ -15,7 +15,7 @@ import { fillSelect } from "../utils/list";
 import { getSites, getDevices, fmtDate } from "../utils/core";
 
 const TODAY = fmtDate(new Date());
-const HISTORY_START = fmtDate(new Date(Date.now() - 180 * 24 * 60 * 60 * 1e3));
+const HISTORY_START = fmtDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3));
 const DEFAULTS = {
   from: HISTORY_START,
   to: TODAY,
@@ -136,8 +136,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const v = (name, fallback) => form[name]?.value?.trim() || fallback;
 
   function buildRequestBody() {
-    const from = v("from", DEFAULTS.from);
-    const to = v("to", DEFAULTS.to);
+    const from = HISTORY_START;
+    const to = TODAY;
     const horizonRaw = Number(form["horizon"]?.value ?? DEFAULTS.horizon);
     const horizon =
       Number.isFinite(horizonRaw) && horizonRaw > 0
@@ -197,8 +197,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (runBtn.disabled) return;
     notice.clear();
 
-    const from = v("from", DEFAULTS.from);
-    const to = v("to", DEFAULTS.to);
+    const from = HISTORY_START;
+    const to = TODAY;
     if (from > to) {
       notice.show(
         "Rango inválido: la fecha inicial es mayor que la final.",
@@ -221,6 +221,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (figure.layout && figure.layout.title) {
         figure.layout.title = "";
       }
+      figure.layout = {
+        margin: { l: 50, r: 24, t: 24, b: 60 },
+        autosize: true,
+        ...(figure.layout || {}),
+      };
 
       if (plotIsEmpty(figure)) {
         notice.show(

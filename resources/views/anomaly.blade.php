@@ -18,7 +18,7 @@
     $canViewAllSites = $authContext['abilities']['canViewAllSites'] ?? false;
     $todayDate  = Carbon::today();
     $today      = $todayDate->format('Y-m-d');
-    $lastWeek   = $todayDate->copy()->subWeek()->format('Y-m-d');
+    $lastMonth  = $todayDate->copy()->subMonth()->format('Y-m-d');
 @endphp
 <div class="plot-page">
   <h1 class="plot-page__title">Detección de anomalías</h1>
@@ -52,13 +52,9 @@
         </select>
       </label>
 
-      {{-- Dates -------------------------------------------------------------- --}}
-      <label>Desde:
-        <input type="date" name="from" id="from" value="{{ $lastWeek }}">
-      </label>
-      <label>Hasta:
-        <input type="date" name="to" id="to" value="{{ $today }}">
-      </label>
+      {{-- Dates (start fixed) ------------------------------------------------ --}}
+      <input type="hidden" name="from" id="from" value="{{ $lastMonth }}">
+      <input type="hidden" name="to" id="to" value="{{ $today }}">
 
       {{-- Check window & frequency ------------------------------------------- --}}
       <label>
@@ -123,6 +119,7 @@
           <strong data-status>–</strong>
         </div>
       </div>
+      <p class="plot-hint">Filtros avanzados: ajusta el % de votos requerido (consenso de modelos), el umbral que marca el periodo como anómalo y la agregación (sum/promedio) usada al escalar la serie.</p>
     </div>
   </section>
 </div>

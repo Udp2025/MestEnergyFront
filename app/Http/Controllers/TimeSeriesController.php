@@ -11,7 +11,7 @@ class TimeSeriesController extends Controller
      */
     public function index()
     {
-        return redirect()->route('general_clientes');
+        return view('timeseries_plot');
     }
 
     /**

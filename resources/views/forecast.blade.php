@@ -18,7 +18,7 @@
     $canViewAllSites = $authContext['abilities']['canViewAllSites'] ?? false;
     $todayDate  = Carbon::today();
     $today      = $todayDate->format('Y-m-d');
-    $historyFrom = $todayDate->copy()->subDays(180)->format('Y-m-d');
+    $lastMonth  = $todayDate->copy()->subMonth()->format('Y-m-d');
 @endphp
 <div class="plot-page">
   <h1 class="plot-page__title">Pronóstico de Consumo</h1>
@@ -40,13 +40,9 @@
         <select id="device" name="device" required></select>
       </label>
 
-      {{-- === Date range ==================================================== --}}
-      <label>Histórico desde:
-        <input type="date" name="from" id="from" value="{{ $historyFrom }}">
-      </label>
-      <label>Hasta:
-        <input type="date" name="to" id="to" value="{{ $today }}">
-      </label>
+      {{-- === Date range (start fixed) ===================================== --}}
+    <input type="hidden" name="from" id="from" value="{{ $lastMonth }}">
+    <input type="hidden" name="to" id="to" value="{{ $today }}">
 
       {{-- Horizon ----------------------------------------------------------- --}}
       <label>
@@ -104,6 +100,7 @@
           <strong data-runtime></strong>
         </div>
       </div>
+      <p class="plot-hint">Filtros avanzados: elige la frecuencia (H/D/W/M) usada para el modelo, define el horizonte en pasos futuros y activa/desactiva el intervalo de confianza que se muestra como banda.</p>
     </div>
   </section>
 </div>

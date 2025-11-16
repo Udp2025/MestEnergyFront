@@ -3,11 +3,13 @@
     $isSuperAdmin = session('is_super_admin', (int) ($user?->cliente_id ?? -1) === 0);
     $clientContextRoutes = [
         'general_clientes',
-        'visualize',
         'heatmap',
         'benchmarking',
         'anomaly',
         'forecast',
+        'scatter',
+        'histogram',
+        'timeseries',
         'energyflow',
         'clientes.clidash',
         'site_alerts',
@@ -85,12 +87,6 @@
                         </a>
                     </li>
                 @endif
-                <li class="{{ request()->routeIs('visualize') ? 'custom-active' : '' }}">
-                    <i class="fas fa-circle" aria-hidden="true"></i>
-                    <a href="{{ route('visualize', $clientQueryParams) }}">
-                        <span>Energy Dashboard</span>
-                    </a>
-                </li>
                 <li class="{{ request()->routeIs('heatmap') ? 'custom-active' : '' }}">
                     <i class="fas fa-circle" aria-hidden="true"></i>
                     <a href="{{ route('heatmap', $clientQueryParams) }}">
@@ -101,6 +97,24 @@
                     <i class="fas fa-circle" aria-hidden="true"></i>
                     <a href="{{ route('benchmarking', $clientQueryParams) }}">
                         <span>Benchmarking</span>
+                    </a>
+                </li>
+                <li class="{{ request()->routeIs('scatter') ? 'custom-active' : '' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i>
+                    <a href="{{ route('scatter', $clientQueryParams) }}">
+                        <span>Dispersión</span>
+                    </a>
+                </li>
+                <li class="{{ request()->routeIs('histogram') ? 'custom-active' : '' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i>
+                    <a href="{{ route('histogram', $clientQueryParams) }}">
+                        <span>Histograma</span>
+                    </a>
+                </li>
+                <li class="{{ request()->routeIs('timeseries') ? 'custom-active' : '' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i>
+                    <a href="{{ route('timeseries', $clientQueryParams) }}">
+                        <span>Serie temporal</span>
                     </a>
                 </li>
                 <li class="{{ request()->routeIs('anomaly') ? 'custom-active' : '' }}">
