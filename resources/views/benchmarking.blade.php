@@ -126,6 +126,7 @@
 
     <div class="chart-container">
       <div id="lineChart" style="max-height:560px"></div>
+      <p class="plot-hint">Filtros avanzados: ajusta la frecuencia de agregación, la función aplicada a la métrica, la dimensión usada para colorear las barras y la orientación del gráfico.</p>
     </div>
   </section>
 </div>

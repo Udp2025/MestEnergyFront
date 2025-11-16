@@ -93,6 +93,7 @@
 
     <div class="chart-container">
       <div id="heatChart" style="max-height:600px"></div>
+      <p class="plot-hint">Filtros avanzados: elige la función de agregación para el valor Z y usa las flechas de periodo para navegar semanas/meses sin cambiar el rango principal.</p>
     </div>
   </section>
 </div>
