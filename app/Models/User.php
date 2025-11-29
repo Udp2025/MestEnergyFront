@@ -49,6 +49,11 @@ class User extends Authenticatable
         return $this->hasMany(KpiAlertEvent::class);
     }
 
+    public function sites(): HasMany
+    {
+        return $this->hasMany(Site::class, 'cliente_id', 'cliente_id');
+    }
+
     public function isSuperAdmin(): bool
     {
         return (int) $this->cliente_id === 0;

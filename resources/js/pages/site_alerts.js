@@ -178,6 +178,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function getSiteLabel(siteId) {
+    if (!siteId) return "";
+    const match = state.sites.find(
+      (site) => String(site.id) === String(siteId)
+    );
+    return match ? match.name : `Sitio ${siteId}`;
+  }
+
   function renderAlertRow(alert) {
     const definition = state.definitions.get(alert.kpi_slug) || {};
     const row = document.createElement("tr");
@@ -186,7 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alert.comparison_operator === "above" ? ">" : "<";
     const siteLabel =
       state.isSuperAdmin && alert.site_id
-        ? ` • Sitio ${alert.site_id}`
+        ? ` • ${getSiteLabel(alert.site_id)}`
         : "";
 
     row.innerHTML = `

@@ -156,7 +156,7 @@
 
 .alerts-table thead th:first-child,
 .alerts-table tbody td:first-child {
-  width: 65%;
+  width: 75%;
 }
 
 .alerts-table tbody tr:last-child td {
