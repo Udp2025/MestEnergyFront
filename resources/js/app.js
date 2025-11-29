@@ -6,6 +6,7 @@ window.Alpine = Alpine;
 
 Alpine.start();
 import { createApp } from "vue";
+import "./notifications";
 //import DashboardEditor from './components/DashboardEditor.vue';
 
 // Crea la instancia de Vue

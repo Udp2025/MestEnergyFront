@@ -288,7 +288,7 @@
       <div class="custom-notification-icon" id="notification-icon">
         <i class="fas fa-bell"></i>
         <div class="custom-notifications" id="notifications">
-          <p>No new notifications</p>
+          <p>Sin notificaciones</p>
         </div>
       </div>
 

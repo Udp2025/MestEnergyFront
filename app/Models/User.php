@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
  
@@ -36,6 +37,16 @@ class User extends Authenticatable
     public function files()
     {
         return $this->hasMany(ClienteFile::class);
+    }
+
+    public function kpiAlerts(): HasMany
+    {
+        return $this->hasMany(KpiAlert::class);
+    }
+
+    public function kpiAlertEvents(): HasMany
+    {
+        return $this->hasMany(KpiAlertEvent::class);
     }
 
     public function isSuperAdmin(): bool

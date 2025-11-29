@@ -36,6 +36,7 @@ use App\Http\Controllers\PlotProxyController;
 use App\Http\Controllers\MlProxyController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AnomalyController;
+use App\Http\Controllers\KpiAlertController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\Admin; // Importa el middleware
 use Illuminate\Support\Facades\Auth;
@@ -87,6 +88,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/attach', [WidgetController::class, 'attach'])->name('attach');
         Route::patch('/{widget}', [WidgetController::class, 'update'])->name('update');
         Route::delete('/{widget}', [WidgetController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('api/alerts')->group(function () {
+        Route::get('/definitions', [KpiAlertController::class, 'definitions'])->name('alerts.definitions');
+        Route::get('/', [KpiAlertController::class, 'index'])->name('alerts.index');
+        Route::post('/', [KpiAlertController::class, 'store'])->name('alerts.store');
+        Route::patch('/{kpiAlert}', [KpiAlertController::class, 'update'])->name('alerts.update');
+        Route::delete('/{kpiAlert}', [KpiAlertController::class, 'destroy'])->name('alerts.destroy');
+        Route::get('/events', [KpiAlertController::class, 'events'])->name('alerts.events');
+        Route::post('/events/{event}/read', [KpiAlertController::class, 'markEvent'])->name('alerts.events.read');
+        Route::post('/events/read-all', [KpiAlertController::class, 'markAllEvents'])->name('alerts.events.read-all');
     });
 
     // Rutas generales

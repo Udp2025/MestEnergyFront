@@ -199,8 +199,14 @@
                     <div class="custom-clock" id="time"></div>
                     <div class="custom-notification-icon" id="notification-icon">
                         <i class="fas fa-bell"></i>
+                        <span class="notification-badge" data-alert-indicator hidden></span>
                         <div class="custom-notifications" id="notifications">
-                            <p>No new notifications</p>
+                            <div class="notification-header">
+                                <strong>Alertas</strong>
+                                <a href="{{ route('site_alerts') }}" class="notification-manage">Configurar</a>
+                            </div>
+                            <p class="notification-empty" data-notification-empty>No hay alertas pendientes.</p>
+                            <ul class="notification-list" data-notification-list></ul>
                         </div>
                     </div>
                     <div class="custom-avatar" id="avatar">
