@@ -35,7 +35,7 @@ class AlertNotificationCenter {
   async refresh() {
     try {
       const { data } = await axios.get("/api/alerts/events", {
-        params: { unread_only: 1, limit: 20 },
+        params: { unread_only: 1, limit: 50 },
       });
       const events = data.events || [];
       this.processNewEvents(events);
@@ -162,10 +162,10 @@ class AlertNotificationCenter {
   toggleBadge(count) {
     if (!this.badge) return;
     if (count > 0) {
-      this.badge.hidden = false;
+      this.badge.classList.add("is-visible");
       this.badge.textContent = count;
     } else {
-      this.badge.hidden = true;
+      this.badge.classList.remove("is-visible");
       this.badge.textContent = "";
     }
   }

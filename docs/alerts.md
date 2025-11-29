@@ -65,17 +65,35 @@ The evaluator supports several KPI types (availability, energy, load factor, PF 
   - `php artisan kpi:run-alerts` – run for all users with active alerts.
   - `php artisan kpi:run-alerts --user=123` – limit the run to a specific user ID.
 
+### Offline Alerts
+
+- The scheduler runs even when nobody is logged in, so if an alert condition occurs overnight the evaluator still creates a `kpi_alert_events` row with `read_at = null`.  
+- When the user logs in later, the bell dropdown and `/site_alerts` request up to 50 unread events, regardless of when they fired, ensuring nothing is missed.  
+- Events remain unread until the user explicitly clicks “OK”, “Marcar como leído”, or uses the “Marcar todo como leído” action.
+
 ### Endpoints
 
 | Method & Path | Description |
 | --- | --- |
 | `GET /api/alerts/definitions` | Lists KPI metadata (used to build the UI form). |
-| `GET /api/alerts` | Returns all alerts for the authenticated user. |
-| `POST /api/alerts` | Creates a new alert (per-user). |
-| `PATCH /api/alerts/{alert}` | Updates an existing alert. |
-| `DELETE /api/alerts/{alert}` | Removes an alert. |
-| `GET /api/alerts/events` | Evaluates alerts and returns unread/ recent events. |
-| `POST /api/alerts/events/{event}/read` | Marks a notification as read. |
+| `GET /api/alerts` | Returns alerts visible to the current user (super admin can pass `site_id=` to filter). |
+| `POST /api/alerts` | Creates a new alert; normal users are automatically scoped to their site. |
+| `PATCH /api/alerts/{alert}` | Updates an existing alert that belongs to the requesting user. |
+| `DELETE /api/alerts/{alert}` | Removes an alert owned by the requester. |
+| `GET /api/alerts/events` | Returns unread/recent events. Super admins may include `site_id=` to focus on a site. |
+| `POST /api/alerts/events/{event}/read` | Marks a notification as read (must belong to the requester). |
+
+### Role-based Access
+
+- **Normal users**  
+  - Alerts are automatically tied to their assigned site; they cannot select other sites.  
+  - Every endpoint (`/api/alerts`, `/api/alerts/events`, mark-as-read) only returns their own data.  
+  - The `/site_alerts` UI hides site selectors and only shows their alerts/events.
+
+- **Super admins**  
+  - Can create alerts for any site that supports site scoping.  
+  - `/api/alerts` and `/api/alerts/events` accept an optional `site_id` filter to focus on a single site, otherwise they show everything they own.  
+  - The `/site_alerts` page displays site selectors for alert creation and an additional filter for viewing events from a specific site.
 
 ### Frontend
 
@@ -87,3 +105,4 @@ The evaluator supports several KPI types (availability, energy, load factor, PF 
 
 1. Create an alert with a numeric threshold (e.g., availability below 90%). Either adjust sample data or temporarily edit the KPI source so that the value breaches the threshold. Run `php artisan kpi:run-alerts` and reload the bell dropdown to confirm the notification shows the measured value vs. the configured threshold.
 2. Create another alert where the KPI column is known to be null/missing (or temporarily comment out the value in the dataset). Run the command again: the notification should read “Sin datos …” and include the missing-data reason. Mark the event as read from the dropdown or the `/site_alerts` toast area to ensure the unread counter clears.
+3. Offline scenario: log out (or simply note the unread list), run `php artisan kpi:run-alerts` to simulate an overnight run, then log back in. Previously created events should still appear as unread in both the bell dropdown and `/site_alerts`, proving that background alerts are preserved until explicitly acknowledged.

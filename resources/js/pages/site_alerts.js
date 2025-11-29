@@ -10,6 +10,7 @@ const state = {
   isSuperAdmin: canViewAllSites(),
   recentEvents: [],
   eventMap: new Map(),
+  eventFilterSite: "ALL",
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -20,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const cooldownInput = document.getElementById("cooldownMinutes");
   const unitAddon = document.getElementById("thresholdUnit");
   const siteSelector = document.getElementById("siteSelector");
+  const eventFilterSelect = document.getElementById("eventSiteFilter");
   const formNotice = document.getElementById("alertFormNotice");
   const resetBtn = document.getElementById("resetForm");
   const alertsTableBody = document.getElementById("alertsTableBody");
@@ -125,6 +127,19 @@ document.addEventListener("DOMContentLoaded", () => {
       siteSelector.appendChild(option);
     });
     siteSelector.disabled = false;
+    populateEventFilter();
+  }
+
+  function populateEventFilter() {
+    if (!eventFilterSelect) return;
+    eventFilterSelect.innerHTML = '<option value="ALL">Todos los sitios</option>';
+    state.sites.forEach((site) => {
+      const option = document.createElement("option");
+      option.value = site.id;
+      option.textContent = site.name;
+      eventFilterSelect.appendChild(option);
+    });
+    eventFilterSelect.value = state.eventFilterSite || "ALL";
   }
 
   async function loadAlerts() {
@@ -194,6 +209,9 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     const actionCell = row.querySelector(".alert-row__actions");
+    const buttons = document.createElement("div");
+    buttons.className = "alert-row__actions-wrapper";
+
     const editBtn = document.createElement("button");
     editBtn.textContent = "Editar";
     editBtn.addEventListener("click", () => populateForm(alert));
@@ -206,7 +224,9 @@ document.addEventListener("DOMContentLoaded", () => {
     deleteBtn.textContent = "Eliminar";
     deleteBtn.addEventListener("click", () => removeAlert(alert));
 
-    actionCell.append(editBtn, toggleBtn, deleteBtn);
+    buttons.append(editBtn, toggleBtn, deleteBtn);
+    actionCell.appendChild(buttons);
+
     return row;
   }
 
@@ -267,8 +287,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function refreshEvents() {
     try {
+      const params = { unread_only: 1, limit: 50 };
+      if (
+        state.isSuperAdmin &&
+        state.eventFilterSite &&
+        state.eventFilterSite !== "ALL"
+      ) {
+        params.site_id = state.eventFilterSite;
+      }
       const { data } = await axios.get("/api/alerts/events", {
-        params: { unread_only: 1, limit: 20 },
+        params,
       });
       const events = data.events || [];
       state.recentEvents = events;
@@ -472,6 +500,10 @@ document.addEventListener("DOMContentLoaded", () => {
     applyDefinitionDefaults(event.target.value)
   );
   resetBtn?.addEventListener("click", resetFormFields);
+  eventFilterSelect?.addEventListener("change", (event) => {
+    state.eventFilterSite = event.target.value || "ALL";
+    refreshEvents();
+  });
   detailFields.closeButtons?.forEach((button) =>
     button.addEventListener("click", closeEventDetails)
   );

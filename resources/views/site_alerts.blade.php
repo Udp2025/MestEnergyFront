@@ -7,9 +7,13 @@
 @endpush
 
 @section('content')
+@php
+    $showSiteFilters = auth()->user()?->isSuperAdmin();
+@endphp
+
 <div class="alerts-page">
     <header class="alerts-header">
-        <div>
+        <div class="alerts-header__body">
             <h1>Alertas personalizadas</h1>
             <p>Configura umbrales sobre tus KPIs y recibe notificaciones en tiempo real.</p>
         </div>
@@ -69,7 +73,7 @@
             </form>
         </section>
 
-        <section class="card alerts-card">
+        <section class="card alerts-card alerts-card--list">
             <div class="card-heading-row">
                 <h2>Tus alertas</h2>
                 <div class="chip" data-alert-count>0</div>
@@ -95,10 +99,20 @@
         </section>
     </div>
 
-    <section class="card alerts-card">
+    <section class="card alerts-card alerts-card--events">
         <div class="card-heading-row">
-            <h2>Notificaciones recientes</h2>
-            <button class="btn btn-ghost" id="markAllEvents">Marcar todo como leído</button>
+            <div>
+                <h2>Notificaciones recientes</h2>
+                <p class="card-subtitle">Eventos disparados por tus alertas en el periodo reciente.</p>
+            </div>
+            <div class="events-toolbar">
+                @if($showSiteFilters)
+                    <select id="eventSiteFilter" class="events-toolbar__select">
+                        <option value="ALL">Todos los sitios</option>
+                    </select>
+                @endif
+                <button class="btn btn-ghost" id="markAllEvents">Marcar todo como leído</button>
+            </div>
         </div>
         <div id="alertToastContainer" class="alert-toast-container" aria-live="assertive">
             <p class="empty-state" data-events-empty>No hay notificaciones pendientes.</p>

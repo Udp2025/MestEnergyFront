@@ -36,8 +36,7 @@ class KpiAlertController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $alerts = $request->user()
-            ->kpiAlerts()
+        $alerts = $this->alertsQuery($request)
             ->latest()
             ->get()
             ->map(fn (KpiAlert $alert) => $this->serialiseAlert($alert));
@@ -82,11 +81,18 @@ class KpiAlertController extends Controller
         $user = $request->user();
         $this->evaluator->evaluate($user);
 
-        $query = $user->kpiAlertEvents()->with('alert')->latest('triggered_at');
+        $query = $this->eventsQuery($request);
+        $siteFilter = $request->input('site_id');
+        if ($user->isSuperAdmin() && $siteFilter !== null && $siteFilter !== '') {
+            $query->whereHas('alert', function ($builder) use ($siteFilter) {
+                $builder->where('site_id', $siteFilter);
+            });
+        }
+
         if ($request->boolean('unread_only')) {
             $query->whereNull('read_at');
         }
-        $limit = $request->integer('limit', 20);
+        $limit = $request->integer('limit', 50);
         if ($limit > 0) {
             $query->limit($limit);
         }
@@ -145,15 +151,20 @@ class KpiAlertController extends Controller
 
         if ($request->user()->isSuperAdmin()) {
             if ($definition['supports_site_selection'] ?? false) {
-                $data['site_id'] = $data['site_id'] ?? ($partial ? $alert?->site_id : null);
-                if (!$data['site_id']) {
+                $siteId = $data['site_id'] ?? ($partial ? $alert?->site_id : null);
+                if (!$siteId) {
                     abort(422, 'Debes seleccionar un sitio para esta alerta.');
                 }
+                $data['site_id'] = (string) $siteId;
             } else {
                 $data['site_id'] = null;
             }
         } else {
-            $data['site_id'] = null;
+            $siteId = $request->user()->siteId();
+            if (!$siteId) {
+                abort(403, 'El usuario no tiene un sitio asignado.');
+            }
+            $data['site_id'] = (string) $siteId;
         }
 
         if (!$partial && !array_key_exists('cooldown_minutes', $data)) {
@@ -200,5 +211,22 @@ class KpiAlertController extends Controller
         if ($alert->user_id !== $request->user()->id) {
             abort(403);
         }
+    }
+
+    protected function alertsQuery(Request $request)
+    {
+        $query = $request->user()->kpiAlerts()->getQuery();
+        if ($request->user()->isSuperAdmin()) {
+            $siteFilter = $request->input('site_id');
+            if ($siteFilter !== null && $siteFilter !== '') {
+                $query->where('site_id', $siteFilter);
+            }
+        }
+        return $query;
+    }
+
+    protected function eventsQuery(Request $request)
+    {
+        return $request->user()->kpiAlertEvents()->with('alert');
     }
 }

@@ -31,17 +31,17 @@ class KpiAlertEvaluator
 
             $result = $this->fetchCurrentValue($user, $alert, $definition);
             if ($result['status'] === 'missing') {
-                $this->handleMissingValue($alert, $result['reason']);
+                $this->handleMissingValue($user, $alert, $result['reason']);
                 continue;
             }
 
             $normalizedValue = $this->normaliseValue($result['value'], $definition);
             if ($normalizedValue === null) {
-                $this->handleMissingValue($alert, 'normalisation_failed');
+                $this->handleMissingValue($user, $alert, 'normalisation_failed');
                 continue;
             }
 
-            $this->handleResult($alert, $normalizedValue);
+            $this->handleResult($user, $alert, $normalizedValue);
         }
     }
 
@@ -51,7 +51,7 @@ class KpiAlertEvaluator
             'table' => $definition['table'],
         ];
 
-        $siteId = $alert->site_id ?: ($user->isSuperAdmin() ? null : $user->siteId());
+        $siteId = $this->resolveAlertSiteId($alert, $user);
         $filterMap = Arr::get($definition, 'filter_map', []);
         if ($siteId) {
             $filterMap['site_id'] = [(string) $siteId];
@@ -132,7 +132,7 @@ class KpiAlertEvaluator
         };
     }
 
-    protected function handleResult(KpiAlert $alert, float $value): void
+    protected function handleResult(User $owner, KpiAlert $alert, float $value): void
     {
         $alert->last_value = $value;
         $alert->save();
@@ -150,7 +150,7 @@ class KpiAlertEvaluator
             'kpi_value' => $value,
             'triggered_at' => now(),
             'context' => [
-                'site_id' => $alert->site_id,
+                'site_id' => $this->resolveAlertSiteId($alert, $owner),
                 'threshold' => $alert->threshold_value,
                 'comparison' => $alert->comparison_operator,
                 'missing_data' => false,
@@ -162,7 +162,7 @@ class KpiAlertEvaluator
         $alert->save();
     }
 
-    protected function handleMissingValue(KpiAlert $alert, string $reason): void
+    protected function handleMissingValue(User $owner, KpiAlert $alert, string $reason): void
     {
         if ($this->onCooldown($alert)) {
             return;
@@ -173,7 +173,7 @@ class KpiAlertEvaluator
             'kpi_value' => 0,
             'triggered_at' => now(),
             'context' => [
-                'site_id' => $alert->site_id,
+                'site_id' => $this->resolveAlertSiteId($alert, $owner),
                 'missing_data' => true,
                 'missing_reason' => $reason,
                 'threshold' => $alert->threshold_value,
@@ -206,5 +206,16 @@ class KpiAlertEvaluator
             'from' => $start->toDateTimeString(),
             'to' => $end->toDateTimeString(),
         ];
+    }
+
+    protected function resolveAlertSiteId(KpiAlert $alert, User $owner): ?string
+    {
+        if ($alert->site_id) {
+            return (string) $alert->site_id;
+        }
+        if ($owner->isSuperAdmin()) {
+            return null;
+        }
+        return $owner->siteId();
     }
 }
