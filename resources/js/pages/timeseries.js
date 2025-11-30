@@ -23,7 +23,7 @@ const DEFAULTS = {
   metric: "energy_wh",
   from: YESTERDAY,
   to: TODAY,
-  period: "D",
+  period: "H",
   agg: "avg",
 };
 
@@ -72,7 +72,10 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     deviceSel.value = "ALL";
     if (rows.length === 0) {
-      notice.show("El sitio elegido no tiene dispositivos registrados.", "info");
+      notice.show(
+        "El sitio elegido no tiene dispositivos registrados.",
+        "info"
+      );
     } else {
       notice.clear();
     }
@@ -144,7 +147,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const from = v("from");
     const to = v("to");
     if (from > to) {
-      notice.show("Rango inválido: la fecha inicial es mayor que la final.", "error");
+      notice.show(
+        "Rango inválido: la fecha inicial es mayor que la final.",
+        "error"
+      );
       return;
     }
     runBtn.disabled = true;
@@ -152,7 +158,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const { figure, config, mapping } = await fetchPlot(buildBody());
       applyMapping(figure, mapping);
       if (plotIsEmpty(figure)) {
-        notice.show("No se encontraron datos para los filtros seleccionados.", "info");
+        notice.show(
+          "No se encontraron datos para los filtros seleccionados.",
+          "info"
+        );
       }
       await Plotly.react(chart, figure.data, figure.layout, config);
     } catch (err) {

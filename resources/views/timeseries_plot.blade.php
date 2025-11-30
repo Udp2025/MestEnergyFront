@@ -28,29 +28,31 @@
     @csrf
     <div class="plot-notice" data-notice role="alert"></div>
 
-    {{-- SITE (only for admins) -------------------------------------------- --}}
-    @if ($canViewAllSites)
-    <label>Sitio:
-        <select id="site" name="site" required></select>
-    </label>
-    @endif
+    <div class="primary-filters">
+      {{-- SITE (only for admins) -------------------------------------------- --}}
+      @if ($canViewAllSites)
+      <label>Sitio:
+          <select id="site" name="site" required></select>
+      </label>
+      @endif
 
-    {{-- DEVICE ------------------------------------------------------------- --}}
-    <label>Dispositivo:
-        <select id="device" name="device" required></select>
-    </label>
+      {{-- DEVICE ------------------------------------------------------------- --}}
+      <label>Dispositivo:
+          <select id="device" name="device" required></select>
+      </label>
 
-    {{-- === Metric ========================================================= --}}
-    <label>
-        Métrica:
-        <select name="metric" id="metric">
-            <option value="power_w" selected>Potencia</option>
-            <option value="energy_wh">Energía</option>
-            <option value="current_a">Corriente</option>
-            <option value="voltage_v">Voltaje</option>
-            <option value="power_factor">Factor Potencia</option>
-        </select>
-    </label>
+      {{-- === Metric ========================================================= --}}
+      <label>
+          Métrica:
+          <select name="metric" id="metric">
+              <option value="energy_wh" selected>Energía</option>
+              <option value="power_w">Potencia</option>
+              <option value="current_a">Corriente</option>
+              <option value="voltage_v">Voltaje</option>
+              <option value="power_factor">Factor Potencia</option>
+          </select>
+      </label>
+    </div>
 
     {{-- === Date range ==================================================== --}}
     <div class="date-range">
@@ -91,12 +93,12 @@
     <div class="advanced-filters" data-advanced-container>
       <label>Frecuencia:
         <select name="period" id="period">
-            <option value="H">Hora</option>
+            <option value="H" selected>Hora</option>
             <option value="2H">2h</option>
             <option value="4H">4h</option>
             <option value="6H">6h</option>
             <option value="12H">12h</option>
-            <option value="D" selected>Día</option>
+            <option value="D">Día</option>
             <option value="BD">Día laboral</option>
             <option value="W">Semana</option>
             <option value="BW">Quincena</option>
@@ -113,7 +115,7 @@
             <option value="sum">Suma</option>
             <option value="min">Mín</option>
             <option value="max">Máx</option>
-            <option value="std">Desv. Estándar</option>
+            <option value="std">Desv. EstándAR</option>
         </select>
       </label>
     </div>

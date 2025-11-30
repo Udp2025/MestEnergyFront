@@ -15,15 +15,23 @@
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  margin: 0.5rem 0 1rem;
+  margin: 0;
+  align-items: flex-end;
+}
+
+.plot-filters .primary-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
 }
 
 .plot-filters .date-range label {
   display: flex;
   flex-direction: column;
   font-weight: 600;
-  color: #1f2937;
   gap: 0.35rem;
+  margin: 0;
 }
 
 .plot-filters .date-range input[type="date"] {
