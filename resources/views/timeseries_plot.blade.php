@@ -18,6 +18,7 @@
     $canViewAllSites = $authContext['abilities']['canViewAllSites'] ?? false;
     $todayDate  = Carbon::today();
     $today      = $todayDate->format('Y-m-d');
+    $yesterday  = $todayDate->copy()->subDay()->format('Y-m-d');
 @endphp
 <div class="plot-page">
   <h1 class="plot-page__title">Serie temporal</h1>
@@ -51,9 +52,31 @@
         </select>
     </label>
 
-    {{-- === Date range (start fixed) ===================================== --}}
-    <input type="hidden" name="from" id="from" value="{{ \Carbon\Carbon::today()->subMonth()->format('Y-m-d') }}">
-    <input type="hidden" name="to"   id="to"   value="{{ $today }}">
+    {{-- === Date range ==================================================== --}}
+    <div class="date-range">
+      <label>
+        Desde:
+        <input
+          type="date"
+          name="from"
+          id="from"
+          value="{{ $yesterday }}"
+          max="{{ $today }}"
+          required
+        >
+      </label>
+      <label>
+        Hasta:
+        <input
+          type="date"
+          name="to"
+          id="to"
+          value="{{ $today }}"
+          max="{{ $today }}"
+          required
+        >
+      </label>
+    </div>
 
     <button
       type="button"

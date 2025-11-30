@@ -16,12 +16,12 @@ import { fillSelect } from "../utils/list";
 import { getSites, getDevices } from "../utils/core";
 
 const TODAY = new Date().toISOString().slice(0, 10);
-const LAST_MONTH = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3)
+const YESTERDAY = new Date(Date.now() - 24 * 60 * 60 * 1e3)
   .toISOString()
   .slice(0, 10);
 const DEFAULTS = {
-  metric: "power_w",
-  from: LAST_MONTH,
+  metric: "energy_wh",
+  from: YESTERDAY,
   to: TODAY,
   period: "D",
   agg: "avg",
