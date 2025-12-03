@@ -42,6 +42,7 @@ use App\Http\Middleware\Admin; // Importa el middleware
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ApiDataController;
 use App\Http\Controllers\PostalCodeController;
+use App\Http\Controllers\EnergyDashboardController;
 
 // Rutas públicas
 Route::get('/', function () {
@@ -165,6 +166,7 @@ Route::get('/cfe/region', [CFEController::class, 'getRegion']);
 Route::post('/cfe/store', [CFEController::class, 'store'])->name('cfe.store');
 Route::get('/cfe', [CFEController::class, 'index'])->name('cfe.index');
  
+Route::get('/energy', [EnergyDashboardController::class, 'index'])->name('energy.dashboard');
  
  
 });

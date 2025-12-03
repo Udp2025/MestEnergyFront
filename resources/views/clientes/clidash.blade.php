@@ -4,13 +4,8 @@
 <link rel="stylesheet" href="{{ asset('css/usuarios.css') }}">
 
 @php
-use App\Models\CostMonth;
-
-// Obtener los datos más recientes de la base de datos
-$latestCost = CostMonth::orderBy('fecha_inicio', 'desc')->first();
-
-// Si no hay datos, usar valores por defecto
-if (!$latestCost) {
+// Si no se recibió $latestCost desde el controlador, creamos defaults (fallback)
+if (!isset($latestCost)) {
     $latestCost = (object)[
         'cargo_fijo' => 0,
         'cargo_base' => 0,
@@ -32,88 +27,86 @@ if (!$latestCost) {
     ];
 }
 
-// Función para formatear el timestamp de la base de datos
-function formatTimestamp($timestamp) {
-    if (!$timestamp) return 'N/A';
-    
-    // Si es un timestamp numérico grande (como en tu BD)
-    if (is_numeric($timestamp)) {
-        // Asumiendo que es un timestamp de Unix en milisegundos o segundos
-        if ($timestamp > 1000000000000) {
-            // Probablemente en milisegundos
-            return date('Y-m-d H:i', $timestamp / 1000);
-        } else {
-            // En segundos
-            return date('Y-m-d H:i', $timestamp);
-        }
-    }
-    
-    return 'Formato inválido';
-}
-
-// Datos del sitio
+// Datos estáticos del sitio (puedes cargarlos desde DB más adelante)
 $mainSite = (object)['name'=>'LAPROBA EL ÁGUILA SA DE CV'];
 $subSites = [
     'Accesorios De Prensa','Extrusora Prensa Doble','Oficinas','Oficinas Nuevas',
     'Taller Mantenimiento','Transformador Seco 112'
 ];
 
-// Calcular totales desde la base de datos
-$subtotal = $latestCost->subtotal;
-$iva = $latestCost->iva;
-$total = $latestCost->total;
+// prepara arrays que usa el blade original
+$subtotal = $latestCost->subtotal ?? 0;
+$iva = $latestCost->iva ?? 0;
+$total = $latestCost->total ?? 0;
 
-// Detalles de costos desde la base de datos
 $costDetails = [
-    ['label'=>'Cargo Fijo (Suministro)','pct'=>$latestCost->cargo_fijo_pt,'value'=>$latestCost->cargo_fijo],
-    ['label'=>'Capacidad','pct'=>$latestCost->consumo_capa_pt,'value'=>$latestCost->cargo_capacidad],
-    ['label'=>'Distribución','pct'=>$latestCost->consumo_dist_pt,'value'=>$latestCost->cargo_distribucion],
-    ['label'=>'Base','pct'=>$latestCost->consumo_base_pt,'value'=>$latestCost->cargo_base],
-    ['label'=>'Intermedia','pct'=>$latestCost->consumo_intermedio_pt,'value'=>$latestCost->cargo_intermedio],
-    ['label'=>'Punta','pct'=>$latestCost->consumo_punta_pt,'value'=>$latestCost->cargo_punta],
+    ['label'=>'Cargo Fijo (Suministro)','pct'=>$latestCost->cargo_fijo_pt ?? 0,'value'=>$latestCost->cargo_fijo ?? 0],
+    ['label'=>'Capacidad','pct'=>$latestCost->consumo_capa_pt ?? 0,'value'=>$latestCost->cargo_capacidad ?? 0],
+    ['label'=>'Distribución','pct'=>$latestCost->consumo_dist_pt ?? 0,'value'=>$latestCost->cargo_distribucion ?? 0],
+    ['label'=>'Base','pct'=>$latestCost->consumo_base_pt ?? 0,'value'=>$latestCost->cargo_base ?? 0],
+    ['label'=>'Intermedia','pct'=>$latestCost->consumo_intermedio_pt ?? 0,'value'=>$latestCost->cargo_intermedio ?? 0],
+    ['label'=>'Punta','pct'=>$latestCost->consumo_punta_pt ?? 0,'value'=>$latestCost->cargo_punta ?? 0],
 ];
 
-$factorPotencia = $latestCost->factor_potencia_pt;
+$factorPotencia = $latestCost->factor_potencia_pt ?? $latestCost->factor_potencia ?? 0;
 
-// Datos para gráfica de barras (porcentajes)
 $barLabels = ['Cargo Fijo','Capacidad','Distribución','Base','Intermedia','Punta'];
 $barData = [
-    $latestCost->cargo_fijo_pt,
-    $latestCost->consumo_capa_pt,
-    $latestCost->consumo_dist_pt,
-    $latestCost->consumo_base_pt,
-    $latestCost->consumo_intermedio_pt,
-    $latestCost->consumo_punta_pt
+    $latestCost->cargo_fijo_pt ?? 0,
+    $latestCost->consumo_capa_pt ?? 0,
+    $latestCost->consumo_dist_pt ?? 0,
+    $latestCost->consumo_base_pt ?? 0,
+    $latestCost->consumo_intermedio_pt ?? 0,
+    $latestCost->consumo_punta_pt ?? 0
 ];
 
-// Datos para gráfica de doughnut (valores monetarios)
 $doughnutLabels = ['Base','Capacidad','Cargo Fijo','Distribución','Intermedia','Punta'];
 $doughnutData = [
-    $latestCost->cargo_base,
-    $latestCost->cargo_capacidad,
-    $latestCost->cargo_fijo,
-    $latestCost->cargo_distribucion,
-    $latestCost->cargo_intermedio,
-    $latestCost->cargo_punta
+    $latestCost->cargo_base ?? 0,
+    $latestCost->cargo_capacidad ?? 0,
+    $latestCost->cargo_fijo ?? 0,
+    $latestCost->cargo_distribucion ?? 0,
+    $latestCost->cargo_intermedio ?? 0,
+    $latestCost->cargo_punta ?? 0
 ];
 
-// Top drivers de gasto (ordenados por valor descendente)
+// Top drivers (mismo enfoque)
 $costValues = [
-    ['label'=>'Intermedia','value'=>$latestCost->cargo_intermedio],
-    ['label'=>'Capacidad','value'=>$latestCost->cargo_capacidad],
-    ['label'=>'Base','value'=>$latestCost->cargo_base],
-    ['label'=>'Distribución','value'=>$latestCost->cargo_distribucion],
-    ['label'=>'Punta','value'=>$latestCost->cargo_punta],
-    ['label'=>'Cargo Fijo','value'=>$latestCost->cargo_fijo],
+    ['label'=>'Intermedia','value'=>$latestCost->cargo_intermedio ?? 0],
+    ['label'=>'Capacidad','value'=>$latestCost->cargo_capacidad ?? 0],
+    ['label'=>'Base','value'=>$latestCost->cargo_base ?? 0],
+    ['label'=>'Distribución','value'=>$latestCost->cargo_distribucion ?? 0],
+    ['label'=>'Punta','value'=>$latestCost->cargo_punta ?? 0],
+    ['label'=>'Cargo Fijo','value'=>$latestCost->cargo_fijo ?? 0],
 ];
-
-// Ordenar por valor descendente y tomar los top 3
-usort($costValues, function($a, $b) {
-    return $b['value'] <=> $a['value'];
-});
-$topDrivers = array_slice($costValues, 0, 3);
-
+usort($costValues, function($a,$b){ return $b['value'] <=> $a['value']; });
+$topDrivers = array_slice($costValues,0,3);
 @endphp
+
+{{-- FILTROS: formulario GET (envía a la misma ruta) --}}
+<form method="GET" action="{{ route('energy.dashboard') }}" class="filter-form" style="margin-bottom:1rem; display:flex; gap:10px; align-items:flex-end;">
+    <div>
+        <label>Inicio</label>
+        <input type="date" name="start_date" value="{{ request('start_date', $filters['start'] ?? '') }}" />
+    </div>
+    <div>
+        <label>Fin</label>
+        <input type="date" name="end_date" value="{{ request('end_date', $filters['end'] ?? '') }}" />
+    </div>
+    <div>
+        <label>Device ID</label>
+        <input type="number" name="device_id" value="{{ request('device_id', $filters['device_id'] ?? '') }}" />
+    </div>
+    <div>
+        <label>Site ID</label>
+        <input type="number" name="site_id" value="{{ request('site_id', $filters['site_id'] ?? '') }}" />
+    </div>
+    <div>
+        <button class="btn btn-primary" type="submit">Aplicar filtros</button>
+    </div>
+</form>
+
+
 
 <div class="dash-wrap enhanced">
     {{-- TOP METRICS --}}
@@ -250,7 +243,23 @@ $topDrivers = array_slice($costValues, 0, 3);
         <div><i class="fas fa-info-circle"></i> Factor de Potencia aplicado: 
             <strong>${{ number_format($factorPotencia,2,'.',',') }}</strong>
         </div>
-        <div class="muted">Última actualización: {{ formatTimestamp($latestCost->fecha_inicio) }}</div>
+        <div class="muted">
+            Última actualización:
+            {{
+                $latestCost->fecha_inicio
+                    ? (
+                        is_numeric($latestCost->fecha_inicio)
+                        ? (
+                            $latestCost->fecha_inicio > 1000000000000
+                                ? \Carbon\Carbon::createFromTimestampMs($latestCost->fecha_inicio)->format('Y-m-d H:i')
+                                : \Carbon\Carbon::createFromTimestamp($latestCost->fecha_inicio)->format('Y-m-d H:i')
+                        )
+                        : \Carbon\Carbon::parse($latestCost->fecha_inicio)->format('Y-m-d H:i')
+                    )
+                    : 'N/A'
+            }}
+        </div>
+
     </div>
 </div>
 
