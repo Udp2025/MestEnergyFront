@@ -101,9 +101,9 @@
                             <span>Costos y Facturación</span>
                         </a>
                     </li>
-                    <li class="mcst">
+                    <li class="mcst {{ request()->routeIs('reports') ? 'custom-active' : '' }}">
                         <i class="bi bi-file-earmark-medical"></i>
-                        <a href="" style="text-decoration: none; color: inherit;">
+                        <a href="{{ route('reports') }}" style="text-decoration: none; color: inherit;">
                             <span>Reportes automáticos</span>
                         </a>
                     </li>

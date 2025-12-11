@@ -6,16 +6,17 @@
         'heatmap',
         'benchmarking',
         'anomaly',
-        'forecast',
-        'scatter',
-        'histogram',
-        'timeseries',
-        'energyflow',
-        'clientes.clidash',
-        'site_alerts',
-        'tiggers',
-        'manage',
-        'groups',
+    'forecast',
+    'scatter',
+    'histogram',
+    'timeseries',
+    'energyflow',
+    'reports',
+    'clientes.clidash',
+    'site_alerts',
+    'tiggers',
+    'manage',
+    'groups',
     ];
     $routeName = optional(request()->route())->getName();
     $selectedClientId = session('selected_cliente_id');
@@ -133,6 +134,12 @@
                     <i class="fas fa-circle" aria-hidden="true"></i>
                     <a href="{{ route('energyflow', $clientQueryParams) }}">
                         <span>Energy Flow</span>
+                    </a>
+                </li>
+                <li class="{{ request()->routeIs('reports') ? 'custom-active' : '' }}">
+                    <i class="fas fa-circle" aria-hidden="true"></i>
+                    <a href="{{ route('reports', $clientQueryParams) }}">
+                        <span>Reportes automáticos</span>
                     </a>
                 </li>
                 <li class="{{ request()->routeIs('clientes.clidash') ? 'custom-active' : '' }}">

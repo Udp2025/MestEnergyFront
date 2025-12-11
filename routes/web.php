@@ -129,6 +129,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/energyflow', [EnergyflowController::class, 'index'])->name('energyflow');
     Route::get('/permisosuser', [PermisosUserController::class, 'index'])->name('permisosuser');
     Route::get('/preferencias', [PreferenciasController::class, 'index'])->name('preferencias');
+    Route::get('/reports', fn () => view('reports'))->name('reports');
     Route::get('/perfil', [PerfilController::class, 'index'])->name('perfil');
     Route::post('/{cliente}/store-file', [ClientesController::class, 'uploadFile'])->name('clientes.store_file');
     Route::get('/clientes/{cliente}/download/{fileId}', [ClientesController::class, 'downloadFile'])->name('clientes.download_file');

@@ -27,6 +27,8 @@ export default defineConfig({
         "resources/js/pages/benchmarking.js",
         "resources/js/pages/histogram.js",
         "resources/css/pages/histogram.css",
+        "resources/js/pages/reports.js",
+        "resources/css/pages/reports.css",
       ],
       refresh: true,
     }),
