@@ -117,4 +117,58 @@
     .node {
       filter: url(#drop-shadow);
     }
- 
+ /* Wrapper para el select customizado */
+.sidebar .select-wrap {
+  position: relative;
+  margin-bottom: 12px;
+  min-height: 48px;
+}
+
+/* El "display" visible que muestra el texto completo (wrap) */
+.sidebar .select-wrap .select-display {
+  padding: 10px;
+  font-size: 14px;
+  color: #2c3e50;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  line-height: 1.3;
+  white-space: normal;        /* permite wrap */
+  word-wrap: break-word;
+  word-break: break-word;
+  min-height: 44px;           /* que coincida visualmente con un select */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+/* El select real encima (invisible pero clickeable) - mantenemos su id intacto */
+.sidebar .select-wrap select#site-select {
+  position: absolute;
+  inset: 0;                   /* top:0; right:0; bottom:0; left:0; */
+  width: 100%;
+  height: 100%;
+  opacity: 0;                 /* invisible */
+  cursor: pointer;
+  z-index: 5;
+  -webkit-appearance: none;   /* evitar flecha nativa visible en algunos navegadores */
+}
+
+/* cuando el select recibe foco, damos estilo visual al display (select está antes del display en DOM) */
+.sidebar .select-wrap select#site-select:focus + .select-display {
+  outline: none;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  border-color: #9fbff0;
+  z-index: 9999;
+}
+
+/* Mobile fallback: si por algún motivo el select actúa raro en móvil,
+   permitimos que el select sea visible (opcional) */
+@media (max-width: 480px) {
+  .sidebar .select-wrap select#site-select {
+    opacity: 1;
+    position: relative;
+  }
+  .sidebar .select-wrap .select-display { display: none; }
+}

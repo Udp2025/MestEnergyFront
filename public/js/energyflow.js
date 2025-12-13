@@ -425,3 +425,45 @@ document.getElementById("date-filter").addEventListener("change", updateSankey);
 // Primera carga
 updateSankey();
  
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Selecciona todos los selects con id="site-select" dentro de la sidebar
+  // (aunque el id esté duplicado, querySelectorAll devuelve todos)
+  const selects = document.querySelectorAll('.sidebar select#site-select');
+
+  selects.forEach(function(sel) {
+    // crear wrapper y display sin tocar el id del select
+    const wrapper = document.createElement('div');
+    wrapper.className = 'select-wrap';
+
+    const display = document.createElement('div');
+    display.className = 'select-display';
+    display.setAttribute('aria-hidden', 'true');
+
+    // insertar wrapper en el DOM en la posición del select
+    sel.parentNode.insertBefore(wrapper, sel);
+    // mover el select dentro del wrapper
+    wrapper.appendChild(sel);
+    // insertar el display DESPUÉS del select (así usamos select:focus + .select-display)
+    wrapper.appendChild(display);
+
+    // función para actualizar el texto visible
+    const update = () => {
+      const opt = sel.options[sel.selectedIndex];
+      display.textContent = opt ? opt.text : '';
+      sel.setAttribute('title', opt ? opt.text : '');
+      display.setAttribute('aria-label', opt ? opt.text : '');
+    };
+
+    // inicializa
+    update();
+
+    // actualizar cuando cambie
+    sel.addEventListener('change', update);
+    sel.addEventListener('input', update);
+
+    // también actualizar si el select cambia por JS
+    const observer = new MutationObserver(update);
+    observer.observe(sel, { childList: true, subtree: true, characterData: true });
+  });
+});
