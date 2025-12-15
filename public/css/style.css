@@ -310,6 +310,23 @@ button {
   font-size: 0.5rem;
 }
 
+.custom-menu-section .menu-divider {
+  display: block;
+  pointer-events: none;
+  height: 1px;
+  width: 100%;
+  border-top: 1px solid var(--color-border);
+  margin: 4px 0;
+  padding: 0;
+  background: transparent;
+}
+
+.custom-sidebar.collapsed .custom-menu-section .menu-divider,
+.custom-sidebar-right.collapsed .custom-menu-section .menu-divider {
+  width: 32px;
+  margin: 4px auto;
+}
+
 .custom-menu-section li.custom-active,
 .custom-menu-section li.custom-active:hover {
   background: rgba(206, 173, 109, 0.15);

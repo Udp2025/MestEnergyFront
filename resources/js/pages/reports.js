@@ -139,11 +139,19 @@ const AREA_CONFIG = {
 const state = {
   activeArea: "finanzas",
   sitesById: {},
-  devicesById: {},
+  devicesById: {}, // raw names keyed by device_id
+  deviceMetaById: {},
   renderToken: 0,
+  sitesReady: false,
+  currentSiteId: "",
 };
 
 const NARRATIVE_AREAS = new Set(["direccion", "mantenimiento"]);
+const AREA_LABELS = {
+  finanzas: "Finanzas",
+  direccion: "Dirección",
+  mantenimiento: "Mantenimiento",
+};
 
 document.addEventListener("DOMContentLoaded", () => {
   ensureAuthenticatedOrRedirect();
@@ -165,7 +173,8 @@ document.addEventListener("DOMContentLoaded", () => {
   primeDefaultDates(elements.from, elements.to);
   (async () => {
     await hydrateSites(elements.site);
-    renderArea(state.activeArea, elements);
+    state.sitesReady = true;
+    await renderArea(state.activeArea, elements);
   })();
 
   elements.form?.addEventListener("submit", (event) => {
@@ -196,22 +205,24 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-function handleRender(elements, areaKey) {
+async function handleRender(elements, areaKey) {
+  if (!state.sitesReady) return;
   state.activeArea = areaKey || state.activeArea;
   state.renderToken += 1;
-  renderArea(state.activeArea, elements);
+  await renderArea(state.activeArea, elements);
 }
 
-function renderArea(areaKey, elements) {
+async function renderArea(areaKey, elements) {
   const renderId = state.renderToken;
   const config = AREA_CONFIG[areaKey] || AREA_CONFIG.finanzas;
   if (!elements.grid) return;
   elements.grid.innerHTML = "";
   const filters = currentFilters(elements, areaKey);
-  // Preload device labels for maintenance views to have names in summaries
+  // Preload device labels (all sites when needed) to de-ambiguate legends/summaries
   if (areaKey === "mantenimiento") {
-    ensureDeviceLabels(filters.siteId).catch(() => {});
+    await ensureDeviceLabels(filters.siteId || "ALL");
   }
+  await renderComparisonSection(areaKey, elements.grid, filters, renderId);
   const narrativeTarget = NARRATIVE_AREAS.has(areaKey)
     ? createNarrativeCard(elements.grid, areaKey)
     : null;
@@ -224,6 +235,9 @@ function renderArea(areaKey, elements) {
     cardEl.className = "report-card";
     if (areaKey !== "finanzas" && card.type !== "summary") {
       cardEl.classList.add("report-card--wide");
+    }
+    if (card.type === "summary") {
+      cardEl.classList.add("report-card--full");
     }
     cardEl.innerHTML = `
       <div class="report-card__meta">
@@ -252,6 +266,62 @@ function renderArea(areaKey, elements) {
       renderSeededCard(card, cardEl, filters, renderId);
     }
   });
+}
+
+async function renderComparisonSection(areaKey, grid, filters, renderId) {
+  if (!grid || areaKey === "finanzas") return;
+  const container = document.createElement("article");
+  container.className = "report-card report-card--wide";
+  container.innerHTML = `
+    <div class="report-card__meta">
+      <h3 class="report-card__title">Comparativa vs. periodo anterior</h3>
+    </div>
+    <div class="comparison-grid" data-comparison-grid>
+      <p class="report-note">Calculando comparativos...</p>
+    </div>
+    <div class="report-card__footer">
+      <span class="dot"></span>
+      <span>Comparativo automático según los filtros actuales</span>
+    </div>
+  `;
+  grid.appendChild(container);
+  const target = container.querySelector("[data-comparison-grid]");
+  const prevRange = getPreviousPeriod(filters.from, filters.to);
+  const prevFilters = { ...filters, ...prevRange };
+
+  try {
+    if (areaKey === "mantenimiento") {
+      // Ensure we have device labels for both current and previous data
+      await ensureDeviceLabels(filters.siteId || "ALL");
+    }
+    const [current, previous] =
+      areaKey === "direccion"
+        ? await Promise.all([
+            fetchSiteAggregates(filters),
+            fetchSiteAggregates(prevFilters),
+          ])
+        : await Promise.all([
+            fetchDeviceAggregates(filters),
+            fetchDeviceAggregates(prevFilters),
+          ]);
+    if (renderId !== state.renderToken) return;
+    if (areaKey === "mantenimiento") {
+      const allIds = [...current, ...previous].map((r) => r.device_id);
+      await ensureDeviceMetaForIds(allIds);
+    }
+    const cards =
+      areaKey === "direccion"
+        ? buildDireccionComparisons(current, previous, filters, prevRange)
+        : buildMantenimientoComparisons(current, previous, filters, prevRange);
+    renderComparisonCards(target, cards);
+  } catch (error) {
+    if (renderId !== state.renderToken) return;
+    console.error("reports: comparison error", error);
+    setMessage(
+      target,
+      "No se pudieron calcular las comparativas. Intenta nuevamente más tarde."
+    );
+  }
 }
 
 function setActiveTab(area, elements) {
@@ -370,12 +440,13 @@ async function renderMantenimientoSummary(container, filters, renderId) {
   if (!container) return;
   setLoading(container);
   try {
-    await ensureDeviceLabels(filters.siteId);
+    await ensureDeviceLabels(filters.siteId || "ALL");
     const rows = await fetchDeviceAggregates(filters);
     if (renderId !== state.renderToken) return;
+    await ensureDeviceMetaForIds(rows.map((r) => r.device_id));
     const enriched = rows.map((row) => ({
       ...row,
-      device_name: deviceLabel(row.device_id, row.device_name),
+      device_name: deviceLabel(row.device_id, row.device_name, row.site_id),
     }));
     const energyTotal = sumField(enriched, "energy_wh_sum_sum");
     const topDevice = findMaxLabel(enriched, "energy_wh_sum_sum");
@@ -383,7 +454,7 @@ async function renderMantenimientoSummary(container, filters, renderId) {
       .slice()
       .sort((a, b) => (b.energy_wh_sum_sum || 0) - (a.energy_wh_sum_sum || 0))
       .slice(0, 3)
-      .map((r) => deviceLabel(r.device_id, r.device_name))
+      .map((r) => deviceLabel(r.device_id, r.device_name, r.site_id))
       .filter(Boolean);
 
     const summaryRows = [
@@ -482,7 +553,7 @@ function buildEnergyBySitePayload(filters, chartType = "bar") {
     chart: {
       // backend does not support "pie"; fallback to bar while keeping intent
       chart_type: pieFallback ? "bar" : chartType,
-      x: "site_name",
+      x: "site_id",
       y: "total_energy_wh_sum",
       style: pieFallback ? { color: "site_id", orientation: "h" } : { color: "site_id" },
     },
@@ -540,7 +611,7 @@ function buildDeviceEnergyTrendPayload(filters) {
     filter_map,
     aggregation: [
       {
-        group_by: ["device_id", "kpi_date"],
+        group_by: ["site_id", "device_id", "kpi_date"],
         aggregations: {
           energy_wh_sum: ["sum"],
         },
@@ -563,7 +634,7 @@ function buildDeviceEnergyRankPayload(filters, chartType = "bar") {
     filter_map,
     aggregation: [
       {
-        group_by: ["device_id"],
+        group_by: ["site_id", "device_id"],
         aggregations: {
           energy_wh_sum: ["sum"],
         },
@@ -572,7 +643,7 @@ function buildDeviceEnergyRankPayload(filters, chartType = "bar") {
     chart: {
       // backend lacks native "pie"; fallback to bar while keeping grouping
       chart_type: pieFallback ? "bar" : chartType,
-      x: "device_name",
+      x: "device_id",
       y: "energy_wh_sum_sum",
       style: pieFallback
         ? { color: "device_id", orientation: "h" }
@@ -588,7 +659,7 @@ function buildDevicePowerPayload(filters) {
     filter_map,
     aggregation: [
       {
-        group_by: ["device_id"],
+        group_by: ["site_id", "device_id"],
         aggregations: {
           power_w_avg: ["avg"],
         },
@@ -596,7 +667,7 @@ function buildDevicePowerPayload(filters) {
     ],
     chart: {
       chart_type: "bar",
-      x: "device_name",
+      x: "device_id",
       y: "power_w_avg_avg",
       style: { color: "device_id" },
     },
@@ -612,7 +683,7 @@ async function fetchSiteAggregates(filters) {
     filter_map: buildBaseSiteMap(filters),
     aggregation: [
       {
-        group_by: ["site_id", "site_name"],
+        group_by: ["site_id"],
         aggregations: {
           total_energy_wh: ["sum"],
           availability_pct: ["avg"],
@@ -621,12 +692,17 @@ async function fetchSiteAggregates(filters) {
       },
     ],
   };
-  const response = await fetchDB(body);
-  return Array.isArray(response?.data)
-    ? response.data
-    : Array.isArray(response)
-    ? response
-    : [];
+  try {
+    const response = await fetchDB(body);
+    return Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+  } catch (error) {
+    console.warn("reports: site aggregates unavailable", error);
+    return [];
+  }
 }
 
 async function fetchDeviceAggregates(filters) {
@@ -635,21 +711,25 @@ async function fetchDeviceAggregates(filters) {
     filter_map: buildBaseSiteMap(filters),
     aggregation: [
       {
-        group_by: ["device_id", "device_name"],
+        group_by: ["site_id", "device_id"],
         aggregations: {
           energy_wh_sum: ["sum"],
           power_w_avg: ["avg"],
         },
       },
     ],
-    select_columns: ["device_id", "device_name", "energy_wh_sum", "power_w_avg"],
   };
-  const response = await fetchDB(body);
-  return Array.isArray(response?.data)
-    ? response.data
-    : Array.isArray(response)
-    ? response
-    : [];
+  try {
+    const response = await fetchDB(body);
+    return Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+  } catch (error) {
+    console.warn("reports: device aggregates unavailable", error);
+    return [];
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -669,7 +749,8 @@ async function renderPlotCard(container, payloadBuilder) {
 
   try {
     const { figure, config, mapping } = await fetchPlot(payload);
-    applyMapping(figure, mapping);
+    const augmentedMapping = augmentDeviceMapping(mapping);
+    applyMapping(figure, augmentedMapping);
     mapCategoricalAxisToLabels(figure);
     if (plotIsEmpty(figure)) {
       setMessage(container, "No hay datos para los filtros seleccionados.");
@@ -935,6 +1016,7 @@ function currentFilters(elements, areaKey) {
   const from = elements.from?.value || formatDateISO(new Date());
   const to = elements.to?.value || formatDateISO(new Date());
   const siteId = resolveSite(elements.site);
+  state.currentSiteId = siteId;
   return { from, to, siteId, area: areaKey };
 }
 
@@ -971,7 +1053,10 @@ async function hydrateSites(select) {
         "afterbegin",
         '<option value="">Todos los sitios</option>'
       );
-      select.value = "";
+      const defaultSite = rows[0]?.site_id;
+      if (defaultSite) {
+        select.value = String(defaultSite);
+      }
     } else {
       const current = currentUserSiteId();
       if (current) select.value = String(current);
@@ -1000,6 +1085,38 @@ function previousRange(range) {
   return { from: formatDateISO(prevFrom), to: formatDateISO(prevTo) };
 }
 
+function getPreviousPeriod(from, to) {
+  if (!from || !to) return { from, to };
+  const start = new Date(from);
+  const end = new Date(to);
+  const ms = end.getTime() - start.getTime();
+  const prevEnd = new Date(start.getTime() - 24 * 60 * 60 * 1000);
+  const prevStart = new Date(prevEnd.getTime() - ms);
+  return {
+    from: formatDateISO(prevStart),
+    to: formatDateISO(prevEnd),
+  };
+}
+
+function formatDelta(current, previous) {
+  if (!previous || Number(previous) === 0) return { delta: null, label: "N/A" };
+  const delta = ((Number(current || 0) - Number(previous || 0)) / Number(previous)) * 100;
+  const sign = delta > 0 ? "+" : "";
+  return { delta, label: `${sign}${delta.toFixed(1)}%` };
+}
+
+function formatKpi(value, opts = {}) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  if (opts.type === "percent") {
+    const v = Number(value);
+    return `${v.toFixed(1)}%`;
+  }
+  if (opts.type === "number") {
+    return Number(value).toLocaleString("es-MX", { maximumFractionDigits: 1 });
+  }
+  return value;
+}
+
 function sumField(rows, field) {
   if (!Array.isArray(rows)) return 0;
   return rows.reduce((acc, row) => acc + (Number(row?.[field]) || 0), 0);
@@ -1011,6 +1128,185 @@ function avgField(rows, field) {
   return total / rows.length;
 }
 
+function countDaysInRange(from, to) {
+  if (!from || !to) return 0;
+  const start = new Date(from);
+  const end = new Date(to);
+  const diff = end.getTime() - start.getTime();
+  return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)) + 1);
+}
+
+function buildDireccionComparisons(current, previous, filters, prevRange) {
+  const energyCurrent = sumField(current, "total_energy_wh_sum");
+  const energyPrev = sumField(previous, "total_energy_wh_sum");
+  const daysCurrent = countDaysInRange(filters.from, filters.to);
+  const daysPrev = countDaysInRange(prevRange.from, prevRange.to);
+  const dailyCurrent = daysCurrent ? energyCurrent / daysCurrent : 0;
+  const dailyPrev = daysPrev ? energyPrev / daysPrev : 0;
+  const availabilityCurrent = avgField(current, "availability_pct_avg");
+  const availabilityPrev = avgField(previous, "availability_pct_avg");
+  const pfCurrent = avgField(current, "pf_compliance_pct_avg");
+  const pfPrev = avgField(previous, "pf_compliance_pct_avg");
+  const sitesCurrent = Array.isArray(current) ? current.length : 0;
+  const sitesPrev = Array.isArray(previous) ? previous.length : 0;
+  const perSiteCurrent = sitesCurrent ? energyCurrent / sitesCurrent : 0;
+  const perSitePrev = sitesPrev ? energyPrev / sitesPrev : 0;
+
+  return [
+    {
+      label: "Consumo total",
+      current: energyCurrent,
+      previous: energyPrev,
+      unit: "kWh",
+    },
+    {
+      label: "Consumo diario prom.",
+      current: dailyCurrent,
+      previous: dailyPrev,
+      unit: "kWh/día",
+    },
+    {
+      label: "Consumo por sitio",
+      current: perSiteCurrent,
+      previous: perSitePrev,
+      unit: "kWh/sitio",
+    },
+    {
+      label: "Disponibilidad",
+      current: availabilityCurrent,
+      previous: availabilityPrev,
+      type: "percent",
+    },
+    {
+      label: "Cumplimiento PF",
+      current: pfCurrent,
+      previous: pfPrev,
+      type: "percent",
+    },
+  ];
+}
+
+function getTopDevice(rows) {
+  if (!Array.isArray(rows) || !rows.length) return null;
+  const sorted = rows
+    .slice()
+    .sort(
+      (a, b) =>
+        (Number(b?.energy_wh_sum_sum) || 0) -
+        (Number(a?.energy_wh_sum_sum) || 0)
+    );
+  const top = sorted[0];
+  if (!top) return null;
+  const label = deviceLabel(top.device_id, top.device_name, top.site_id);
+  return {
+    label,
+    value: Number(top.energy_wh_sum_sum) || 0,
+  };
+}
+
+function buildMantenimientoComparisons(current, previous, filters, prevRange) {
+  const energyCurrent = sumField(current, "energy_wh_sum_sum");
+  const energyPrev = sumField(previous, "energy_wh_sum_sum");
+  const devicesCurrent = Array.isArray(current) ? current.length : 0;
+  const devicesPrev = Array.isArray(previous) ? previous.length : 0;
+  const perDeviceCurrent = devicesCurrent ? energyCurrent / devicesCurrent : 0;
+  const perDevicePrev = devicesPrev ? energyPrev / devicesPrev : 0;
+  const powerCurrent = avgField(current, "power_w_avg_avg");
+  const powerPrev = avgField(previous, "power_w_avg_avg");
+  const topCurrent = getTopDevice(current);
+  const topPrev = getTopDevice(previous);
+
+  return [
+    {
+      label: "Consumo total",
+      current: energyCurrent,
+      previous: energyPrev,
+      unit: "kWh",
+    },
+    {
+      label: "Consumo prom. por dispositivo",
+      current: perDeviceCurrent,
+      previous: perDevicePrev,
+      unit: "kWh",
+    },
+    {
+      label: "Potencia promedio",
+      current: powerCurrent,
+      previous: powerPrev,
+      unit: "W",
+    },
+    {
+      label: topCurrent?.label ? `Mayor consumidor: ${topCurrent.label}` : "Mayor consumidor",
+      current: topCurrent?.value ?? 0,
+      previous: topPrev?.value ?? 0,
+      unit: "kWh",
+      note: topCurrent?.label,
+    },
+    {
+      label: "Dispositivos monitoreados",
+      current: devicesCurrent,
+      previous: devicesPrev,
+      type: "number",
+    },
+  ];
+}
+
+function renderComparisonCards(target, cards = []) {
+  if (!target) return;
+  if (!cards.length) {
+    setMessage(target, "Sin datos comparables para este rango.");
+    return;
+  }
+  target.innerHTML = "";
+  cards.forEach((card) => {
+    const { delta, label } = formatDelta(card.current, card.previous);
+    const deltaClass =
+      delta === null
+        ? ""
+        : delta > 0
+        ? "is-positive"
+        : delta < 0
+        ? "is-negative"
+        : "";
+    const currentText = formatComparisonValue(card.current, card);
+    const prevText = formatComparisonValue(card.previous, card);
+    const note = card.note ? ` · ${card.note}` : "";
+    const meta = `Actual: ${currentText} · Prev: ${prevText}${note}`;
+    const el = document.createElement("div");
+    el.className = "comparison-card";
+    el.innerHTML = `
+      <p class="comparison-card__label">${card.label}</p>
+      <p class="comparison-card__delta${deltaClass ? ` ${deltaClass}` : ""}">${label}</p>
+      <p class="comparison-card__meta">${meta}</p>
+    `;
+    target.appendChild(el);
+  });
+}
+
+function formatComparisonValue(value, card) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  if (card.type === "percent") return formatPercent(value);
+  if (card.type === "number") {
+    return formatKpi(value, { type: "number" });
+  }
+  if (card.unit === "W") {
+    return `${Number(value || 0).toLocaleString("es-MX", {
+      maximumFractionDigits: 1,
+    })} W`;
+  }
+  if (card.unit === "kWh/día" || card.unit === "kWh/sitio") {
+    return `${Number(value || 0).toLocaleString("es-MX", {
+      maximumFractionDigits: 1,
+    })} ${card.unit}`;
+  }
+  if (card.unit === "kWh") {
+    return `${Number(value || 0).toLocaleString("es-MX", {
+      maximumFractionDigits: 1,
+    })} kWh`;
+  }
+  return formatKpi(value, { type: "number" });
+}
+
 function findMaxLabel(rows, field) {
   if (!Array.isArray(rows) || !rows.length) return null;
   const sorted = rows
@@ -1019,11 +1315,17 @@ function findMaxLabel(rows, field) {
   const top = sorted[0];
   const siteId = top?.site_id || top?.device_id;
   if (!siteId) return null;
-  if (top?.device_name) return top.device_name;
+  if (top?.device_name) {
+    const siteName = state.sitesById[String(top.site_id)];
+    return appendSiteAcronymOnce(top.device_name, siteName);
+  }
+  if (top?.device_id) {
+    return deviceLabel(top.device_id, top.device_name, top.site_id);
+  }
   if (top?.site_name) return top.site_name;
   const siteName = state.sitesById[String(siteId)];
   if (siteName) return siteName;
-  return `Sitio ${siteId}`;
+  return deviceLabel(siteId);
 }
 
 function formatEnergy(value) {
@@ -1059,7 +1361,7 @@ function normalizeReportPlotLayout(layout = {}) {
     titlefont: { size: 11 },
     tickfont: { color: "#737380", size: 10 },
   };
-  next.margin = layout.margin || { l: 30, r: 10, t: 10, b: 30 };
+  next.margin = layout.margin || { l: 36, r: 48, t: 12, b: 36 };
   next.autosize = true;
   return next;
 }
@@ -1087,40 +1389,156 @@ function siteLabel(siteId) {
   return state.sitesById[String(siteId)] || `Sitio ${siteId}`;
 }
 
-function deviceLabel(deviceId, deviceName) {
-  if (deviceName) return deviceName;
-  const name = state.devicesById[String(deviceId)];
-  if (name) return name;
-  return `Sensor ${deviceId}`;
+function deviceLabel(deviceId, deviceName, siteId) {
+  const meta = state.deviceMetaById[String(deviceId)];
+  const siteName = meta?.siteName || state.sitesById[String(siteId)];
+  const baseName =
+    deviceName || meta?.name || state.devicesById[String(deviceId)];
+  if (!baseName) return `Sensor ${deviceId}`;
+  if (shouldAppendAcronym()) {
+    return appendSiteAcronymOnce(baseName, siteName || meta?.siteName);
+  }
+  return baseName;
 }
 
 async function ensureDeviceLabels(siteId) {
-  if (!siteId || state.devicesById.__loadedFor === siteId) return;
+  const key = siteId || "ALL";
+  if (state.devicesById.__loadedFor === key) return;
   try {
-    const rows = await getDevices(siteId);
+    const payload = {
+      table: "devices",
+      select_columns: ["site_id", "device_id", "device_name"],
+    };
+    if (siteId && siteId !== "ALL") {
+      payload.filter_map = { site_id: "=" + siteId };
+    }
+    const rows = await fetchDB(payload);
     const list = Array.isArray(rows?.data)
       ? rows.data
       : Array.isArray(rows)
       ? rows
       : [];
     list.forEach((row) => {
-      if (row.device_id && row.device_name) {
-        state.devicesById[String(row.device_id)] = row.device_name;
-      }
+      if (!row.device_id || !row.device_name) return;
+      const deviceKey = String(row.device_id);
+      const siteName = state.sitesById[String(row.site_id)];
+      state.devicesById[deviceKey] = row.device_name; // raw name
+      state.deviceMetaById[deviceKey] = {
+        name: row.device_name,
+        siteName,
+        siteId: row.site_id,
+      };
     });
-    state.devicesById.__loadedFor = siteId;
+    state.devicesById.__loadedFor = key;
   } catch (error) {
     console.warn("reports: no se pudieron cargar nombres de dispositivos", error);
   }
 }
 
+async function ensureDeviceMetaForIds(ids = []) {
+  const missing = Array.from(
+    new Set(
+      (ids || [])
+        .filter(Boolean)
+        .map(String)
+        .filter((id) => !state.deviceMetaById[id])
+    )
+  );
+  if (!missing.length) return;
+  try {
+    const rows = await fetchDB({
+      table: "devices",
+      filter_map: { device_id: missing },
+      select_columns: ["site_id", "device_id", "device_name"],
+    });
+    const list = Array.isArray(rows?.data)
+      ? rows.data
+      : Array.isArray(rows)
+      ? rows
+      : [];
+    list.forEach((row) => {
+      if (!row.device_id) return;
+      const deviceKey = String(row.device_id);
+      const siteName = state.sitesById[String(row.site_id)];
+      const baseName = row.device_name || `Sensor ${deviceKey}`;
+      state.devicesById[deviceKey] = baseName;
+      state.deviceMetaById[deviceKey] = {
+        name: baseName,
+        siteName,
+        siteId: row.site_id,
+      };
+    });
+  } catch (error) {
+    console.warn("reports: no se pudo completar meta de dispositivos", error);
+  }
+}
+
+function appendSiteAcronym(name, siteName) {
+  if (!siteName) return name;
+  const words = siteName.trim().split(/\s+/);
+  const acronym = words.map((w) => w[0]?.toUpperCase()).join("");
+  const dotted = acronym ? acronym.split("").join(".") + "." : "";
+  return `${name} ${dotted}`.trim();
+}
+
+function appendSiteAcronymOnce(name, siteName) {
+  if (!siteName || !shouldAppendAcronym()) return name;
+  const acr = appendSiteAcronym("", siteName).trim();
+  if (acr && name.includes(acr)) return name; // already has acronym appended
+  return appendSiteAcronym(name, siteName);
+}
+
+function augmentDeviceMapping(mapping = {}) {
+  // When viewing all sites, append site acronym to device labels in mapping
+  const append = shouldAppendAcronym();
+  if (!append) return mapping;
+  const next = { ...mapping };
+  if (next.device_id && typeof next.device_id === "object") {
+    next.device_id = Object.fromEntries(
+      Object.entries(next.device_id).map(([id, label]) => {
+        const meta = state.deviceMetaById[String(id)];
+        const siteName = meta?.siteName;
+        const base = meta?.name || label || `Sensor ${id}`;
+        return [id, appendSiteAcronymOnce(base, siteName)];
+      })
+    );
+  }
+  return next;
+}
+
+function shouldAppendAcronym() {
+  return !state.currentSiteId || state.currentSiteId === "ALL";
+}
+
 function mapCategoricalAxisToLabels(figure) {
   if (!figure || !Array.isArray(figure.data)) return;
-  const mapValue = (val) => state.sitesById[String(val)] || val;
+  const mapValue = (val, siteIdHint) => {
+    if (state.sitesById[String(val)]) return state.sitesById[String(val)];
+    const meta = state.deviceMetaById[String(val)];
+    if (meta) {
+      const name = meta.name || state.devicesById[String(val)] || `Sensor ${val}`;
+      return shouldAppendAcronym() ? appendSiteAcronym(name, meta.siteName) : name;
+    }
+    if (state.devicesById[String(val)]) {
+      const name = state.devicesById[String(val)];
+      return shouldAppendAcronym()
+        ? appendSiteAcronym(name, state.sitesById[String(siteIdHint)])
+        : name;
+    }
+    if (siteIdHint && state.sitesById[String(siteIdHint)]) {
+      return appendSiteAcronym(String(val), state.sitesById[String(siteIdHint)]);
+    }
+    return val;
+  };
 
   figure.data.forEach((trace) => {
     if (Array.isArray(trace.x)) {
-      trace.x = trace.x.map(mapValue);
+      trace.x = trace.x.map((val, idx) => mapValue(val, trace.site_id?.[idx]));
+      if (trace.type === "bar" && (!trace.orientation || trace.orientation === "v")) {
+        figure.layout = figure.layout || {};
+        figure.layout.xaxis = figure.layout.xaxis || {};
+        figure.layout.xaxis.tickangle = figure.layout.xaxis.tickangle ?? -30;
+      }
     }
     // Also map legend names already handled by applyMapping; no change here.
   });
@@ -1213,30 +1631,36 @@ async function downloadPdf(shell, area, fromInput, toInput) {
       btn.textContent = "Generando PDF...";
     }
     await ensurePdfDeps();
-    const canvas = await window.html2canvas(shell, {
-      scale: 2,
+    const exportNode = buildExportNode(shell, area);
+    document.body.appendChild(exportNode);
+    const canvas = await window.html2canvas(exportNode, {
+      scale: 2.2,
       useCORS: true,
+      backgroundColor: "#ffffff",
+      scrollX: 0,
+      scrollY: 0,
     });
+    document.body.removeChild(exportNode);
     const imgData = canvas.toDataURL("image/png");
-    const pdf = new window.jspdf.jsPDF("p", "pt", "a4");
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgProps = {
-      width: canvas.width,
-      height: canvas.height,
-    };
-    const ratio = Math.min(pdfWidth / imgProps.width, 1);
-    const imgHeight = imgProps.height * ratio;
-    let position = 0;
+    const margin = 18; // mm
+    const pdf = new window.jspdf.jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const printableWidth = pageWidth - margin * 2;
+    const ratio = printableWidth / canvas.width;
+    const imgWidth = printableWidth;
+    const imgHeight = canvas.height * ratio;
     let heightLeft = imgHeight;
+    let position = margin;
+
+    pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight - margin * 2;
 
     while (heightLeft > 0) {
-      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-      heightLeft -= pdfHeight;
-      if (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-      }
+      position = margin - (imgHeight - heightLeft);
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight - margin * 2;
     }
 
     const nameFrom = fromInput?.value || "inicio";
@@ -1251,4 +1675,47 @@ async function downloadPdf(shell, area, fromInput, toInput) {
       btn.textContent = "Descargar PDF";
     }
   }
+}
+
+function buildExportNode(shell, area) {
+  const clone = shell.cloneNode(true);
+  clone.classList.add("report-export");
+  clone.querySelectorAll("[data-pdf-exclude]").forEach((el) => el.remove());
+  clone.querySelectorAll(".report-card").forEach((el) =>
+    el.classList.add("report-card--export")
+  );
+  const grid = clone.querySelector(".report-grid");
+  if (grid) {
+    grid.classList.add("report-grid--export");
+  }
+
+  const headerText = clone.querySelector(".report-header__text");
+  if (headerText) {
+    const kind = document.createElement("p");
+    kind.className = "report-kind-print";
+    kind.textContent = `Reporte: ${AREA_LABELS[area] || ""}`;
+    headerText.appendChild(kind);
+  }
+
+  const footnote = document.createElement("div");
+  footnote.className = "report-footnote";
+  footnote.textContent = `MEST ENERGY — ${formatToday()}`;
+  clone.appendChild(footnote);
+
+  // Add filters summary for clarity in PDF
+  const filterSummary = document.createElement("div");
+  filterSummary.className = "report-footnote";
+  filterSummary.textContent = `Filtros: ${describeRange({
+    from: document.getElementById("report-from")?.value,
+    to: document.getElementById("report-to")?.value,
+  })} · Sitio: ${siteLabel(resolveSite(document.getElementById("report-site")))}`;
+  clone.insertBefore(filterSummary, footnote);
+
+  clone.style.position = "absolute";
+  clone.style.left = "-9999px";
+  clone.style.top = "0";
+  clone.style.width = "182mm"; // slightly narrower than printable width to keep margins
+  clone.style.padding = "12mm 14mm 16mm";
+  clone.style.background = "#ffffff";
+  return clone;
 }

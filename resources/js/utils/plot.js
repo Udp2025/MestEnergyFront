@@ -85,6 +85,28 @@ export function applyMapping(figure, mapping = {}) {
     trace.legendgroup = label; // keep toggling tidy
     if (hover) trace.hovertemplate = hover;
   });
+
+  /* 4. Replace categorical IDs in bar axes so charts show labels, not numeric IDs */
+  const mapValue = (v) =>
+    Object.prototype.hasOwnProperty.call(flat, v) ? flat[v] : v;
+
+  figure.data.forEach((trace) => {
+    if (trace.type !== "bar") return;
+    const orientation = trace.orientation || "v";
+    if (orientation === "h" && Array.isArray(trace.y)) {
+      trace.y = trace.y.map(mapValue);
+    } else if (Array.isArray(trace.x)) {
+      trace.x = trace.x.map(mapValue);
+    }
+    /* Tilt category labels for vertical bars if not preset to avoid overlap */
+    if (orientation !== "h") {
+      figure.layout = figure.layout || {};
+      figure.layout.xaxis = figure.layout.xaxis || {};
+      if (figure.layout.xaxis.tickangle === undefined) {
+        figure.layout.xaxis.tickangle = -30;
+      }
+    }
+  });
 }
 
 export function setupAdvancedFilters(form, options = {}) {

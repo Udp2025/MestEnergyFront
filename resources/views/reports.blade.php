@@ -19,14 +19,14 @@
         <h1>Reportes automáticos</h1>
         <p>Consulta KPIs clave por rango de fechas para Finanzas, Dirección y Mantenimiento.</p>
       </div>
-      <div class="report-header__actions">
+      <div class="report-header__actions" data-pdf-exclude>
         <button type="button" id="download-report" class="report-button report-button--ghost">
           Descargar PDF
         </button>
       </div>
     </header>
 
-    <section class="report-card report-card--filters">
+    <section class="report-card report-card--filters" data-pdf-exclude>
       <form id="report-filters" class="report-filters">
         @csrf
         <div class="report-filters__row">
@@ -58,7 +58,7 @@
       </form>
     </section>
 
-    <section class="report-tabs" id="report-tabs" role="tablist" aria-label="Áreas de reporte">
+    <section class="report-tabs" id="report-tabs" role="tablist" aria-label="Áreas de reporte" data-pdf-exclude>
       <button type="button" class="report-tab is-active" data-area-tab="finanzas" role="tab" aria-selected="true">Finanzas</button>
       <button type="button" class="report-tab" data-area-tab="direccion" role="tab" aria-selected="false">Dirección</button>
       <button type="button" class="report-tab" data-area-tab="mantenimiento" role="tab" aria-selected="false">Mantenimiento</button>

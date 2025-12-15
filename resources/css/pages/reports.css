@@ -180,6 +180,10 @@
   grid-column: span 2;
 }
 
+.report-card--full {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 899px) {
   .report-card--wide {
     grid-column: span 1;
@@ -190,6 +194,17 @@
   .report-card--wide {
     grid-column: span 3;
   }
+}
+
+.report-card.report-card--export {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.report-grid.report-grid--export {
+  grid-template-columns: 1fr;
 }
 
 .report-card__title {
@@ -207,7 +222,7 @@
 
 .report-chart {
   width: 100%;
-  min-height: 300px;
+  min-height: 320px;
   height: auto;
   border-radius: 12px;
   background: linear-gradient(135deg, #fff8f2, #fdfaf6);
@@ -215,6 +230,10 @@
   padding: 0.25rem;
   box-sizing: border-box;
   overflow: hidden;
+}
+
+.report-export .report-chart {
+  min-height: 340px;
 }
 
 .report-chart > div {
@@ -287,4 +306,85 @@
 .report-narrative {
   color: #333337;
   line-height: 1.6;
+}
+
+.report-footnote {
+  margin-top: 1rem;
+  color: #737380;
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+.report-kind-print {
+  margin: 0.25rem 0 0;
+  color: #333337;
+  font-weight: 600;
+}
+
+.report-export {
+  background: #ffffff;
+  padding: 14mm 16mm 18mm;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+@media print {
+  @page {
+    margin: 18mm;
+  }
+  [data-pdf-exclude] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  .report-export {
+    padding: 0;
+    background: #fff;
+  }
+  .report-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.comparison-card {
+  border: 1px solid #f2ebe3;
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  background: #fff5ed;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+}
+
+.comparison-card__label {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #333337;
+  font-weight: 600;
+}
+
+.comparison-card__delta {
+  margin: 0.25rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #333337;
+}
+
+.comparison-card__delta.is-positive {
+  color: #0f9d58;
+}
+
+.comparison-card__delta.is-negative {
+  color: #d46652;
+}
+
+.comparison-card__meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: #737380;
 }
