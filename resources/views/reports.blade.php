@@ -49,20 +49,7 @@
           </label>
           <label class="report-field">
             <span>Sitio</span>
-            <select name="site" id="report-site">
-              <option value="">Selecciona un sitio</option>
-              <option value="central">Sitio Central</option>
-              <option value="norte">Sitio Norte</option>
-              <option value="sur">Sitio Sur</option>
-            </select>
-          </label>
-          <label class="report-field">
-            <span>Área</span>
-            <select name="area" id="report-area">
-              <option value="finanzas">Finanzas</option>
-              <option value="direccion">Dirección</option>
-              <option value="mantenimiento">Mantenimiento</option>
-            </select>
+            <select name="site" id="report-site"></select>
           </label>
           <button type="submit" id="report-apply" class="report-button report-button--primary">
             Aplicar filtros

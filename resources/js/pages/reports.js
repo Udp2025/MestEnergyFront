@@ -139,6 +139,7 @@ const AREA_CONFIG = {
 const state = {
   activeArea: "finanzas",
   sitesById: {},
+  devicesById: {},
   renderToken: 0,
 };
 
@@ -155,7 +156,6 @@ document.addEventListener("DOMContentLoaded", () => {
     to: document.getElementById("report-to"),
     quickRange: document.getElementById("report-quick-range"),
     site: document.getElementById("report-site"),
-    areaSelect: document.getElementById("report-area"),
     tabs: Array.from(document.querySelectorAll("[data-area-tab]")),
     grid: document.getElementById("report-grid"),
     download: document.getElementById("download-report"),
@@ -163,11 +163,10 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   primeDefaultDates(elements.from, elements.to);
-  hydrateSites(elements.site);
-  if (elements.areaSelect) {
-    elements.areaSelect.value = state.activeArea;
-  }
-  renderArea(state.activeArea, elements);
+  (async () => {
+    await hydrateSites(elements.site);
+    renderArea(state.activeArea, elements);
+  })();
 
   elements.form?.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -183,20 +182,11 @@ document.addEventListener("DOMContentLoaded", () => {
     handleRender(elements, state.activeArea);
   });
 
-  elements.areaSelect?.addEventListener("change", (event) => {
-    const nextArea = event.target.value;
-    setActiveTab(nextArea, elements);
-    handleRender(elements, nextArea);
-  });
-
   elements.tabs.forEach((tab) => {
     tab.addEventListener("click", () => {
       const nextArea = tab.dataset.areaTab;
       if (!nextArea) return;
       setActiveTab(nextArea, elements);
-      if (elements.areaSelect) {
-        elements.areaSelect.value = nextArea;
-      }
       handleRender(elements, nextArea);
     });
   });
@@ -218,6 +208,10 @@ function renderArea(areaKey, elements) {
   if (!elements.grid) return;
   elements.grid.innerHTML = "";
   const filters = currentFilters(elements, areaKey);
+  // Preload device labels for maintenance views to have names in summaries
+  if (areaKey === "mantenimiento") {
+    ensureDeviceLabels(filters.siteId).catch(() => {});
+  }
   const narrativeTarget = NARRATIVE_AREAS.has(areaKey)
     ? createNarrativeCard(elements.grid, areaKey)
     : null;
@@ -376,15 +370,20 @@ async function renderMantenimientoSummary(container, filters, renderId) {
   if (!container) return;
   setLoading(container);
   try {
+    await ensureDeviceLabels(filters.siteId);
     const rows = await fetchDeviceAggregates(filters);
     if (renderId !== state.renderToken) return;
-    const energyTotal = sumField(rows, "energy_wh_sum_sum");
-    const topDevice = findMaxLabel(rows, "energy_wh_sum_sum");
-    const ordered = rows
+    const enriched = rows.map((row) => ({
+      ...row,
+      device_name: deviceLabel(row.device_id, row.device_name),
+    }));
+    const energyTotal = sumField(enriched, "energy_wh_sum_sum");
+    const topDevice = findMaxLabel(enriched, "energy_wh_sum_sum");
+    const ordered = enriched
       .slice()
       .sort((a, b) => (b.energy_wh_sum_sum || 0) - (a.energy_wh_sum_sum || 0))
       .slice(0, 3)
-      .map((r) => r.device_id)
+      .map((r) => deviceLabel(r.device_id, r.device_name))
       .filter(Boolean);
 
     const summaryRows = [
@@ -468,6 +467,7 @@ function buildLoadFactorTrendPayload(filters) {
 
 function buildEnergyBySitePayload(filters, chartType = "bar") {
   const filter_map = buildBaseSiteMap(filters);
+  const pieFallback = chartType === "pie";
   return {
     table: "site_daily_kpi",
     filter_map,
@@ -480,10 +480,11 @@ function buildEnergyBySitePayload(filters, chartType = "bar") {
       },
     ],
     chart: {
-      chart_type: chartType,
-      x: "site_id",
+      // backend does not support "pie"; fallback to bar while keeping intent
+      chart_type: pieFallback ? "bar" : chartType,
+      x: "site_name",
       y: "total_energy_wh_sum",
-      style: { color: "site_id" },
+      style: pieFallback ? { color: "site_id", orientation: "h" } : { color: "site_id" },
     },
   };
 }
@@ -499,8 +500,6 @@ function buildHourlyEnergyPayload(filters) {
         aggregations: {
           energy_wh_sum: ["avg"],
         },
-        time_window: "H",
-        time_column: "hour_start",
       },
     ],
     chart: {
@@ -558,6 +557,7 @@ function buildDeviceEnergyTrendPayload(filters) {
 
 function buildDeviceEnergyRankPayload(filters, chartType = "bar") {
   const filter_map = buildBaseSiteMap(filters);
+  const pieFallback = chartType === "pie";
   return {
     table: "device_daily_kpi",
     filter_map,
@@ -570,10 +570,13 @@ function buildDeviceEnergyRankPayload(filters, chartType = "bar") {
       },
     ],
     chart: {
-      chart_type: chartType,
-      x: "device_id",
+      // backend lacks native "pie"; fallback to bar while keeping grouping
+      chart_type: pieFallback ? "bar" : chartType,
+      x: "device_name",
       y: "energy_wh_sum_sum",
-      style: { color: "device_id" },
+      style: pieFallback
+        ? { color: "device_id", orientation: "h" }
+        : { color: "device_id" },
     },
   };
 }
@@ -593,7 +596,7 @@ function buildDevicePowerPayload(filters) {
     ],
     chart: {
       chart_type: "bar",
-      x: "device_id",
+      x: "device_name",
       y: "power_w_avg_avg",
       style: { color: "device_id" },
     },
@@ -609,7 +612,7 @@ async function fetchSiteAggregates(filters) {
     filter_map: buildBaseSiteMap(filters),
     aggregation: [
       {
-        group_by: ["site_id"],
+        group_by: ["site_id", "site_name"],
         aggregations: {
           total_energy_wh: ["sum"],
           availability_pct: ["avg"],
@@ -632,13 +635,14 @@ async function fetchDeviceAggregates(filters) {
     filter_map: buildBaseSiteMap(filters),
     aggregation: [
       {
-        group_by: ["device_id"],
+        group_by: ["device_id", "device_name"],
         aggregations: {
           energy_wh_sum: ["sum"],
           power_w_avg: ["avg"],
         },
       },
     ],
+    select_columns: ["device_id", "device_name", "energy_wh_sum", "power_w_avg"],
   };
   const response = await fetchDB(body);
   return Array.isArray(response?.data)
@@ -666,6 +670,7 @@ async function renderPlotCard(container, payloadBuilder) {
   try {
     const { figure, config, mapping } = await fetchPlot(payload);
     applyMapping(figure, mapping);
+    mapCategoricalAxisToLabels(figure);
     if (plotIsEmpty(figure)) {
       setMessage(container, "No hay datos para los filtros seleccionados.");
       return;
@@ -679,7 +684,11 @@ async function renderPlotCard(container, payloadBuilder) {
   } catch (err) {
     console.error("reports: plot error", err);
     const { message } = normalisePlotError(err);
-    setError(container, message || "No fue posible cargar la gráfica.", () =>
+    const text =
+      typeof message === "string"
+        ? message
+        : "No fue posible cargar la gráfica.";
+    setError(container, text, () =>
       renderPlotCard(container, payloadBuilder)
     );
   }
@@ -938,13 +947,6 @@ function resolveSite(siteSelect) {
 
 async function hydrateSites(select) {
   if (!select) return;
-  if (!canViewAllSites()) {
-    const siteId = currentUserSiteId();
-    if (siteId) {
-      select.innerHTML = `<option value="${siteId}" selected>Sitio actual</option>`;
-    }
-    return;
-  }
   try {
     const sites = await getSites();
     const rows = Array.isArray(sites?.data)
@@ -952,17 +954,35 @@ async function hydrateSites(select) {
       : Array.isArray(sites)
       ? sites
       : [];
+    if (!rows.length) {
+      const siteId = currentUserSiteId();
+      if (siteId) {
+        select.innerHTML = `<option value="${siteId}" selected>Sitio ${siteId}</option>`;
+        state.sitesById[String(siteId)] = `Sitio ${siteId}`;
+      }
+      return;
+    }
     fillSelect(select, rows, "site_id", "site_name");
-    select.insertAdjacentHTML(
-      "afterbegin",
-      '<option value="">Todos los sitios</option>'
-    );
-    select.value = "";
     rows.forEach((row) => {
       state.sitesById[String(row.site_id)] = row.site_name;
     });
+    if (canViewAllSites()) {
+      select.insertAdjacentHTML(
+        "afterbegin",
+        '<option value="">Todos los sitios</option>'
+      );
+      select.value = "";
+    } else {
+      const current = currentUserSiteId();
+      if (current) select.value = String(current);
+    }
   } catch (error) {
     console.warn("reports: no se pudieron cargar sitios", error);
+    const siteId = currentUserSiteId();
+    if (siteId) {
+      select.innerHTML = `<option value="${siteId}" selected>Sitio ${siteId}</option>`;
+      state.sitesById[String(siteId)] = `Sitio ${siteId}`;
+    }
   }
 }
 
@@ -999,7 +1019,11 @@ function findMaxLabel(rows, field) {
   const top = sorted[0];
   const siteId = top?.site_id || top?.device_id;
   if (!siteId) return null;
-  return state.sitesById[String(siteId)] || siteId;
+  if (top?.device_name) return top.device_name;
+  if (top?.site_name) return top.site_name;
+  const siteName = state.sitesById[String(siteId)];
+  if (siteName) return siteName;
+  return `Sitio ${siteId}`;
 }
 
 function formatEnergy(value) {
@@ -1061,6 +1085,45 @@ function siteLabel(siteId) {
   }
   if (!siteId) return "todos los sitios";
   return state.sitesById[String(siteId)] || `Sitio ${siteId}`;
+}
+
+function deviceLabel(deviceId, deviceName) {
+  if (deviceName) return deviceName;
+  const name = state.devicesById[String(deviceId)];
+  if (name) return name;
+  return `Sensor ${deviceId}`;
+}
+
+async function ensureDeviceLabels(siteId) {
+  if (!siteId || state.devicesById.__loadedFor === siteId) return;
+  try {
+    const rows = await getDevices(siteId);
+    const list = Array.isArray(rows?.data)
+      ? rows.data
+      : Array.isArray(rows)
+      ? rows
+      : [];
+    list.forEach((row) => {
+      if (row.device_id && row.device_name) {
+        state.devicesById[String(row.device_id)] = row.device_name;
+      }
+    });
+    state.devicesById.__loadedFor = siteId;
+  } catch (error) {
+    console.warn("reports: no se pudieron cargar nombres de dispositivos", error);
+  }
+}
+
+function mapCategoricalAxisToLabels(figure) {
+  if (!figure || !Array.isArray(figure.data)) return;
+  const mapValue = (val) => state.sitesById[String(val)] || val;
+
+  figure.data.forEach((trace) => {
+    if (Array.isArray(trace.x)) {
+      trace.x = trace.x.map(mapValue);
+    }
+    // Also map legend names already handled by applyMapping; no change here.
+  });
 }
 
 function createNarrativeCard(grid, areaKey) {
