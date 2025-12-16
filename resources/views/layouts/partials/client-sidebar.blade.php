@@ -77,9 +77,9 @@
             <ul>
                 @unless($isSuperAdmin)
                     <li class="{{ request()->routeIs('clientes.show') ? 'custom-active' : '' }}">
-                        <i class="fas fa-info-circle" aria-hidden="true"></i>
+                        <i class="fa fa-home" aria-hidden="true"></i>
                         <a href="{{ $clienteLinkId ? route('clientes.show', ['cliente' => $clienteLinkId]) : '#' }}">
-                            <span>Información</span>
+                            <span>Home</span>
                         </a>
                     </li>
                 @endunless

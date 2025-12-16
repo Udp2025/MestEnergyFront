@@ -195,6 +195,13 @@
         <div class="custom-main-content">
             <!-- Navbar -->
             <header class="custom-navbar">
+                @if(!$isSuperAdmin)
+                    <div class="custom-navbar-left">
+                        <a class="navbar-logo" href="{{ route('home') }}">
+                            <img src="{{ asset('images/ma_logo_bab.png') }}" alt="Mest Energy">
+                        </a>
+                    </div>
+                @endif
                 <div class="custom-navbar-right">
                     <div class="custom-clock" id="time"></div>
                     <div class="custom-notification-icon" id="notification-icon">
