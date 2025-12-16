@@ -201,10 +201,13 @@
   page-break-inside: avoid;
   margin-bottom: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  padding: 14px;
 }
 
 .report-grid.report-grid--export {
+  display: grid;
   grid-template-columns: 1fr;
+  gap: 10mm;
 }
 
 .report-card__title {
@@ -213,11 +216,20 @@
   font-size: 1.1rem;
 }
 
+.is-pdf-export .report-card__title {
+  font-size: 1rem;
+}
+
 .report-card__desc {
   margin: 0.35rem 0 0.25rem;
   color: #737380;
   font-size: 0.95rem;
   line-height: 1.4;
+}
+
+.is-pdf-export .report-card__desc {
+  font-size: 0.9rem;
+  line-height: 1.35;
 }
 
 .report-chart {
@@ -234,6 +246,34 @@
 
 .report-export .report-chart {
   min-height: 340px;
+  page-break-inside: avoid;
+}
+
+.is-pdf-export .report-chart {
+  min-height: 420px;
+  height: auto;
+  overflow: visible;
+  padding: 0.25rem;
+  border: none;
+  background: #fff;
+}
+.is-pdf-export .report-chart > div {
+  min-height: 420px !important;
+  height: 420px !important;
+  width: 100% !important;
+}
+.is-pdf-export .report-card {
+  overflow: visible;
+  padding: 12px 12px 10px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.is-pdf-export .report-card__footer {
+  page-break-inside: avoid;
+}
+.is-pdf-export .modebar-container,
+.is-pdf-export .modebar {
+  display: none !important;
 }
 
 .report-chart > div {
@@ -328,9 +368,55 @@
   width: 100%;
 }
 
+.report-export.is-pdf-export {
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  color: #333337;
+  line-height: 1.5;
+}
+
+.report-export__header {
+  page-break-after: avoid;
+  margin-bottom: 12mm;
+}
+
+.report-export__eyebrow {
+  margin: 0 0 2mm;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 10pt;
+  color: #d46652;
+  font-weight: 700;
+}
+
+.report-export__title {
+  margin: 0;
+  font-size: 24pt;
+  line-height: 1.25;
+  color: #333337;
+}
+
+.report-export__subtitle {
+  margin: 2mm 0 0;
+  font-size: 14pt;
+  color: #555;
+  font-weight: 600;
+}
+
+.report-export__meta {
+  margin: 2mm 0 0;
+  font-size: 11pt;
+  color: #555;
+}
+
+.report-export__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10mm;
+}
+
 @media print {
   @page {
-    margin: 18mm;
+    margin: 20mm;
   }
   [data-pdf-exclude] {
     display: none !important;
@@ -343,6 +429,10 @@
   .report-card {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+  .report-grid--export {
+    grid-template-columns: 1fr !important;
+    gap: 10mm !important;
   }
 }
 .comparison-grid {

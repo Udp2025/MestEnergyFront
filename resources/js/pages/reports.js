@@ -1633,35 +1633,73 @@ async function downloadPdf(shell, area, fromInput, toInput) {
     await ensurePdfDeps();
     const exportNode = buildExportNode(shell, area);
     document.body.appendChild(exportNode);
-    const canvas = await window.html2canvas(exportNode, {
-      scale: 2.2,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      scrollX: 0,
-      scrollY: 0,
-    });
-    document.body.removeChild(exportNode);
-    const imgData = canvas.toDataURL("image/png");
-    const margin = 18; // mm
+    // Give the browser time to paint the offscreen export tree and let Plotly resize inside
+    await new Promise((res) => requestAnimationFrame(() => setTimeout(res, 320)));
+
+    const margin = 20; // mm aligned with print rules
     const pdf = new window.jspdf.jsPDF("p", "mm", "a4");
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const printableWidth = pageWidth - margin * 2;
-    const ratio = printableWidth / canvas.width;
-    const imgWidth = printableWidth;
-    const imgHeight = canvas.height * ratio;
-    let heightLeft = imgHeight;
-    let position = margin;
+    const printableHeight = pageHeight - margin * 2;
+    let cursorY = 0;
 
-    pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight - margin * 2;
+    // capture blocks individually to avoid duplicates and mid-breaks
+    const blocks = [];
+    const header = exportNode.querySelector(".report-export__header");
+    if (header) blocks.push(header);
+    exportNode
+      .querySelectorAll(".report-card--export")
+      .forEach((el) => blocks.push(el));
+    const footnote = exportNode.querySelector(".report-footnote");
+    if (footnote) blocks.push(footnote);
 
-    while (heightLeft > 0) {
-      position = margin - (imgHeight - heightLeft);
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight - margin * 2;
+    // Hide transient loaders in export
+    exportNode
+      .querySelectorAll(".report-note")
+      .forEach((el) => {
+        if (el.textContent?.toLowerCase().includes("cargando")) {
+          el.style.display = "none";
+        }
+      });
+
+    for (const block of blocks) {
+      const canvas = await window.html2canvas(block, {
+        scale: 2.4,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        scrollX: 0,
+        scrollY: 0,
+      });
+
+      const ratio = Math.min(
+        printableWidth / canvas.width,
+        printableHeight / canvas.height,
+        1
+      );
+      const imgWidth = canvas.width * ratio;
+      const imgHeight = canvas.height * ratio;
+      const imgData = canvas.toDataURL("image/png");
+
+      // New page if it won't fit current page
+      if (cursorY + imgHeight > printableHeight) {
+        pdf.addPage();
+        cursorY = 0;
+      }
+
+      pdf.addImage(
+        imgData,
+        "PNG",
+        margin + (printableWidth - imgWidth) / 2,
+        margin + cursorY,
+        imgWidth,
+        imgHeight
+      );
+
+      cursorY += imgHeight + 6; // gap between blocks
     }
+
+    document.body.removeChild(exportNode);
 
     const nameFrom = fromInput?.value || "inicio";
     const nameTo = toInput?.value || "fin";
@@ -1678,44 +1716,65 @@ async function downloadPdf(shell, area, fromInput, toInput) {
 }
 
 function buildExportNode(shell, area) {
-  const clone = shell.cloneNode(true);
-  clone.classList.add("report-export");
-  clone.querySelectorAll("[data-pdf-exclude]").forEach((el) => el.remove());
-  clone.querySelectorAll(".report-card").forEach((el) =>
-    el.classList.add("report-card--export")
-  );
-  const grid = clone.querySelector(".report-grid");
-  if (grid) {
-    grid.classList.add("report-grid--export");
-  }
+  const exportRoot = document.createElement("section");
+  exportRoot.className = "report-export is-pdf-export";
 
-  const headerText = clone.querySelector(".report-header__text");
-  if (headerText) {
-    const kind = document.createElement("p");
-    kind.className = "report-kind-print";
-    kind.textContent = `Reporte: ${AREA_LABELS[area] || ""}`;
-    headerText.appendChild(kind);
-  }
+  // Header
+  const rangeText = describeRange({
+    from: document.getElementById("report-from")?.value,
+    to: document.getElementById("report-to")?.value,
+  });
+  const siteText = siteLabel(resolveSite(document.getElementById("report-site")));
+  const header = document.createElement("header");
+  header.className = "report-export__header";
+  header.innerHTML = `
+    <p class="report-export__eyebrow">MEST ENERGY</p>
+    <h1 class="report-export__title">Reportes automáticos</h1>
+    <p class="report-export__subtitle">${AREA_LABELS[area] || ""}</p>
+    <p class="report-export__meta">Periodo: ${rangeText} · Sitio: ${siteText}</p>
+  `;
+  exportRoot.appendChild(header);
 
+  // Content
+  const body = document.createElement("div");
+  body.className = "report-export__body";
+
+  const grid = shell.querySelector(".report-grid");
+  const clonedGrid = grid ? grid.cloneNode(true) : document.createElement("div");
+  clonedGrid.classList.add("report-grid--export");
+  clonedGrid.querySelectorAll("[data-pdf-exclude], button, input, select, form").forEach((el) => el.remove());
+  clonedGrid.querySelectorAll(".report-card--filters").forEach((el) => el.remove());
+  clonedGrid.querySelectorAll(".report-card").forEach((el) => {
+    el.classList.add("report-card--export");
+    // Avoid splitting cards across pages
+    el.style.pageBreakInside = "avoid";
+    el.style.breakInside = "avoid";
+    // Ensure charts have ample space in export but avoid excessive padding
+    el.querySelectorAll(".report-chart").forEach((chart) => {
+      chart.style.minHeight = "420px";
+      chart.style.height = "auto";
+      const inner = chart.querySelector("div");
+      if (inner) {
+        inner.style.minHeight = "420px";
+        inner.style.height = "420px";
+        inner.style.width = "100%";
+      }
+    });
+  });
+  body.appendChild(clonedGrid);
+  exportRoot.appendChild(body);
+
+  // Footer
   const footnote = document.createElement("div");
   footnote.className = "report-footnote";
   footnote.textContent = `MEST ENERGY — ${formatToday()}`;
-  clone.appendChild(footnote);
+  exportRoot.appendChild(footnote);
 
-  // Add filters summary for clarity in PDF
-  const filterSummary = document.createElement("div");
-  filterSummary.className = "report-footnote";
-  filterSummary.textContent = `Filtros: ${describeRange({
-    from: document.getElementById("report-from")?.value,
-    to: document.getElementById("report-to")?.value,
-  })} · Sitio: ${siteLabel(resolveSite(document.getElementById("report-site")))}`;
-  clone.insertBefore(filterSummary, footnote);
-
-  clone.style.position = "absolute";
-  clone.style.left = "-9999px";
-  clone.style.top = "0";
-  clone.style.width = "182mm"; // slightly narrower than printable width to keep margins
-  clone.style.padding = "12mm 14mm 16mm";
-  clone.style.background = "#ffffff";
-  return clone;
+  exportRoot.style.position = "absolute";
+  exportRoot.style.left = "-9999px";
+  exportRoot.style.top = "0";
+  exportRoot.style.width = "1200px";
+  exportRoot.style.padding = "48px 60px 56px";
+  exportRoot.style.background = "#ffffff";
+  return exportRoot;
 }
