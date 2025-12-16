@@ -48,10 +48,15 @@
         if ($routeClienteParam instanceof \App\Models\Cliente) {
             $routeClienteParam = $routeClienteParam->getKey();
         }
-        $clienteLinkId = $routeClienteParam
-            ?? ($clientQueryId ?: null)
-            ?? $selectedClientId
-            ?? $user?->cliente_id;
+        // For normal users lock to their own cliente_id; super admins can use context
+        if (!$isSuperAdmin) {
+            $clienteLinkId = $user?->cliente_id;
+        } else {
+            $clienteLinkId = $routeClienteParam
+                ?? ($clientQueryId ?: null)
+                ?? $selectedClientId
+                ?? $user?->cliente_id;
+        }
         $clientQueryParams = ($isSuperAdmin && $clienteLinkId)
             ? ['cliente' => $clienteLinkId]
             : [];
@@ -70,16 +75,14 @@
         <nav class="custom-menu-section">
             <h3 class="custom-menu-title">Menú</h3>
             <ul>
-                <li class="{{ request()->routeIs('clientes.show') ? 'custom-active' : '' }}">
-                    <i class="fas fa-info-circle" aria-hidden="true"></i>
-                    @if($clienteLinkId)
-                        <a href="{{ route('clientes.show', ['cliente' => $clienteLinkId]) }}">
+                @unless($isSuperAdmin)
+                    <li class="{{ request()->routeIs('clientes.show') ? 'custom-active' : '' }}">
+                        <i class="fas fa-info-circle" aria-hidden="true"></i>
+                        <a href="{{ $clienteLinkId ? route('clientes.show', ['cliente' => $clienteLinkId]) : '#' }}">
                             <span>Información</span>
                         </a>
-                    @else
-                        <span>Información</span>
-                    @endif
-                </li>
+                    </li>
+                @endunless
                 <li class="menu-divider" aria-hidden="true"></li>
                 @if($isSuperAdmin)
                     <li class="{{ request()->routeIs('general_clientes') ? 'custom-active' : '' }}">

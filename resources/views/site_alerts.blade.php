@@ -26,7 +26,7 @@
     </header>
 
     <div class="alerts-grid">
-        <section class="card alerts-card">
+        <section class="card alerts-card alerts-card--form">
             <h2>Crear / editar alerta</h2>
             <form id="alertForm" class="alert-form">
                 <input type="hidden" id="alertId" name="alert_id">
