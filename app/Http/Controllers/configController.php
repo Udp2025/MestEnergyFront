@@ -66,7 +66,7 @@ class configController extends Controller
         $profileImagePath = null;
 
         if ($request->hasFile('new_profile_image')) {
-            $profileImagePath = $request->file('new_profile_image')->store($directory, $disk);
+            $profileImagePath = Storage::disk($disk)->putFile($directory, $request->file('new_profile_image'), 'public');
         }
 
         $newUser = User::create([
@@ -113,7 +113,7 @@ class configController extends Controller
                 $this->deleteFromKnownDisks($user->profile_image, $disk);
             }
 
-            $user->profile_image = $request->file('profile_image')->store($directory, $disk);
+            $user->profile_image = Storage::disk($disk)->putFile($directory, $request->file('profile_image'), 'public');
         }
 
         $user->save();

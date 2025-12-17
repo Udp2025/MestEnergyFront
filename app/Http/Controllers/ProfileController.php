@@ -76,7 +76,7 @@ class ProfileController extends Controller
                 }
             }
 
-            $path = $request->file('profile_image')->store($directory, $disk);
+            $path = Storage::disk($disk)->putFile($directory, $request->file('profile_image'), 'public');
             $user->profile_image = $path;
         }
 
