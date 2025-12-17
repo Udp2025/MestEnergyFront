@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Cliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -28,15 +29,43 @@ class configController extends Controller
         $currentUser = $request->user();
         $this->ensureManager($currentUser);
 
+        $selectedClientId = null;
+        if ($currentUser->isSuperAdmin()) {
+            $selectedClientId = $request->input('cliente');
+        } else {
+            $selectedClientId = $currentUser->cliente_id;
+        }
+
+        $search = $request->input('q');
+
         $query = User::orderBy('name');
         if (!$currentUser->isSuperAdmin()) {
             $query->where('cliente_id', $currentUser->cliente_id);
+        } elseif ($selectedClientId) {
+            $query->where('cliente_id', $selectedClientId);
         }
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('email', 'like', '%' . $search . '%');
+            });
+        }
+
         $users = $query->get(['id', 'name', 'email', 'role', 'profile_image', 'cliente_id']);
+
+        $clients = [];
+        if ($currentUser->isSuperAdmin()) {
+            $clients = Cliente::orderBy('nombre')->get(['id', 'nombre']);
+        }
 
         return view('config_users', [
             'user' => $currentUser,
             'users' => $users,
+            'clients' => $clients,
+            'selectedClientId' => $selectedClientId,
+            'search' => $search,
+            'currentUserId' => $currentUser->id,
         ]);
     }
 
@@ -49,6 +78,10 @@ class configController extends Controller
         $this->ensureManager($currentUser);
 
         $clienteId = $currentUser->cliente_id;
+        if ($currentUser->isSuperAdmin()) {
+            $clienteId = $request->input('new_cliente_id');
+        }
+
         if ($clienteId === null) {
             return back()->withErrors(['cliente_id' => 'No se puede crear el usuario sin un cliente asignado.']);
         }
@@ -59,6 +92,7 @@ class configController extends Controller
             'new_role' => ['required', Rule::in(['admin', 'operaciones'])],
             'new_password' => ['required', 'string', 'min:8', 'confirmed'],
             'new_profile_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120'],
+            'new_cliente_id' => [$currentUser->isSuperAdmin() ? 'required' : 'nullable', 'integer', 'exists:clientes,id'],
         ]);
 
         $disk = config('filesystems.default', 'public');

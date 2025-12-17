@@ -799,7 +799,8 @@ form.addEventListener('submit', (ev) => {
       "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
       "Accept": "application/json"
     },
-    body: formData
+    body: formData,
+    credentials: "same-origin"
   })
   .then(async (response) => {
     const contentType = response.headers.get('content-type') || '';
