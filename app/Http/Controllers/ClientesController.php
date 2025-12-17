@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\InfoFiscalUsuario;
 use App\Models\PlanUsuario;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Database\QueryException;
 
 class ClientesController extends Controller
 {
@@ -313,16 +314,100 @@ class ClientesController extends Controller
         }
     }
 
-    // Eliminar un cliente y sus archivos asociados
-    public function destroy(Cliente $cliente)
-    {
+public function destroy(Request $request, Cliente $cliente)
+{
+    DB::beginTransaction();
+    try {
+        // 1) Eliminar archivos físicos y registros de cliente_files
         foreach ($cliente->files as $file) {
-            Storage::disk('public')->delete($file->file_path);
+            try {
+                Storage::disk('public')->delete($file->file_path);
+            } catch (\Throwable $_) { /* ignorar errores de archivos */ }
         }
         $cliente->files()->delete();
+
+        // 2) Desvincular usuarios (poner cliente_id = NULL) - acción más segura
+        User::where('cliente_id', $cliente->id)->update(['cliente_id' => null]);
+
+        // 3) Eliminar datos relacionados en orden seguro
+        $cliente->locaciones()->delete();
+        $cliente->areas()->delete();
+        $cliente->medidores()->delete();
+        $cliente->reportes()->delete();
+        $cliente->infoFiscal()->delete();
+        $cliente->planUsuario()->delete();
+
+        // 4) Finalmente, eliminar el cliente
         $cliente->delete();
-        return redirect()->route('clientes.index')->with('success', 'Cliente eliminado correctamente.');
+
+        DB::commit();
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true, 
+                'message' => 'Cliente eliminado correctamente'
+            ]);
+        }
+        
+        return redirect()->route('clientes.index')
+            ->with('success', 'Cliente eliminado correctamente.');
+
+    } catch (QueryException $e) {
+        DB::rollBack();
+        
+        // Error de integridad referencial (clave foránea)
+        $sqlErrCode = $e->errorInfo[1] ?? null;
+        if ($sqlErrCode == 1451) {
+            $msg = 'No se puede eliminar este cliente porque tiene datos vinculados en otras partes del sistema. '
+                  . 'Por favor, contacta al administrador para más detalles.';
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => $msg
+                ], 409);
+            }
+            return redirect()->back()->with('error', $msg);
+        }
+
+        \Log::error('Error eliminando cliente', [
+            'cliente_id' => $cliente->id,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        $errorMsg = 'Ocurrió un error al intentar eliminar el cliente. Por favor, inténtalo de nuevo.';
+        
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => false, 
+                'message' => $errorMsg
+            ], 500);
+        }
+        
+        return redirect()->back()->with('error', $errorMsg);
+        
+    } catch (\Exception $e) {
+        DB::rollBack();
+        
+        \Log::error('Excepción al eliminar cliente', [
+            'cliente_id' => $cliente->id,
+            'error' => $e->getMessage()
+        ]);
+
+        $errorMsg = 'Ocurrió un error inesperado. Por favor, contacta al soporte técnico si el problema persiste.';
+        
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => false, 
+                'message' => $errorMsg
+            ], 500);
+        }
+        
+        return redirect()->back()->with('error', $errorMsg);
     }
+}
+
 
     // Subir archivo para un cliente
     public function uploadFile(Request $request, Cliente $cliente)

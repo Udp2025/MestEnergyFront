@@ -96,10 +96,13 @@
                     <a href="{{ route('clientes.show', $cliente) }}" class="icon-btn" title="Ver"><i class="fas fa-eye"></i></a>
                     <!-- Edit button: abre modal único y carga datos via AJAX -->
                     <button class="icon-btn btn-edit" data-id="{{ $cliente->id }}" title="Editar"><i class="fas fa-edit"></i></button>
-                    <form action="{{ route('clientes.destroy', $cliente) }}" method="POST" style="display:inline">
+                    <form action="{{ route('clientes.destroy', $cliente) }}" method="POST" style="display:inline" class="delete-client-form" data-cliente-nombre="{{ $cliente->nombre }}">
                       @csrf @method('DELETE')
-                      <button class="icon-btn del" onclick="return confirm('¿Eliminar cliente?')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                      <button type="button" class="icon-btn btn-delete" title="Eliminar" data-id="{{ $cliente->id }}">
+                        <i class="fas fa-trash"></i>
+                      </button>
                     </form>
+
                     <label class="switch" title="Estado">
                       <input type="checkbox" class="toggle-status" data-id="{{ $cliente->id }}" {{ ($cliente->estado ?? '') == 'Activo' ? 'checked' : '' }}>
                       <span class="slider"></span>
@@ -486,6 +489,28 @@
     </div>
   </div>
 </div>
+
+
+<!-- Modal confirmación eliminar -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content create-client-modal">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar eliminación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmDeleteText">¿Eliminar este cliente?</p>
+        <div id="deleteErrorMessage" style="display:none;color:red;font-size:13px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="deleteCancel" type="button" class="btn btn-secondary create-btn" data-bs-dismiss="modal">Cancelar</button>
+        <button id="deleteConfirm" type="button" class="btn btn-danger create-btn">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <!-- EDIT modal: solo "Generales" -->
 <div class="modal fade" id="editClientModal" tabindex="-1" aria-hidden="true" aria-labelledby="editClientLabel">
@@ -1351,6 +1376,104 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   })();
+
+  // ---- Confirm deletion modal handling ----
+(function() {
+  const deleteModalEl = document.getElementById('confirmDeleteModal');
+  if (!deleteModalEl) return;
+  const deleteModal = new bootstrap.Modal(deleteModalEl);
+  let pendingForm = null;
+
+  // wire delete buttons
+  document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      const form = btn.closest('form.delete-client-form');
+      if (!form) return console.warn('Formulario de borrado no encontrado');
+      pendingForm = form;
+      const nombre = form.dataset.clienteNombre || btn.closest('tr')?.querySelector('.c-link')?.innerText || 'este cliente';
+      document.getElementById('confirmDeleteText').textContent = `¿Confirmas eliminar "${nombre}"? Esta acción no se puede deshacer.`;
+      // limpiar mensaje de error previo
+      document.getElementById('deleteErrorMessage').style.display = 'none';
+      document.getElementById('deleteErrorMessage').textContent = '';
+      deleteModal.show();
+    });
+  });
+
+  // confirmar: submit del form
+  // Reemplaza esta parte del JavaScript (alrededor de la línea 1300)
+document.getElementById('deleteConfirm').addEventListener('click', async () => {
+  if (!pendingForm) { deleteModal.hide(); return; }
+  const action = pendingForm.getAttribute('action');
+  const token = pendingForm.querySelector('input[name="_token"]').value;
+  
+  // Mostrar indicador de carga
+  const confirmBtn = document.getElementById('deleteConfirm');
+  const originalText = confirmBtn.textContent;
+  confirmBtn.disabled = true;
+  confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
+  
+  const errorDiv = document.getElementById('deleteErrorMessage');
+  errorDiv.style.display = 'none';
+  errorDiv.textContent = '';
+  
+  try {
+    const res = await fetch(action, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': token,
+        'Accept': 'application/json'
+      },
+      body: new URLSearchParams(new FormData(pendingForm))
+    });
+    
+    const data = await res.json().catch(() => null);
+    
+    if (res.ok) {
+      // Éxito: recargar página
+      deleteModal.hide();
+      // Mostrar mensaje de éxito antes de recargar
+      const successMsg = document.createElement('div');
+      successMsg.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+      successMsg.style.zIndex = '9999';
+      successMsg.innerHTML = `
+        <strong>✓ Éxito!</strong> Cliente eliminado correctamente.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      document.body.appendChild(successMsg);
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      
+    } else {
+      // Error: mostrar mensaje amigable
+      const msg = data?.message || 'No se pudo eliminar el cliente. Inténtalo de nuevo.';
+      errorDiv.style.display = 'block';
+      errorDiv.textContent = msg;
+      errorDiv.className = 'error-message text-danger mt-2';
+      
+      // Restaurar botón
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = originalText;
+    }
+  } catch (err) {
+    // Error de red o conexión
+    errorDiv.style.display = 'block';
+    errorDiv.textContent = 'Error de conexión. Verifica tu internet e inténtalo de nuevo.';
+    errorDiv.className = 'error-message text-danger mt-2';
+    
+    // Restaurar botón
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = originalText;
+    console.error('Error eliminando cliente:', err);
+  }
+});
+
+
+})();
+
+
 });
 </script>
 
