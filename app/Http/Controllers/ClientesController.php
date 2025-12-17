@@ -17,10 +17,9 @@ use App\Models\InfoFiscalUsuario;
 use App\Models\PlanUsuario;
 use Illuminate\Validation\ValidationException;
 
-
 class ClientesController extends Controller
 {
-   public function index()
+    public function index()
     {
         $clientes = Cliente::with(['files', 'user', 'locaciones', 'areas', 'medidores', 'reportes'])
                         ->orderBy('nombre')
@@ -43,237 +42,118 @@ class ClientesController extends Controller
         return view('clientes.index', compact('clientes', 'onboardingClients', 'catalogoEstados', 'catalogoRegiones', 'grupoTarifarios'));
     }
 
-
-
-
     // Mostrar el formulario para crear un nuevo cliente
     public function create()
     {
         return view('clientes.create');
     }
 
-    // Guardar un nuevo cliente
-    /*
-    public function store(Request $request){
-        $request->validate([
-            'nombre'         => 'required|string|max:255',
-            'razon_social'   => 'required|string|max:255',
-            'email'          => 'required|email|unique:clientes,email',
-            'telefono'       => 'required|string|max:15',
-            'calle'          => 'required|string|max:255',
-            'numero'         => 'required|string|max:10',
-            'colonia'        => 'required|string|max:255',
-            'codigo_postal'  => 'required|string|max:5',
-            'ciudad'         => 'required|string|max:255',
-            'estado'         => 'required|string|max:255',
-            'pais'           => 'required|string|max:255',
-            'cambio_dolar'   => 'required|numeric|min:0',
-        ]);
-
-        $cliente = Cliente::create($request->all());
-        return redirect()->route('clientes.index')->with('success', 'Cliente creado correctamente.');
-    }*/
-
-        /*
+    // Guardar un nuevo cliente (ya existente en tu código; lo dejamos tal cual)
     public function store(Request $request)
     {
-        // Reglas de validación (nota: chequea unicidad tanto en clientes como en users)
         $rules = [
-            'nombre'         => 'required|string|max:255',
-            'razon_social'   => 'required|string|max:255',
-            'email'          => 'required|email|unique:clientes,email|unique:users,email',
-            'telefono'       => 'required|string|max:15',
-            'calle'          => 'required|string|max:255',
-            'numero'         => 'required|string|max:10',
-            'colonia'        => 'required|string|max:255',
-            'codigo_postal'  => 'required|string|max:5',
-            'ciudad'         => 'required|string|max:255',
-            'estado'         => 'required|string|max:255',
-            'pais'           => 'required|string|max:255',
-            'cambio_dolar'   => 'required|numeric|min:0',
-            'site'           => 'required|numeric|min:0',
+            'nombre' => 'required|string|max:255',
+            'rfc'    => 'required|string|max:50',
+            'email'  => 'required|email|unique:clientes,email|unique:users,email',
+            'telefono' => 'nullable|string|max:50',
+            'calle' => 'required|string',
+            'numero' => 'nullable|string',
+            'colonia' => 'nullable|string',
+            'codigo_postal' => 'required|string|max:10',
+            'ciudad' => 'required|string',
+            'estado' => 'required|string',
+            'pais' => 'required|string',
+            'contrato' => 'nullable|file|mimes:pdf|max:10240',
         ];
 
-        // Puedes personalizar mensajes si quieres:
-        $messages = [
-            'email.unique' => 'El correo ya está registrado en el sistema.',
-        ];
+        $validator = Validator::make($request->all(), $rules);
 
-        $validator = Validator::make($request->all(), $rules, $messages);
-
-        // Si falla validación, vuelve al formulario con los errores + un warning
         if ($validator->fails()) {
-            return redirect()->back()
-                            ->withErrors($validator)
-                            ->withInput()
-                            ->with('warning', 'Hay errores en el formulario. Por favor corrige y vuelve a intentar.');
+            if ($request->expectsJson() || $request->isJson() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        // Todo ok: crear Cliente + Usuario dentro de una transacción
         DB::beginTransaction();
         try {
-            $cliente = Cliente::create($request->only([
-                'nombre','razon_social','email','telefono',
-                'calle','numero','colonia','codigo_postal',
-                'ciudad','estado','pais','cambio_dolar', 'site'
-            ]));
+            $input = $request->only([
+                'nombre','rfc','email','telefono','calle','numero','colonia',
+                'codigo_postal','ciudad','estado','pais','cambio_dolar','site',
+                'tarifa_region','factor_carga','latitud','longitud','contacto_nombre',
+            ]);
 
-            // Generar contraseña temporal y crear usuario
+            $input['capacitacion'] = 0;
+            $input['estado_cliente'] = 2;
+
+            $cliente = Cliente::create($input);
+
+            $contractPath = null;
+            if ($request->hasFile('contrato')) {
+                $contractPath = $request->file('contrato')->store($this->contractStorageDirectory(), 's3');
+            }
+
+            $infoFiscal = InfoFiscalUsuario::create([
+                'cliente_id' => $cliente->id,
+                'razon_social' => $request->input('razon_fiscal', $request->input('razon_social') ?? $request->input('nombre')),
+                'regimen_fiscal' => $request->input('regimen'),
+                'domicilio_fiscal' => $request->input('domicilio'),
+                'uso_cfdi' => $request->input('uso_cfdi'),
+                'contrato_aceptado' => $request->boolean('contrato_aceptado') ? 1 : 0,
+                'notas' => $request->input('notas_contrato'),
+                'csf' => $contractPath,
+            ]);
+
+            $plan = PlanUsuario::create([
+                'cliente_id' => $cliente->id,
+                'plan' => $request->input('plan'),
+                'monto' => $request->input('mrr'),
+                'ciclo' => $request->input('ciclo'),
+                'fecha_corte' => $request->input('dia_corte'),
+                'metodo_pago' => $request->input('metodo_pago'),
+                'fact_automatica' => $request->boolean('fact_auto') ? 1 : 0,
+                'recordatorios_pago' => $request->boolean('recordatorios') ? 1 : 0,
+            ]);
+
             $tempPassword = Str::random(10);
             $user = User::create([
-                'name'       => $request->nombre,
-                'email'      => $request->email,
-                'password'   => Hash::make($tempPassword),
-                'cliente_id' => $cliente->id,
-                // 'role' => 'cliente' // opcional: ajusta según tu esquema de roles
+                'name' => $cliente->nombre,
+                'email' => $cliente->email,
+                'password' => Hash::make($tempPassword),
+                'cliente_id' => $cliente->id
             ]);
 
             DB::commit();
 
-            // Redirigir con éxito y opcionalmente mostrar contraseña temporal (si decides hacerlo)
-            return redirect()->route('clientes.index')
-                            ->with('success', 'Cliente y usuario creados correctamente.')
-                            ->with('temp_password', $tempPassword);
+            if ($request->expectsJson() || $request->isJson() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Cliente creado correctamente',
+                    'temp_password' => $tempPassword,
+                    'cliente_id' => $cliente->id
+                ], 201);
+            }
+
+            return redirect()->route('clientes.index')->with('success', 'Cliente y usuario creados correctamente.')->with('temp_password', $tempPassword);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            // Si por alguna razón se creó $cliente parcialmente, intenta eliminarlo para no dejar datos huérfanos
-            if (isset($cliente) && $cliente->exists) {
-                try { $cliente->delete(); } catch (\Exception $_) {}
+            if ($request->expectsJson() || $request->isJson() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al crear cliente: ' . $e->getMessage()
+                ], 500);
             }
-
-            // Devuelve al formulario con mensaje de error (no se redirige como si se hubiera guardado)
-            return redirect()->back()
-                            ->withInput()
-                            ->with('error', 'No se pudo crear el cliente/usuario. ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'No se pudo crear el cliente/usuario. ' . $e->getMessage());
         }
-    }*/
-
-
-   
-
-    public function store(Request $request)
-{
-    $rules = [
-        'nombre' => 'required|string|max:255',
-        'rfc'    => 'required|string|max:50',
-        'email'  => 'required|email|unique:clientes,email|unique:users,email',
-        'telefono' => 'nullable|string|max:50',
-        'calle' => 'required|string',
-        'numero' => 'nullable|string',
-        'colonia' => 'nullable|string',
-        'codigo_postal' => 'required|string|max:10',
-        'ciudad' => 'required|string',
-        'estado' => 'required|string',
-        'pais' => 'required|string',
-        'contrato' => 'nullable|file|mimes:pdf|max:10240',
-    ];
-
-    $validator = Validator::make($request->all(), $rules);
-
-    if ($validator->fails()) {
-        // Si es petición AJAX (o espera JSON) devolvemos 422 con mensajes
-        if ($request->expectsJson() || $request->isJson() || $request->wantsJson()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-        // Si no, redirigimos con errores
-        return redirect()->back()->withErrors($validator)->withInput();
     }
 
-    DB::beginTransaction();
-    try {
-        $input = $request->only([
-            'nombre','rfc','email','telefono','calle','numero','colonia',
-            'codigo_postal','ciudad','estado','pais','cambio_dolar','site',
-            'tarifa_region','factor_carga','latitud','longitud','contacto_nombre',
-            // 'estado_cliente','capacitacion' // los seteamos manualmente abajo
-        ]);
-
-        // valores por defecto garantizados desde backend
-        $input['capacitacion'] = 0;                                   // siempre 0
-        $input['estado_cliente'] = 2;                                 // por defecto 2
-
-        // si por alguna razón viene en $request (no debería), prefieres sobreescribir:
-        // $input['capacitacion'] = $request->has('capacitacion') ? 1 : 0;
-        // $input['estado_cliente'] = $request->input('estado_cliente', 2);
-
-        $cliente = Cliente::create($input);
-
-        $contractPath = null;
-        if ($request->hasFile('contrato')) {
-            $contractPath = $request->file('contrato')->store($this->contractStorageDirectory(), 's3');
-        }
-
-        // info fiscal
-        $infoFiscal = InfoFiscalUsuario::create([
-            'cliente_id' => $cliente->id,
-            'razon_social' => $request->input('razon_fiscal', $request->input('razon_social') ?? $request->input('nombre')),
-            'regimen_fiscal' => $request->input('regimen'),
-            'domicilio_fiscal' => $request->input('domicilio'),
-            'uso_cfdi' => $request->input('uso_cfdi'),
-            'contrato_aceptado' => $request->boolean('contrato_aceptado') ? 1 : 0,
-            'notas' => $request->input('notas_contrato'),
-            'csf' => $contractPath,
-        ]);
-
-        // plan
-        $plan = PlanUsuario::create([
-            'cliente_id' => $cliente->id,
-            'plan' => $request->input('plan'),
-            'monto' => $request->input('mrr'),
-            'ciclo' => $request->input('ciclo'),
-            'fecha_corte' => $request->input('dia_corte'),
-            'metodo_pago' => $request->input('metodo_pago'),
-            'fact_automatica' => $request->boolean('fact_auto') ? 1 : 0,
-            'recordatorios_pago' => $request->boolean('recordatorios') ? 1 : 0,
-        ]);
-
-        // usuario
-        $tempPassword = Str::random(10);
-        $user = User::create([
-            'name' => $cliente->nombre,
-            'email' => $cliente->email,
-            'password' => Hash::make($tempPassword),
-            'cliente_id' => $cliente->id
-        ]);
-
-        DB::commit();
-
-        if ($request->expectsJson() || $request->isJson() || $request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Cliente creado correctamente',
-                'temp_password' => $tempPassword,
-                'cliente_id' => $cliente->id
-            ], 201);
-        }
-
-        return redirect()->route('clientes.index')->with('success', 'Cliente y usuario creados correctamente.')->with('temp_password', $tempPassword);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        // log opcional: \Log::error($e->getMessage());
-
-        if ($request->expectsJson() || $request->isJson() || $request->wantsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al crear cliente: ' . $e->getMessage()
-            ], 500);
-        }
-
-        return redirect()->back()->withInput()->with('error', 'No se pudo crear el cliente/usuario. ' . $e->getMessage());
-    }
-}
-
-
-    // Mostrar un cliente con sus archivos relacionados y usuarios (si los hay)
     // Mostrar un cliente con sus archivos relacionados, usuario, info fiscal y plan
     public function show($id)
     {
-        // cargamos relaciones necesarias para evitar N+1
         $cliente = Cliente::with(['files', 'user', 'infoFiscal', 'planUsuario'])->findOrFail($id);
 
         session()->put([
@@ -293,30 +173,136 @@ class ClientesController extends Controller
     // Mostrar el formulario para editar un cliente
     public function edit(Cliente $cliente)
     {
+        // Si es petición AJAX o espera JSON respondemos con los datos (útil para modal)
+        if (request()->wantsJson() || request()->ajax() || request()->header('Accept') === 'application/json') {
+            $cliente->load(['infoFiscal', 'planUsuario']);
+            // Normalizar estructura para frontend (dar ambas variantes por compatibilidad)
+            $arr = $cliente->toArray();
+            // Añadimos claves camelCase que usa el JS (si hace falta)
+            $arr['infoFiscal'] = $arr['info_fiscal'] ?? null;
+            $arr['planUsuario'] = $arr['plan_usuario'] ?? null;
+            return response()->json($arr);
+        }
+
         return view('clientes.edit', compact('cliente'));
     }
 
     // Actualizar un cliente
     public function update(Request $request, Cliente $cliente)
     {
-        $request->validate([
+        // Mapear razon_fiscal -> razon_social si viene con otro nombre
+        if (!$request->has('razon_social') && $request->has('razon_fiscal')) {
+            $request->merge(['razon_social' => $request->input('razon_fiscal')]);
+        }
+
+        $rules = [
             'nombre'         => 'required|string|max:255',
             'razon_social'   => 'required|string|max:255',
             'email'          => 'required|email|unique:clientes,email,' . $cliente->id,
-            'telefono'       => 'required|string|max:15',
-            'calle'          => 'required|string|max:255',
-            'numero'         => 'required|string|max:10',
-            'colonia'        => 'required|string|max:255',
-            'codigo_postal'  => 'required|string|max:5',
-            'ciudad'         => 'required|string|max:255',
-            'estado'         => 'required|string|max:255',
-            'pais'           => 'required|string|max:255',
-            'cambio_dolar'   => 'required|numeric|min:0',
+            'telefono'       => 'nullable|string|max:50',
+            'calle'          => 'nullable|string|max:255',
+            'numero'         => 'nullable|string|max:10',
+            'colonia'        => 'nullable|string|max:255',
+            'codigo_postal'  => 'nullable|string|max:10',
+            'ciudad'         => 'nullable|string|max:255',
+            'estado'         => 'nullable|string|max:255',
+            'pais'           => 'nullable|string|max:255',
+            'cambio_dolar'   => 'nullable|numeric|min:0',
             'site'           => 'required|numeric|min:0',
-        ]);
+            'contrato'       => 'nullable|file|mimes:pdf|max:10240',
+        ];
 
-        $cliente->update($request->all());
-        return redirect()->route('clientes.index')->with('success', 'Cliente actualizado correctamente.');
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            if ($request->expectsJson() || $request->isJson() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        DB::beginTransaction();
+        try {
+            // Campos cliente
+            $clienteFields = [
+                'nombre','rfc','email','telefono','calle','numero','colonia',
+                'codigo_postal','ciudad','estado','pais','cambio_dolar','site',
+                'tarifa_region','factor_carga','latitud','longitud','contacto_nombre',
+                'estado_cliente','capacitacion'
+            ];
+
+            $input = $request->only($clienteFields);
+            $cliente->update($input);
+
+            // Contrato (s3) - si suben nuevo archivo reemplazamos
+            $contractPath = null;
+            if ($request->hasFile('contrato')) {
+                $infoFiscal = $cliente->infoFiscal;
+                if ($infoFiscal && $infoFiscal->csf) {
+                    // eliminar viejo
+                    try {
+                        Storage::disk('s3')->delete($infoFiscal->csf);
+                    } catch (\Exception $_) {}
+                }
+                $contractPath = $request->file('contrato')->store($this->contractStorageDirectory(), 's3');
+            }
+
+            // Info Fiscal (updateOrCreate)
+            $infoFiscalData = [
+                'razon_social' => $request->input('razon_fiscal', $request->input('razon_social', $cliente->nombre)),
+                'regimen_fiscal' => $request->input('regimen'),
+                'domicilio_fiscal' => $request->input('domicilio'),
+                'uso_cfdi' => $request->input('uso_cfdi'),
+                'contrato_aceptado' => $request->boolean('contrato_aceptado') ? 1 : 0,
+                'notas' => $request->input('notas_contrato'),
+            ];
+            if ($contractPath) $infoFiscalData['csf'] = $contractPath;
+
+            $cliente->infoFiscal()->updateOrCreate(
+                ['cliente_id' => $cliente->id],
+                $infoFiscalData
+            );
+
+            // Plan usuario (updateOrCreate)
+            $planData = [
+                'plan' => $request->input('plan'),
+                'monto' => $request->input('mrr'),
+                'ciclo' => $request->input('ciclo'),
+                'fecha_corte' => $request->input('dia_corte'),
+                'metodo_pago' => $request->input('metodo_pago'),
+                'fact_automatica' => $request->boolean('fact_auto') ? 1 : 0,
+                'recordatorios_pago' => $request->boolean('recordatorios') ? 1 : 0,
+            ];
+
+            $cliente->planUsuario()->updateOrCreate(
+                ['cliente_id' => $cliente->id],
+                $planData
+            );
+
+            DB::commit();
+
+            if ($request->expectsJson() || $request->isJson() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Cliente actualizado correctamente',
+                    'cliente' => $cliente->fresh()->load(['infoFiscal', 'planUsuario'])
+                ]);
+            }
+
+            return redirect()->route('clientes.index')->with('success', 'Cliente actualizado correctamente.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            if ($request->expectsJson() || $request->isJson() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al actualizar cliente: ' . $e->getMessage()
+                ], 500);
+            }
+            return redirect()->back()->withInput()->with('error', 'No se pudo actualizar el cliente. ' . $e->getMessage());
+        }
     }
 
     // Eliminar un cliente y sus archivos asociados
@@ -439,19 +425,15 @@ class ClientesController extends Controller
     protected function contractStorageDirectory(): string
     {
         $folder = config('filesystems.folders.contracts', 'frontend/contratos');
-
         return trim($folder, '/');
     }
 
     /**
      * Método para cargar la vista 'clidash'
-     * donde se muestran los gráficos interactivos avanzados.
      */
     public function clidash()
     {
-        // Se asume que el usuario autenticado tiene un 'cliente_id'
         $clienteId = Auth::user()->cliente_id;
-        // Consultamos todos los datos asociados a ese cliente, ordenados por fecha
         $datos = Dato::where('cliente_id', $clienteId)
                      ->orderBy('fecha', 'asc')
                      ->get();
@@ -460,7 +442,6 @@ class ClientesController extends Controller
 
     /**
      * API para obtener datos filtrados
-     * Recibe parámetros vía GET: fecha_inicio, fecha_fin, campo (por ejemplo, energy, cost, power, etc.)
      */
     public function apiDatos(Request $request)
     {
@@ -480,58 +461,48 @@ class ClientesController extends Controller
     }
 
     public function updateStatus(Request $request, Cliente $cliente)
-{
-    // Espera: { estado: 'Activo' | 'Inactivo' } enviado desde el front
-    $estado = $request->input('estado', null);
+    {
+        $estado = $request->input('estado', null);
 
-    if (is_null($estado)) {
-        return response()->json(['success' => false, 'message' => 'Estado no proporcionado'], 400);
-    }
+        if (is_null($estado)) {
+            return response()->json(['success' => false, 'message' => 'Estado no proporcionado'], 400);
+        }
 
-    $cliente->estado = $estado;
-    $cliente->save();
-
-    return response()->json(['success' => true, 'estado' => $cliente->estado]);
-}
-
-/**
- * Marca la capacitación como recibida (capacitacion = 1)
- */
-public function confirmCapacitacion(Request $request, Cliente $cliente)
-{
-    try {
-        $cliente->capacitacion = 1;
+        $cliente->estado = $estado;
         $cliente->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Capacitación registrada',
-            'cliente_id' => $cliente->id
-        ]);
-    } catch (\Exception $e) {
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        return response()->json(['success' => true, 'estado' => $cliente->estado]);
     }
-}
 
-/**
- * Pone al cliente como Go-Live (por ejemplo: estado_cliente = 1)
- */
-public function confirmGoLive(Request $request, Cliente $cliente)
-{
-    try {
-        // Si quieres otro id para "activo" cambia aquí
-        $cliente->estado_cliente = 1;
-        $cliente->save();
+    public function confirmCapacitacion(Request $request, Cliente $cliente)
+    {
+        try {
+            $cliente->capacitacion = 1;
+            $cliente->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Cliente puesto como activo (Go-Live)',
-            'cliente_id' => $cliente->id
-        ]);
-    } catch (\Exception $e) {
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => true,
+                'message' => 'Capacitación registrada',
+                'cliente_id' => $cliente->id
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
-}
 
+    public function confirmGoLive(Request $request, Cliente $cliente)
+    {
+        try {
+            $cliente->estado_cliente = 1;
+            $cliente->save();
 
+            return response()->json([
+                'success' => true,
+                'message' => 'Cliente puesto como activo (Go-Live)',
+                'cliente_id' => $cliente->id
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
 }

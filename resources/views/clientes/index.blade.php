@@ -85,7 +85,7 @@
                   <td>{{ $cliente->reportes->count() }}</td>
                   <td>
                     @php
-                      $estadoLabel = $catalogoEstados[$cliente->estado_cliente] ?? null;
+                      $estadoLabel = $catalogoEstados[$cliente->estado_cliente] ?? ($cliente->estado ?? null);
                     @endphp
                     <span class="pill {{ \Illuminate\Support\Str::slug(strtolower($estadoLabel ?? 'sin')) }}">
                       {{ $estadoLabel ?? '—' }}
@@ -94,7 +94,8 @@
 
                   <td class="actions">
                     <a href="{{ route('clientes.show', $cliente) }}" class="icon-btn" title="Ver"><i class="fas fa-eye"></i></a>
-                    <button class="icon-btn" data-bs-toggle="modal" data-bs-target="#editClientModal{{ $cliente->id }}" title="Editar"><i class="fas fa-edit"></i></button>
+                    <!-- Edit button: abre modal único y carga datos via AJAX -->
+                    <button class="icon-btn btn-edit" data-id="{{ $cliente->id }}" title="Editar"><i class="fas fa-edit"></i></button>
                     <form action="{{ route('clientes.destroy', $cliente) }}" method="POST" style="display:inline">
                       @csrf @method('DELETE')
                       <button class="icon-btn del" onclick="return confirm('¿Eliminar cliente?')" title="Eliminar"><i class="fas fa-trash"></i></button>
@@ -112,111 +113,106 @@
 
       </section>
 
-      <!-- PANEL: ONBOARDING (REEMPLAZAR BLOQUE EXISTENTE) -->
-<section id="panel-onboarding" class="panel" role="tabpanel" aria-labelledby="tab-onboarding">
+      <!-- PANEL: ONBOARDING -->
+      <section id="panel-onboarding" class="panel" role="tabpanel" aria-labelledby="tab-onboarding">
+        <div class="kpi-wrap">
+          <div class="kpi-card small">
+            <div class="kpi-number">{{ $onboardingClients->count() }}</div>
+            <div class="kpi-label">En onboarding</div>
+          </div>
+          <div class="kpi-card small">
+            @php
+              $avg = $onboardingClients->count() ? round($onboardingClients->avg(function($c){ return $c->progreso ?? 0; })) : 0;
+            @endphp
+            <div class="kpi-number">{{ $avg }}%</div>
+            <div class="kpi-label">Promedio avance</div>
+          </div>
+          <div class="kpi-card small">
+            <div class="kpi-number">{{ $onboardingClients->where('progreso', '>=', 100)->count() }}</div>
+            <div class="kpi-label">Listos para Go-Live</div>
+          </div>
+          <div class="kpi-card small">
+            <div class="kpi-number">{{ $onboardingClients->where('capacitacion', 1)->count() }}</div>
+            <div class="kpi-label">Capacitación agendada</div>
+          </div>
 
-  <div class="kpi-wrap">
-    <div class="kpi-card small">
-      <div class="kpi-number">{{ $onboardingClients->count() }}</div>
-      <div class="kpi-label">En onboarding</div>
-    </div>
-    <div class="kpi-card small">
-      @php
-        $avg = $onboardingClients->count() ? round($onboardingClients->avg(function($c){ return $c->progreso ?? 0; })) : 0;
-      @endphp
-      <div class="kpi-number">{{ $avg }}%</div>
-      <div class="kpi-label">Promedio avance</div>
-    </div>
-    <div class="kpi-card small">
-      <div class="kpi-number">{{ $onboardingClients->where('progreso', '>=', 100)->count() }}</div>
-      <div class="kpi-label">Listos para Go-Live</div>
-    </div>
-    <div class="kpi-card small">
-      <div class="kpi-number">{{ $onboardingClients->where('capacitacion', 1)->count() }}</div>
-      <div class="kpi-label">Capacitación agendada</div>
-    </div>
+          <div class="kpi-action">
+            <button class="btn-add" data-bs-toggle="modal" data-bs-target="#createClientModal">+ Agregar cliente</button>
+          </div>
+        </div>
 
-    <div class="kpi-action">
-      <button class="btn-add" data-bs-toggle="modal" data-bs-target="#createClientModal">+ Agregar cliente</button>
-    </div>
-  </div>
-
-  <div class="table-card onboarding-card onboarding-grid">
-    @if($onboardingClients->isEmpty())
-      <div class="empty-onboarding">
-        <p>No hay clientes en onboarding.</p>
-      </div>
-    @else
-      <div class="onboarding-list">
-        @foreach($onboardingClients as $cliente)
-          @php
-            $progreso = intval($cliente->progreso ?? 0);
-            $steps = ['Configuración sensores','Capacitación','Go-Live'];
-            // misma lógica: cuántos pasos completados según el progreso
-            $done = intval(round(($progreso / 100) * count($steps)));
-          @endphp
-
-          <article class="onboard-card">
-            <div class="onboard-left">
-              <div class="onboard-title">
-                <a href="{{ route('clientes.show', $cliente) }}" class="c-link">{{ $cliente->nombre }}</a>
-                <div class="c-sub">{{ $cliente->razon_social ?? '' }}</div>
-              </div>
-              <div class="onboard-meta">
-                <div><strong>Owner:</strong> {{ $cliente->owner_name ?? ($cliente->user->name ?? '—') }}</div>
-                <div><strong>Contacto:</strong> {{ $cliente->contacto_nombre ?? '—' }}</div>
-              </div>
+        <div class="table-card onboarding-card onboarding-grid">
+          @if($onboardingClients->isEmpty())
+            <div class="empty-onboarding">
+              <p>No hay clientes en onboarding.</p>
             </div>
+          @else
+            <div class="onboarding-list">
+              @foreach($onboardingClients as $cliente)
+                @php
+                  $progreso = intval($cliente->progreso ?? 0);
+                  $steps = ['Configuración sensores','Capacitación','Go-Live'];
+                  $done = intval(round(($progreso / 100) * count($steps)));
+                @endphp
 
-            <div class="onboard-middle">
-              <div class="progress-td">
-                <div class="progress-line" aria-hidden="true">
-                  <div class="progress-bar" style="width: {{ $progreso > 100 ? 100 : $progreso }}%"></div>
-                </div>
-                <div class="progress-percent">{{ $progreso }}%</div>
+                <article class="onboard-card">
+                  <div class="onboard-left">
+                    <div class="onboard-title">
+                      <a href="{{ route('clientes.show', $cliente) }}" class="c-link">{{ $cliente->nombre }}</a>
+                      <div class="c-sub">{{ $cliente->razon_social ?? '' }}</div>
+                    </div>
+                    <div class="onboard-meta">
+                      <div><strong>Owner:</strong> {{ $cliente->owner_name ?? ($cliente->user->name ?? '—') }}</div>
+                      <div><strong>Contacto:</strong> {{ $cliente->contacto_nombre ?? '—' }}</div>
+                    </div>
+                  </div>
 
-                <div class="chips">
-  {{-- 1: Configuración sensores -> link a la ruta --}}
-  <a href="{{ route('vincular_sensores') }}" class="chip {{ $done >= 1 ? 'done' : '' }}">
-    Configuración sensores
-  </a>
+                  <div class="onboard-middle">
+                    <div class="progress-td">
+                      <div class="progress-line" aria-hidden="true">
+                        <div class="progress-bar" style="width: {{ $progreso > 100 ? 100 : $progreso }}%"></div>
+                      </div>
+                      <div class="progress-percent">{{ $progreso }}%</div>
 
-  {{-- 2: Capacitación -> abre modal --}}
-  <button type="button"
-          class="chip btn-capacitacion {{ $done >= 2 || $cliente->capacitacion ? 'done' : '' }}"
-          data-cliente-id="{{ $cliente->id }}">
-    Capacitación
-  </button>
+                      <div class="chips">
+                        <a href="{{ route('vincular_sensores') }}" class="chip {{ $done >= 1 ? 'done' : '' }}">
+                          Configuración sensores
+                        </a>
 
-  {{-- 3: Go-Live -> abre modal --}}
-  <button type="button"
-          class="chip btn-go-live {{ $cliente->estado_cliente == 1 ? 'done' : '' }}"
-          data-cliente-id="{{ $cliente->id }}">
-    Go-Live
-  </button>
-</div>
-              </div>
+                        <button type="button"
+                                class="chip btn-capacitacion {{ $done >= 2 || $cliente->capacitacion ? 'done' : '' }}"
+                                data-cliente-id="{{ $cliente->id }}">
+                          Capacitación
+                        </button>
+
+                        <button type="button"
+                                class="chip btn-go-live {{ $cliente->estado_cliente == 1 ? 'done' : '' }}"
+                                data-cliente-id="{{ $cliente->id }}">
+                          Go-Live
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="onboard-right">
+                    <div class="next-step">
+                      <div><strong>Próximo paso:</strong> {{ $cliente->proximo_paso ?? '—' }}</div>
+                      <div><strong>Fecha objetivo:</strong> {{ optional($cliente->fecha_objetivo)->format('Y-m-d') ?? '—' }}</div>
+                    </div>
+
+                    <div class="onboard-actions">
+                      <a href="{{ route('clientes.show', $cliente) }}" class="btn small edit" title="Ver detalle"><i class="fas fa-eye"></i></a>
+                      <button class="btn small edit" data-bs-toggle="modal" data-bs-target="#editClientModal{{ $cliente->id }}" title="Editar"><i class="fas fa-pen"></i></button>
+                      <a href="#" class="btn continue" onclick="handleContinueOnboarding({{ $cliente->id }})">Continuar</a>
+                    </div>
+                  </div>
+                </article>
+              @endforeach
             </div>
+          @endif
+        </div>
 
-            <div class="onboard-right">
-              <div class="next-step">
-                <div><strong>Próximo paso:</strong> {{ $cliente->proximo_paso ?? '—' }}</div>
-                <div><strong>Fecha objetivo:</strong> {{ optional($cliente->fecha_objetivo)->format('Y-m-d') ?? '—' }}</div>
-              </div>
-
-              <div class="onboard-actions">
-                <a href="{{ route('clientes.show', $cliente) }}" class="btn small edit" title="Ver detalle"><i class="fas fa-eye"></i></a>
-                <button class="btn small edit" data-bs-toggle="modal" data-bs-target="#editClientModal{{ $cliente->id }}" title="Editar"><i class="fas fa-pen"></i></button>
-                <a href="#" class="btn continue" onclick="handleContinueOnboarding({{ $cliente->id }})">Continuar</a>
-              </div>
-            </div>
-          </article>
-        @endforeach
-      </div> {{-- onboarding-list --}}
-    @endif
-  </div>
-
-</section>
+      </section>
 
     </main>
   </div>
@@ -240,130 +236,119 @@
         </nav>
 
         <!-- Panels -->
-        <form id="createClientForm">
+        <form id="createClientForm" enctype="multipart/form-data">
           <div class="steps">
-            <!-- Step 1 -->
-            <!-- Step 1: Generales (añadir/actualizar campos) -->
-<!-- Step 1: Generales -->
-<section class="step-panel active" data-step="1">
-  <div class="form-grid">
-    <div class="form-group">
-      <label>Nombre legal</label>
-      <input name="nombre" type="text" class="form-control" required>
-    </div>
+            <!-- Step 1: Generales -->
+            <section class="step-panel active" data-step="1">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Nombre legal</label>
+                  <input name="nombre" type="text" class="form-control" required>
+                </div>
 
-    <div class="form-group">
-      <label>RFC</label>
-      <input name="rfc" type="text" class="form-control">
-    </div>
+                <div class="form-group">
+                  <label>RFC</label>
+                  <input name="rfc" type="text" class="form-control">
+                </div>
 
-    <div class="form-group">
-      <label>Email</label>
-      <input name="email" type="email" class="form-control">
-    </div>
+                <div class="form-group">
+                  <label>Email</label>
+                  <input name="email" type="email" class="form-control">
+                </div>
 
-    <div class="form-group">
-      <label>Teléfono</label>
-      <input name="telefono" type="tel" class="form-control">
-    </div>
+                <div class="form-group">
+                  <label>Teléfono</label>
+                  <input name="telefono" type="tel" class="form-control">
+                </div>
 
-    <div class="form-group">
-      <label>Calle</label>
-      <input name="calle" type="text" class="form-control">
-    </div>
+                <div class="form-group">
+                  <label>Calle</label>
+                  <input name="calle" type="text" class="form-control">
+                </div>
 
-    <div class="form-group">
-      <label>Número</label>
-      <input name="numero" type="text" class="form-control">
-    </div>
+                <div class="form-group">
+                  <label>Número</label>
+                  <input name="numero" type="text" class="form-control">
+                </div>
 
-    <div class="form-group">
-    <label>Código postal</label>
-    <input id="codigo_postal" name="codigo_postal" type="text" class="form-control" maxlength="5" 
-           placeholder="Ej: 44100" onblur="buscarPorCP(this.value)">
-    <div id="cp-loading" class="loading" style="display: none;">Buscando en base local...</div>
-    <div id="cp-error" class="error-message" style="display: none; color: red; font-size: 12px;"></div>
-</div>
+                <div class="form-group">
+                  <label>Código postal</label>
+                  <input id="codigo_postal" name="codigo_postal" type="text" class="form-control" maxlength="5" placeholder="Ej: 44100">
+                  <div id="cp-loading" class="loading" style="display: none;">Buscando en base local...</div>
+                  <div id="cp-error" class="error-message" style="display: none; color: red; font-size: 12px;"></div>
+                </div>
 
-<!-- Estado -->
-<div class="form-group">
-    <label>Estado</label>
-    <select id="estado_select" name="estado" class="form-control" required onchange="cargarMunicipios()">
-        <option value="">Selecciona un estado</option>
-    </select>
-</div>
+                <div class="form-group">
+                  <label>Estado</label>
+                  <select id="estado_select" name="estado" class="form-control" required>
+                      <option value="">Selecciona un estado</option>
+                  </select>
+                </div>
 
-<!-- Municipio -->
-<div class="form-group">
-    <label>Municipio/Ciudad</label>
-    <select id="municipio_select" name="ciudad" class="form-control" required onchange="cargarColonias()">
-        <option value="">Primero selecciona un estado</option>
-    </select>
-</div>
+                <div class="form-group">
+                  <label>Municipio/Ciudad</label>
+                  <select id="municipio_select" name="ciudad" class="form-control" required>
+                      <option value="">Primero selecciona un estado</option>
+                  </select>
+                </div>
 
-<!-- Colonia -->
-<div class="form-group">
-    <label>Colonia</label>
-    <select id="colonia_select" name="colonia" class="form-control">
-        <option value="">Primero selecciona un municipio</option>
-    </select>
-</div>
+                <!-- COLONIA ahora input -->
+                <div class="form-group">
+                  <label>Colonia</label>
+                  <input id="colonia_input" name="colonia" type="text" class="form-control" placeholder="Primero selecciona un municipio" disabled>
+                </div>
 
-    <div class="form-group">
-      <label>País</label>
-      <input id="pais_input" name="pais" type="text" class="form-control" value="México" readonly>
-    </div>
+                <div class="form-group">
+                  <label>País</label>
+                  <input id="pais_input" name="pais" type="text" class="form-control" value="México" readonly>
+                </div>
 
-    <div class="form-group">
-      <label>Cambio de Dólar</label>
-      <input name="cambio_dolar" type="number" step="0.01" class="form-control">
-    </div>
+                <div class="form-group">
+                  <label>Cambio de Dólar</label>
+                  <input name="cambio_dolar" type="number" step="0.01" class="form-control">
+                </div>
 
-    <div class="form-group">
-      <label>Latitud</label>
-      <input name="latitud" type="text" class="form-control">
-    </div>
+                <div class="form-group">
+                  <label>Latitud</label>
+                  <input name="latitud" type="text" class="form-control">
+                </div>
 
-    <div class="form-group">
-      <label>Longitud</label>
-      <input name="longitud" type="text" class="form-control">
-    </div>
+                <div class="form-group">
+                  <label>Longitud</label>
+                  <input name="longitud" type="text" class="form-control">
+                </div>
 
-    <div class="form-group">
-      <label>Contacto nombre</label>
-      <input name="contacto_nombre" type="text" class="form-control">
-    </div>
+                <div class="form-group">
+                  <label>Contacto nombre</label>
+                  <input name="contacto_nombre" type="text" class="form-control">
+                </div>
 
-    <div class="form-group">
-      <label>Tarifa región</label>
-      <select name="tarifa_region" class="form-control" required>
-        <option value="">Selecciona una región</option>
-        @foreach($catalogoRegiones as $region)
-          <option value="{{ $region->id }}">{{ $region->region }}</option>
-        @endforeach
-      </select>
-    </div>
+                <div class="form-group">
+                  <label>Tarifa región</label>
+                  <select name="tarifa_region" class="form-control" required>
+                    <option value="">Selecciona una región</option>
+                    @foreach($catalogoRegiones as $region)
+                      <option value="{{ $region->id }}">{{ $region->region }}</option>
+                    @endforeach
+                  </select>
+                </div>
 
-    <div class="form-group">
-      <label>Factor carga</label>
-      <select name="factor_carga" class="form-control" required>
-        <option value="">Selecciona un grupo tarifario</option>
-        @foreach($grupoTarifarios as $g)
-          <option value="{{ $g->id }}" data-factor="{{ $g->factor_carga }}">{{ $g->nombre }}</option>
-        @endforeach
-      </select>
-    </div>
+                <div class="form-group">
+                  <label>Factor carga</label>
+                  <select name="factor_carga" class="form-control" required>
+                    <option value="">Selecciona un grupo tarifario</option>
+                    @foreach($grupoTarifarios as $g)
+                      <option value="{{ $g->id }}" data-factor="{{ $g->factor_carga }}">{{ $g->nombre }}</option>
+                    @endforeach
+                  </select>
+                </div>
 
-
-
-    <div class="form-group">
-      <label>Site (número)</label>
-      <input name="site" type="number" class="form-control">
-    </div>
-  </div>
-</section>
-
-
+                <div class="form-group">
+                  <label>Site (número)</label>
+                  <input name="site" type="number" class="form-control">
+                </div>
+              </div>
+            </section>
 
             <!-- Step 2 -->
             <section class="step-panel" data-step="2">
@@ -378,7 +363,6 @@
                   <select name="regimen" class="form-control">
                     <option value="601">601 - Personas Morales</option>
                     <option value="603">603 - Personas Fisicas</option>
-                    <!-- agrega los que necesites -->
                   </select>
                 </div>
 
@@ -503,150 +487,540 @@
   </div>
 </div>
 
-<!-- Modal Confirmar Capacitación -->
-<div class="modal fade" id="confirmCapacitacionModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-sm modal-dialog-centered">
-    <div class="modal-content">
+<!-- EDIT modal: solo "Generales" -->
+<div class="modal fade" id="editClientModal" tabindex="-1" aria-hidden="true" aria-labelledby="editClientLabel">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content create-client-modal">
       <div class="modal-header">
-        <h5 class="modal-title">Confirmar Capacitación</h5>
+        <h5 class="modal-title" id="editClientLabel">Editar cliente</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
+
       <div class="modal-body">
-        <p>¿Confirmas que se recibió la capacitación para este cliente?</p>
-      </div>
-      <div class="modal-footer">
-        <button id="capacitacionCancel" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button id="capacitacionConfirm" type="button" class="btn btn-primary">Confirmar</button>
+        <div id="edit-client-errors"></div>
+
+        <form id="editClientForm" enctype="multipart/form-data">
+          @csrf
+          <input type="hidden" name="cliente_id" id="edit_cliente_id" value="">
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nombre legal</label>
+              <input id="edit_nombre" name="nombre" type="text" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+              <label>RFC</label>
+              <input id="edit_rfc" name="rfc" type="text" class="form-control">
+            </div>
+
+            <!-- añadir/renombrar campo -->
+            <div class="form-group">
+              <label>Razón social (CFDI)</label>
+              <input id="edit_razon_social" name="razon_social" type="text" class="form-control" placeholder="">
+            </div>
+
+
+            <div class="form-group">
+              <label>Email</label>
+              <input id="edit_email" name="email" type="email" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input id="edit_telefono" name="telefono" type="tel" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label>Calle</label>
+              <input id="edit_calle" name="calle" type="text" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label>Número</label>
+              <input id="edit_numero" name="numero" type="text" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label>Código postal</label>
+              <input id="edit_codigo_postal" name="codigo_postal" type="text" class="form-control" maxlength="5">
+              <div id="edit-cp-loading" class="loading" style="display:none">Buscando en base local...</div>
+            </div>
+
+            <div class="form-group">
+              <label>Estado</label>
+              <select id="edit_estado_select" name="estado" class="form-control">
+                <option value="">Selecciona un estado</option>
+                @foreach($catalogoEstados as $id => $label)
+                  <option value="{{ $label }}">{{ $label }}</option>
+                @endforeach
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Municipio/Ciudad</label>
+              <select id="edit_municipio_select" name="ciudad" class="form-control">
+                <option value="">Primero selecciona un estado</option>
+              </select>
+            </div>
+
+            <!-- COLONIA ahora input (edit) -->
+            <div class="form-group">
+              <label>Colonia</label>
+              <input id="edit_colonia_input" name="colonia" type="text" class="form-control" placeholder="Primero selecciona un municipio" disabled>
+            </div>
+
+            <div class="form-group">
+              <label>País</label>
+              <input id="edit_pais" name="pais" type="text" class="form-control" value="México" readonly>
+            </div>
+
+            <div class="form-group">
+              <label>Cambio de Dólar</label>
+              <input id="edit_cambio_dolar" name="cambio_dolar" type="number" step="0.01" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label>Latitud</label>
+              <input id="edit_latitud" name="latitud" type="text" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label>Longitud</label>
+              <input id="edit_longitud" name="longitud" type="text" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label>Contacto nombre</label>
+              <input id="edit_contacto_nombre" name="contacto_nombre" type="text" class="form-control">
+            </div>
+
+            <div class="form-group">
+              <label>Tarifa región</label>
+              <select id="edit_tarifa_region" name="tarifa_region" class="form-control">
+                <option value="">Selecciona una región</option>
+                @foreach($catalogoRegiones as $region)
+                  <option value="{{ $region->id }}">{{ $region->region }}</option>
+                @endforeach
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Factor carga (grupo tarifario)</label>
+              <select id="edit_factor_carga" name="factor_carga" class="form-control">
+                <option value="">Selecciona un grupo tarifario</option>
+                @foreach($grupoTarifarios as $g)
+                  <option value="{{ $g->id }}" data-factor="{{ $g->factor_carga }}">{{ $g->nombre }}</option>
+                @endforeach
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Site (número)</label>
+              <input id="edit_site" name="site" type="number" class="form-control" required>
+            </div>
+
+            <!-- Contrato mínimo (solo link) -->
+            <div class="form-group full" style="margin-top:10px;">
+              <label>Contrato actual</label>
+              <div id="edit_contrato_actual" style="font-size:13px;"><em>No hay contrato</em></div>
+            </div>
+
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary create-btn" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary create-btn">Guardar cambios</button>
+          </div>
+        </form>
+
       </div>
     </div>
   </div>
 </div>
-
-<!-- Modal Confirmar Go-Live -->
-<div class="modal fade" id="confirmGoLiveModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-sm modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Confirmar Go-Live</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <p>¿Deseas poner a este cliente como activo (Go-Live)?</p>
-      </div>
-      <div class="modal-footer">
-        <button id="goLiveCancel" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button id="goLiveConfirm" type="button" class="btn btn-primary">Sí, poner activo</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  // ============================================
+  // 1. FUNCIONES GLOBALES PARA DIRECCIONES
+  // ============================================
+
+  // --- Funciones para modal de CREACIÓN ---
+  function cargarEstados() {
+    const estadoSelect = document.getElementById('estado_select');
+    if (!estadoSelect || typeof mexicoData === 'undefined') return;
+    estadoSelect.innerHTML = '<option value="">Selecciona un estado</option>';
+    mexicoData.estados.forEach(estado => {
+      const option = document.createElement('option');
+      option.value = estado;
+      option.textContent = estado;
+      estadoSelect.appendChild(option);
+    });
+  }
+
+  function cargarMunicipios() {
+    const estadoSelect = document.getElementById('estado_select');
+    const municipioSelect = document.getElementById('municipio_select');
+    const coloniaInput = document.getElementById('colonia_input');
+    const estado = estadoSelect?.value;
+
+    if (!estado) {
+      if (municipioSelect) {
+        municipioSelect.innerHTML = '<option value="">Selecciona un estado primero</option>';
+        municipioSelect.disabled = true;
+      }
+      if (coloniaInput) {
+        coloniaInput.value = '';
+        coloniaInput.disabled = true;
+        coloniaInput.placeholder = 'Primero selecciona un municipio';
+      }
+      return;
+    }
+
+    if (municipioSelect) {
+      municipioSelect.innerHTML = '<option value="">Cargando municipios...</option>';
+      municipioSelect.disabled = false;
+    }
+    if (coloniaInput) {
+      coloniaInput.value = '';
+      coloniaInput.disabled = true;
+      coloniaInput.placeholder = 'Primero selecciona un municipio';
+    }
+
+    setTimeout(() => {
+      const municipios = mexicoData.municipios[estado] || ["No se encontraron municipios"];
+      if (municipioSelect) {
+        municipioSelect.innerHTML = '<option value="">Selecciona un municipio</option>';
+        municipios.forEach(municipio => {
+          const option = document.createElement('option');
+          option.value = municipio;
+          option.textContent = municipio;
+          municipioSelect.appendChild(option);
+        });
+        municipioSelect.disabled = false;
+      }
+    }, 300);
+  }
+
+  function cargarColonias() {
+    const estadoSelect = document.getElementById('estado_select');
+    const municipioSelect = document.getElementById('municipio_select');
+    const coloniaInput = document.getElementById('colonia_input');
+    const estado = estadoSelect?.value;
+    const municipio = municipioSelect?.value;
+
+    if (!coloniaInput) return;
+    if (!estado || !municipio) {
+      coloniaInput.value = '';
+      coloniaInput.disabled = true;
+      coloniaInput.placeholder = 'Primero selecciona un municipio';
+      return;
+    }
+    coloniaInput.disabled = false;
+    coloniaInput.placeholder = 'Escribe la colonia';
+  }
+
+  function buscarPorCP(cp) {
+    const cpLoading = document.getElementById('cp-loading');
+    const cpError = document.getElementById('cp-error');
+    const estadoSelect = document.getElementById('estado_select');
+    const municipioSelect = document.getElementById('municipio_select');
+    const coloniaInput = document.getElementById('colonia_input');
+
+    if (!cp || cp.length !== 5) {
+      if (cpError) {
+        cpError.textContent = 'El código postal debe tener 5 dígitos';
+        cpError.style.display = 'block';
+      }
+      return;
+    }
+
+    if (cpLoading) cpLoading.style.display = 'block';
+    if (cpError) cpError.style.display = 'none';
+
+    setTimeout(() => {
+      if (cpLoading) cpLoading.style.display = 'none';
+      const datosCP = (typeof mexicoData !== 'undefined') ? mexicoData.codigosPostales[cp] : null;
+
+      if (datosCP) {
+        if (estadoSelect) {
+          estadoSelect.value = datosCP.estado;
+          cargarMunicipios();
+        }
+
+        setTimeout(() => {
+          if (municipioSelect) municipioSelect.value = datosCP.municipio;
+          cargarColonias();
+          setTimeout(() => {
+            if (coloniaInput && datosCP.colonia) {
+              coloniaInput.value = datosCP.colonia;
+              coloniaInput.disabled = false;
+            }
+          }, 300);
+        }, 400);
+        if (cpError) cpError.style.display = 'none';
+      } else {
+        if (cpError) {
+          cpError.textContent = 'Código postal no encontrado en la base local';
+          cpError.style.display = 'block';
+        }
+      }
+    }, 800);
+  }
+
+  function limpiarDireccion() {
+    const estadoSelect = document.getElementById('estado_select');
+    const municipioSelect = document.getElementById('municipio_select');
+    const coloniaInput = document.getElementById('colonia_input');
+    const cpError = document.getElementById('cp-error');
+    const cpLoading = document.getElementById('cp-loading');
+
+    if (estadoSelect) estadoSelect.value = '';
+    if (municipioSelect) {
+      municipioSelect.innerHTML = '<option value="">Selecciona un estado primero</option>';
+      municipioSelect.disabled = true;
+    }
+    if (coloniaInput) {
+      coloniaInput.value = '';
+      coloniaInput.disabled = true;
+      coloniaInput.placeholder = 'Primero selecciona un municipio';
+    }
+    if (cpError) cpError.style.display = 'none';
+    if (cpLoading) cpLoading.style.display = 'none';
+  }
+
+  // --- Funciones para modal de EDICIÓN ---
+  function cargarEstadosEdit() {
+    const estadoSelect = document.getElementById('edit_estado_select');
+    if (!estadoSelect || typeof mexicoData === 'undefined') return;
+    estadoSelect.innerHTML = '<option value="">Selecciona un estado</option>';
+    mexicoData.estados.forEach(estado => {
+      const option = document.createElement('option');
+      option.value = estado;
+      option.textContent = estado;
+      estadoSelect.appendChild(option);
+    });
+  }
+
+  function cargarMunicipiosEdit() {
+    const estado = document.getElementById('edit_estado_select')?.value;
+    const municipioSelect = document.getElementById('edit_municipio_select');
+    const coloniaInput = document.getElementById('edit_colonia_input');
+
+    if (!estado) {
+      if (municipioSelect) {
+        municipioSelect.innerHTML = '<option value="">Selecciona un estado primero</option>';
+        municipioSelect.disabled = true;
+      }
+      if (coloniaInput) {
+        coloniaInput.value = '';
+        coloniaInput.disabled = true;
+        coloniaInput.placeholder = 'Primero selecciona un municipio';
+      }
+      return;
+    }
+
+    if (municipioSelect) {
+      municipioSelect.innerHTML = '<option value="">Cargando municipios...</option>';
+      municipioSelect.disabled = false;
+    }
+    if (coloniaInput) {
+      coloniaInput.value = '';
+      coloniaInput.disabled = true;
+      coloniaInput.placeholder = 'Primero selecciona un municipio';
+    }
+
+    setTimeout(() => {
+      const municipios = mexicoData.municipios[estado] || ["No se encontraron municipios"];
+      if (municipioSelect) {
+        municipioSelect.innerHTML = '<option value="">Selecciona un municipio</option>';
+        municipios.forEach(municipio => {
+          const option = document.createElement('option');
+          option.value = municipio;
+          option.textContent = municipio;
+          municipioSelect.appendChild(option);
+        });
+        municipioSelect.disabled = false;
+      }
+    }, 150);
+  }
+
+  function cargarColoniasEdit() {
+    const estado = document.getElementById('edit_estado_select')?.value;
+    const municipio = document.getElementById('edit_municipio_select')?.value;
+    const coloniaInput = document.getElementById('edit_colonia_input');
+
+    if (!coloniaInput) return;
+    if (!estado || !municipio) {
+      coloniaInput.value = '';
+      coloniaInput.disabled = true;
+      coloniaInput.placeholder = 'Primero selecciona un municipio';
+      return;
+    }
+    coloniaInput.disabled = false;
+    coloniaInput.placeholder = 'Escribe la colonia';
+  }
+
+  function buscarPorCPEdit(cp) {
+    const cpLoading = document.getElementById('edit-cp-loading');
+    const estadoSelect = document.getElementById('edit_estado_select');
+    const municipioSelect = document.getElementById('edit_municipio_select');
+    const coloniaInput = document.getElementById('edit_colonia_input');
+
+    if (!cp || cp.length !== 5) return;
+    if (cpLoading) cpLoading.style.display = 'block';
+
+    setTimeout(() => {
+      if (cpLoading) cpLoading.style.display = 'none';
+      const datosCP = (typeof mexicoData !== 'undefined') ? mexicoData.codigosPostales[cp] : null;
+      if (datosCP) {
+        if (estadoSelect) {
+          estadoSelect.value = datosCP.estado;
+          cargarMunicipiosEdit();
+        }
+        setTimeout(() => {
+          if (municipioSelect) municipioSelect.value = datosCP.municipio;
+          cargarColoniasEdit();
+          setTimeout(() => {
+            if (coloniaInput && datosCP.colonia) {
+              coloniaInput.value = datosCP.colonia;
+              coloniaInput.disabled = false;
+            }
+          }, 300);
+        }, 400);
+      }
+    }, 500);
+  }
+
+  // ============================================
+  // 2. ASIGNAR EVENT LISTENERS A DIRECCIONES
+  // ============================================
+  function asignarEventListenersDirecciones() {
+    // Modal Creación
+    const estadoSelect = document.getElementById('estado_select');
+    const municipioSelect = document.getElementById('municipio_select');
+    const cpInput = document.getElementById('codigo_postal');
+    
+    if (estadoSelect) estadoSelect.addEventListener('change', cargarMunicipios);
+    if (municipioSelect) municipioSelect.addEventListener('change', cargarColonias);
+    if (cpInput) cpInput.addEventListener('blur', function() { buscarPorCP(this.value); });
+
+    // Modal Edición
+    const editEstadoSelect = document.getElementById('edit_estado_select');
+    const editMunicipioSelect = document.getElementById('edit_municipio_select');
+    const editCpInput = document.getElementById('edit_codigo_postal');
+    
+    if (editEstadoSelect) editEstadoSelect.addEventListener('change', cargarMunicipiosEdit);
+    if (editMunicipioSelect) editMunicipioSelect.addEventListener('change', cargarColoniasEdit);
+    if (editCpInput) editCpInput.addEventListener('blur', function() { buscarPorCPEdit(this.value); });
+  }
+
+  // Llamar al cargar la página
+  asignarEventListenersDirecciones();
+
+  // ============================================
+  // 3. MANEJO DE MODALES Y REASIGNACIÓN
+  // ============================================
+  const createModal = document.getElementById('createClientModal');
+  if (createModal) {
+    createModal.addEventListener('shown.bs.modal', function() {
+      if (typeof mexicoData !== 'undefined') cargarEstados();
+      asignarEventListenersDirecciones();
+    });
+  }
+
+  const editModal = document.getElementById('editClientModal');
+  if (editModal) {
+    editModal.addEventListener('shown.bs.modal', function() {
+      if (typeof mexicoData !== 'undefined') cargarEstadosEdit();
+      asignarEventListenersDirecciones();
+    });
+  }
+
+  // ============================================
+  // 4. CÓDIGO ORIGINAL (TABS, STEPPER, etc.)
+  // ============================================
 
   // Variables globales de modales
-const confirmCapModalEl = document.getElementById('confirmCapacitacionModal');
-const confirmGoModalEl = document.getElementById('confirmGoLiveModal');
-let pendingClienteId = null;
+  const confirmCapModalEl = document.getElementById('confirmCapacitacionModal');
+  const confirmGoModalEl = document.getElementById('confirmGoLiveModal');
+  let pendingClienteId = null;
 
-if (confirmCapModalEl) {
-  const capModal = new bootstrap.Modal(confirmCapModalEl);
-
-  // click en chip capacitacion -> abrir modal y setear id
-  document.querySelectorAll('.btn-capacitacion').forEach(btn => {
-    btn.addEventListener('click', () => {
-      pendingClienteId = btn.dataset.clienteId;
-      capModal.show();
+  // CAPACITACION modal
+  if (confirmCapModalEl) {
+    const capModal = new bootstrap.Modal(confirmCapModalEl);
+    document.querySelectorAll('.btn-capacitacion').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pendingClienteId = btn.dataset.clienteId;
+        capModal.show();
+      });
     });
-  });
-
-  // confirmar
-  document.getElementById('capacitacionConfirm').addEventListener('click', () => {
-    if (!pendingClienteId) return;
-    fetch(`/clientes/${pendingClienteId}/capacitacion`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-      },
-      body: JSON.stringify({})
-    })
-    .then(r => r.json())
-    .then(res => {
-      if (res.success) {
-        // recargar para reflejar cambios (más sencillo)
-        window.location.reload();
-      } else {
-        alert(res.message || 'Error al actualizar capacitación');
-      }
-    })
-    .catch(e => {
-      console.error(e);
-      alert('Error al comunicar con el servidor');
+    document.getElementById('capacitacionConfirm').addEventListener('click', () => {
+      if (!pendingClienteId) return;
+      fetch(`/clientes/${pendingClienteId}/capacitacion`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({})
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) window.location.reload();
+        else alert(res.message || 'Error al actualizar capacitación');
+      }).catch(e => {
+        console.error(e);
+        alert('Error al comunicar con el servidor');
+      });
     });
-  });
-}
+  }
 
-if (confirmGoModalEl) {
-  const goModal = new bootstrap.Modal(confirmGoModalEl);
-
-  // click en chip go-live -> abrir modal
-  document.querySelectorAll('.btn-go-live').forEach(btn => {
-    btn.addEventListener('click', () => {
-      pendingClienteId = btn.dataset.clienteId;
-      goModal.show();
+  // GO-LIVE modal
+  if (confirmGoModalEl) {
+    const goModal = new bootstrap.Modal(confirmGoModalEl);
+    document.querySelectorAll('.btn-go-live').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pendingClienteId = btn.dataset.clienteId;
+        goModal.show();
+      });
     });
-  });
-
-  // confirmar go-live
-  document.getElementById('goLiveConfirm').addEventListener('click', () => {
-    if (!pendingClienteId) return;
-    fetch(`/clientes/${pendingClienteId}/go-live`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-      },
-      body: JSON.stringify({})
-    })
-    .then(r => r.json())
-    .then(res => {
-      if (res.success) {
-        window.location.reload();
-      } else {
-        alert(res.message || 'Error al marcar Go-Live');
-      }
-    })
-    .catch(e => {
-      console.error(e);
-      alert('Error al comunicar con el servidor');
+    document.getElementById('goLiveConfirm').addEventListener('click', () => {
+      if (!pendingClienteId) return;
+      fetch(`/clientes/${pendingClienteId}/go-live`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({})
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) window.location.reload();
+        else alert(res.message || 'Error al marcar Go-Live');
+      }).catch(e => {
+        console.error(e);
+        alert('Error al comunicar con el servidor');
+      });
     });
-  });
-}
+  }
 
-
-  // --- TABS (mostrar solo panel activo) ---
+  // --- TABS ---
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => {
-        b.classList.remove('active');
-        b.setAttribute('aria-selected','false');
-      });
-      btn.classList.add('active');
-      btn.setAttribute('aria-selected','true');
-
+      document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-selected','true');
       const panelId = btn.getAttribute('data-panel');
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       document.getElementById(panelId).classList.add('active');
     });
   });
 
-  // --- Toggle status (fetch) ---
+  // --- Toggle status ---
   document.querySelectorAll('.toggle-status').forEach(toggle => {
     toggle.addEventListener('change', function() {
       const id = this.dataset.id;
@@ -672,7 +1046,7 @@ if (confirmGoModalEl) {
     });
   });
 
-  // --- Search local simple ---
+  // --- Search local ---
   const search = document.getElementById('searchCliente');
   if (search) {
     search.addEventListener('input', () => {
@@ -683,7 +1057,7 @@ if (confirmGoModalEl) {
     });
   }
 
-  // --- Abrir modales si el servidor lo indica ---
+  // --- Abrir modales si servidor lo indica ---
   const hasErrors = {{ $errors->any() ? 'true' : 'false' }};
   const editModalId = @json(session('edit_modal'));
   if(editModalId){
@@ -694,345 +1068,328 @@ if (confirmGoModalEl) {
     if(cm) new bootstrap.Modal(cm).show();
   }
 
-  // --- Stepper / Modal create client ---
-  const modal = document.getElementById('createClientModal');
-  if(!modal) return;
+  // --- Create modal stepper ---
+  (function initCreateStepper(){
+    const modal = document.getElementById('createClientModal');
+    if(!modal) return;
+    const steps = Array.from(modal.querySelectorAll('.step-panel'));
+    const stepBtns = Array.from(modal.querySelectorAll('.step-btn'));
+    const prevBtn = modal.querySelector('.prev-step');
+    const nextBtn = modal.querySelector('.next-step');
+    const createBtn = modal.querySelector('.create-btn');
+    const currentStepEl = modal.querySelector('#currentStep');
+    const form = modal.querySelector('#createClientForm');
+    const summaryBox = modal.querySelector('#summaryBox');
 
-  const steps = Array.from(modal.querySelectorAll('.step-panel'));
-  const stepBtns = Array.from(modal.querySelectorAll('.step-btn'));
-  const prevBtn = modal.querySelector('.prev-step');
-  const nextBtn = modal.querySelector('.next-step');
-  const createBtn = modal.querySelector('.create-btn');
-  const currentStepEl = modal.querySelector('#currentStep');
-  const form = modal.querySelector('#createClientForm');
-  const summaryBox = modal.querySelector('#summaryBox');
+    let current = 1;
+    const total = steps.length;
 
-  let current = 1;
-  const total = steps.length;
-
-  function showStep(n){
-    current = Math.max(1, Math.min(n, total));
-    steps.forEach(s => s.classList.remove('active'));
-    const panel = modal.querySelector(`.step-panel[data-step="${current}"]`);
-    if(panel) panel.classList.add('active');
-
-    stepBtns.forEach(b => b.classList.toggle('active', parseInt(b.dataset.step) === current));
-
-    currentStepEl.textContent = current;
-    prevBtn.disabled = current === 1;
-    if(current === total){
-      nextBtn.classList.add('d-none');
-      createBtn.classList.remove('d-none');
-    } else {
-      nextBtn.classList.remove('d-none');
-      createBtn.classList.add('d-none');
+    function showStep(n){
+      current = Math.max(1, Math.min(n, total));
+      steps.forEach(s => s.classList.remove('active'));
+      const panel = modal.querySelector(`.step-panel[data-step="${current}"]`);
+      if(panel) panel.classList.add('active');
+      stepBtns.forEach(b => b.classList.toggle('active', parseInt(b.dataset.step) === current));
+      currentStepEl.textContent = current;
+      prevBtn.disabled = current === 1;
+      if(current === total){
+        nextBtn.classList.add('d-none');
+        createBtn.classList.remove('d-none');
+      } else {
+        nextBtn.classList.remove('d-none');
+        createBtn.classList.add('d-none');
+      }
+      if(current === total) updateSummary();
     }
 
-    if(current === total) updateSummary();
-  }
-
-  function updateSummary(){
-    const data = new FormData(form);
-    const text = {
-      cliente: data.get('nombre') || '—',
-      regimen: (data.get('regimen') ? data.get('regimen') : '—'),
-      uso: data.get('uso_cfdi') || '—',
-      plan: data.get('plan') || '—',
-      mrr: data.get('mrr') ? `$${Number(data.get('mrr')).toLocaleString()}` : '—',
-      ciclo: data.get('ciclo') || '—',
-      dia: data.get('dia_corte') || '—',
-      contrato: data.get('contrato_aceptado') ? 'Aceptado' : 'Pendiente'
-    };
-
-    if (summaryBox) {
-      summaryBox.innerHTML = `
-        <div><strong>Cliente:</strong> ${text.cliente}</div>
-        <div><strong>Régimen:</strong> ${text.regimen}</div>
-        <div><strong>Uso CFDI:</strong> ${text.uso}</div>
-        <div><strong>Plan:</strong> ${text.plan}</div>
-        <div><strong>MRR:</strong> ${text.mrr}</div>
-        <div><strong>Ciclo/Día corte:</strong> ${text.ciclo} / ${text.dia}</div>
-        <div><strong>Contrato:</strong> ${text.contrato}</div>
-      `;
-    }
-  }
-
-  nextBtn.addEventListener('click', () => showStep(current + 1));
-  prevBtn.addEventListener('click', () => showStep(current - 1));
-  stepBtns.forEach(b => b.addEventListener('click', () => showStep(parseInt(b.dataset.step))));
-  modal.addEventListener('show.bs.modal', () => {
-    showStep(1);
-    form.reset();
-    limpiarDireccion();
-  });
-
-  // Submit: envía todo (clientes + info_fiscal + plan) al endpoint /clientes
-form.addEventListener('submit', (ev) => {
-  ev.preventDefault();
-
-  // limpia mensajes previos
-  const errorBoxId = 'create-client-errors';
-  let errorBox = modal.querySelector('#' + errorBoxId);
-  if (!errorBox) {
-    errorBox = document.createElement('div');
-    errorBox.id = errorBoxId;
-    errorBox.style.marginBottom = '12px';
-    modal.querySelector('.modal-body').prepend(errorBox);
-  }
-  errorBox.innerHTML = '';
-
-  const formData = new FormData(form);
-  formData.set('capacitacion', '0');
-  formData.set('estado_cliente', '2');
-
-  const contratoAceptado = form.querySelector('input[name="contrato_aceptado"]');
-  const factAuto = form.querySelector('input[name="fact_auto"]');
-  const recordatorios = form.querySelector('input[name="recordatorios"]');
-
-  formData.set('contrato_aceptado', contratoAceptado && contratoAceptado.checked ? '1' : '0');
-  formData.set('fact_auto', factAuto && factAuto.checked ? '1' : '0');
-  formData.set('recordatorios', recordatorios && recordatorios.checked ? '1' : '0');
-
-  fetch("{{ route('clientes.store') }}", {
-    method: "POST",
-    headers: {
-      "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-      "Accept": "application/json"
-    },
-    body: formData
-  })
-  .then(async (response) => {
-    const contentType = response.headers.get('content-type') || '';
-    const data = contentType.includes('application/json') ? await response.json() : null;
-
-    if (response.ok) {
-      const bsModal = bootstrap.Modal.getInstance(modal);
-      if (bsModal) bsModal.hide();
-      window.location.reload();
-      return;
+    function updateSummary(){
+      const data = new FormData(form);
+      const text = {
+        cliente: data.get('nombre') || '—',
+        regimen: (data.get('regimen') ? data.get('regimen') : '—'),
+        uso: data.get('uso_cfdi') || '—',
+        plan: data.get('plan') || '—',
+        mrr: data.get('mrr') ? `$${Number(data.get('mrr')).toLocaleString()}` : '—',
+        ciclo: data.get('ciclo') || '—',
+        dia: data.get('dia_corte') || '—',
+        contrato: data.get('contrato_aceptado') ? 'Aceptado' : 'Pendiente'
+      };
+      if (summaryBox) {
+        summaryBox.innerHTML = `
+          <div><strong>Cliente:</strong> ${text.cliente}</div>
+          <div><strong>Régimen:</strong> ${text.regimen}</div>
+          <div><strong>Uso CFDI:</strong> ${text.uso}</div>
+          <div><strong>Plan:</strong> ${text.plan}</div>
+          <div><strong>MRR:</strong> ${text.mrr}</div>
+          <div><strong>Ciclo/Día corte:</strong> ${text.ciclo} / ${text.dia}</div>
+          <div><strong>Contrato:</strong> ${text.contrato}</div>
+        `;
+      }
     }
 
-    if (response.status === 422 && data?.errors) {
-      let html = '<div class="alert alert-danger"><ul>';
-      Object.values(data.errors).forEach(messages => {
-        messages.forEach(msg => {
-          html += `<li>${msg}</li>`;
-        });
+    nextBtn.addEventListener('click', () => showStep(current + 1));
+    prevBtn.addEventListener('click', () => showStep(current - 1));
+    stepBtns.forEach(b => b.addEventListener('click', () => showStep(parseInt(b.dataset.step))));
+    modal.addEventListener('show.bs.modal', () => {
+      showStep(1);
+      form.reset();
+      limpiarDireccion();
+    });
+
+    // Submit create
+    form.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const errorBoxId = 'create-client-errors';
+      let errorBox = modal.querySelector('#' + errorBoxId);
+      if (!errorBox) {
+        errorBox = document.createElement('div');
+        errorBox.id = errorBoxId;
+        errorBox.style.marginBottom = '12px';
+        modal.querySelector('.modal-body').prepend(errorBox);
+      }
+      errorBox.innerHTML = '';
+
+      const formData = new FormData(form);
+      formData.set('capacitacion', '0');
+      formData.set('estado_cliente', '2');
+
+      const contratoAceptado = form.querySelector('input[name="contrato_aceptado"]');
+      const factAuto = form.querySelector('input[name="fact_auto"]');
+      const recordatorios = form.querySelector('input[name="recordatorios"]');
+
+      formData.set('contrato_aceptado', contratoAceptado && contratoAceptado.checked ? '1' : '0');
+      formData.set('fact_auto', factAuto && factAuto.checked ? '1' : '0');
+      formData.set('recordatorios', recordatorios && recordatorios.checked ? '1' : '0');
+
+      fetch("{{ route('clientes.store') }}", {
+        method: "POST",
+        headers: {
+          "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+          "Accept": "application/json"
+        },
+        body: formData
+      })
+      .then(async (response) => {
+        const contentType = response.headers.get('content-type') || '';
+        const data = contentType.includes('application/json') ? await response.json() : null;
+
+        if (response.ok) {
+          const bsModal = bootstrap.Modal.getInstance(modal);
+          if (bsModal) bsModal.hide();
+          window.location.reload();
+          return;
+        }
+
+        if (response.status === 422 && data?.errors) {
+          let html = '<div class="alert alert-danger"><ul>';
+          Object.values(data.errors).forEach(messages => {
+            messages.forEach(msg => {
+              html += `<li>${msg}</li>`;
+            });
+          });
+          html += '</ul></div>';
+          errorBox.innerHTML = html;
+          return;
+        }
+
+        const message = data?.message || 'Error desconocido';
+        errorBox.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+      })
+      .catch(err => {
+        console.error(err);
+        errorBox.innerHTML = `<div class="alert alert-danger">Error al enviar datos: ${err.message}</div>`;
       });
-      html += '</ul></div>';
-      errorBox.innerHTML = html;
-      return;
-    }
+    });
 
-    const message = data?.message || 'Error desconocido';
-    errorBox.innerHTML = `<div class="alert alert-danger">${message}</div>`;
-  })
-  .catch(err => {
-    console.error(err);
-    errorBox.innerHTML = `<div class="alert alert-danger">Error al enviar datos: ${err.message}</div>`;
-  });
+    showStep(1);
+  })();
+
+  // ----------------- EDIT modal (solo generales) -----------------
+  (function initEditSimple(){
+    const editModalEl = document.getElementById('editClientModal');
+    if (!editModalEl) return;
+    const editModal = new bootstrap.Modal(editModalEl);
+    const editForm = document.getElementById('editClientForm');
+
+    // Hook edit buttons in table
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        if (!id) return alert('ID de cliente no encontrado');
+
+        const errorsBox = document.getElementById('edit-client-errors');
+        if (errorsBox) errorsBox.innerHTML = '';
+
+        try {
+          const res = await fetch(`/clientes/${id}/edit`, { headers: { 'Accept': 'application/json' } });
+          if (!res.ok) throw new Error('Error al obtener datos del servidor');
+          const data = await res.json();
+
+          const getEl = id => document.getElementById(id);
+          const mappings = [
+            ['edit_cliente_id', data.id || id],
+            ['edit_nombre', data.nombre ?? ''],
+            ['edit_rfc', data.rfc ?? ''],
+            ['edit_razon_social', data.edit_razon_social ?? ''],
+            ['edit_email', data.email ?? ''],
+            ['edit_telefono', data.telefono ?? ''],
+            ['edit_calle', data.calle ?? ''],
+            ['edit_numero', data.numero ?? ''],
+            ['edit_codigo_postal', data.codigo_postal ?? ''],
+            ['edit_pais', data.pais ?? 'México'],
+            ['edit_cambio_dolar', data.cambio_dolar ?? ''],
+            ['edit_latitud', data.latitud ?? ''],
+            ['edit_longitud', data.longitud ?? ''],
+            ['edit_contacto_nombre', data.contacto_nombre ?? ''],
+            ['edit_site', data.site ?? ''],
+          ];
+
+          mappings.forEach(([idName, val]) => {
+            const el = getEl(idName);
+            if (el) {
+              if ('value' in el) el.value = val;
+              else el.innerText = val;
+            } else {
+              console.warn(`Elemento no encontrado en DOM: #${idName}`);
+            }
+          });
+
+          const tarifaEl = getEl('edit_tarifa_region');
+          if (tarifaEl && data.tarifa_region) tarifaEl.value = data.tarifa_region;
+          const factorEl = getEl('edit_factor_carga');
+          if (factorEl && data.factor_carga) factorEl.value = data.factor_carga;
+
+          if (data.estado) {
+            const estadoEl = getEl('edit_estado_select');
+            if (estadoEl) {
+              estadoEl.value = data.estado;
+              cargarMunicipiosEdit();
+              setTimeout(() => {
+                const municipioEl = getEl('edit_municipio_select');
+                if (municipioEl && data.ciudad) {
+                  municipioEl.value = data.ciudad;
+                }
+                cargarColoniasEdit();
+                setTimeout(() => {
+                  const coloniaInput = getEl('edit_colonia_input');
+                  if (coloniaInput && data.colonia) {
+                    coloniaInput.value = data.colonia;
+                    coloniaInput.disabled = false;
+                  }
+                }, 100);
+              }, 200);
+            } else {
+              console.warn('edit_estado_select no existe en el DOM');
+            }
+          }
+
+          const contratoDiv = getEl('edit_contrato_actual');
+          if (contratoDiv) {
+            const info = data.infoFiscal ?? data.info_fiscal ?? {};
+            if (info.csf) {
+              contratoDiv.innerHTML = `<a href="/clientes/${data.id}/download-contract" target="_blank" rel="noopener">Contrato actual</a>`;
+            } else {
+              contratoDiv.innerHTML = '<em>No hay contrato</em>';
+            }
+          } else {
+            console.warn('#edit_contrato_actual no encontrado');
+          }
+
+          editModal.show();
+        } catch (err) {
+          console.error(err);
+          alert('Error al cargar cliente: ' + err.message);
+        }
+      });
+    });
+
+    editForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const id = document.getElementById('edit_cliente_id').value;
+      if (!id) return alert('ID de cliente faltante');
+      const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      const url = `/clientes/${id}`;
+      const fd = new FormData(editForm);
+      fd.append('_method', 'PUT');
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json'
+          },
+          body: fd
+        });
+
+        const contentType = res.headers.get('content-type') || '';
+        const data = contentType.includes('application/json') ? await res.json() : null;
+        const errorsBox = document.getElementById('edit-client-errors');
+
+        if (res.status === 422 && data?.errors) {
+          let html = '<div class="alert alert-danger"><ul>';
+          Object.values(data.errors).forEach(messages => messages.forEach(m => html += `<li>${m}</li>`));
+          html += '</ul></div>';
+          if (errorsBox) errorsBox.innerHTML = html;
+          return;
+        }
+
+        if (!res.ok) {
+          const message = data?.message || 'Error al actualizar cliente';
+          if (errorsBox) errorsBox.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+          return;
+        }
+
+        const bsModal = bootstrap.Modal.getInstance(editModalEl);
+        if (bsModal) bsModal.hide();
+        window.location.reload();
+      } catch (err) {
+        console.error(err);
+        const errorsBox = document.getElementById('edit-client-errors');
+        if (errorsBox) errorsBox.innerHTML = `<div class="alert alert-danger">Error de comunicación: ${err.message}</div>`;
+      }
+    });
+  })();
 });
-
-
-  // Inicializa en step 1
-  showStep(1);
-
-}); // end DOMContentLoaded
 </script>
 
 <script src="{{ asset('js/mexico-data.js') }}"></script>
 
-<script>
- // JavaScript para selects dinámicos (versión local)
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Cargando datos locales de México...');
-    cargarEstados();
-});
+<!-- Modales de confirmación (simples) -->
+<div class="modal fade" id="confirmCapacitacionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar Capacitación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Confirmas que se recibió la capacitación para este cliente?</p>
+      </div>
+      <div class="modal-footer">
+        <button id="capacitacionCancel" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button id="capacitacionConfirm" type="button" class="btn btn-primary">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-function cargarEstados() {
-    const estadoSelect = document.getElementById('estado_select');
-    
-    if (!estadoSelect) {
-        console.error('No se encontró el select de estados');
-        return;
-    }
-    
-    estadoSelect.innerHTML = '<option value="">Selecciona un estado</option>';
-    
-    mexicoData.estados.forEach(estado => {
-        const option = document.createElement('option');
-        option.value = estado;
-        option.textContent = estado;
-        estadoSelect.appendChild(option);
-    });
-    
-    console.log('Estados cargados:', mexicoData.estados.length);
-}
-
-function cargarMunicipios() {
-    const estadoSelect = document.getElementById('estado_select');
-    const municipioSelect = document.getElementById('municipio_select');
-    const coloniaSelect = document.getElementById('colonia_select');
-    
-    const estado = estadoSelect.value;
-    
-    if (!estado) {
-        municipioSelect.innerHTML = '<option value="">Selecciona un estado primero</option>';
-        coloniaSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
-        municipioSelect.disabled = true;
-        coloniaSelect.disabled = true;
-        return;
-    }
-    
-    municipioSelect.innerHTML = '<option value="">Cargando municipios...</option>';
-    municipioSelect.disabled = false;
-    coloniaSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
-    coloniaSelect.disabled = true;
-    
-    // Pequeño delay para simular carga
-    setTimeout(() => {
-        const municipios = mexicoData.municipios[estado] || ["No se encontraron municipios"];
-        
-        municipioSelect.innerHTML = '<option value="">Selecciona un municipio</option>';
-        municipios.forEach(municipio => {
-            const option = document.createElement('option');
-            option.value = municipio;
-            option.textContent = municipio;
-            municipioSelect.appendChild(option);
-        });
-        
-        console.log(`Municipios cargados para ${estado}:`, municipios.length);
-    }, 300);
-}
-
-function cargarColonias() {
-    const estadoSelect = document.getElementById('estado_select');
-    const municipioSelect = document.getElementById('municipio_select');
-    const coloniaSelect = document.getElementById('colonia_select');
-    
-    const estado = estadoSelect.value;
-    const municipio = municipioSelect.value;
-    
-    if (!estado || !municipio) {
-        coloniaSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
-        coloniaSelect.disabled = true;
-        return;
-    }
-    
-    coloniaSelect.innerHTML = '<option value="">Cargando colonias...</option>';
-    coloniaSelect.disabled = false;
-    
-    // Pequeño delay para simular carga
-    setTimeout(() => {
-        // En una implementación real, aquí buscarías colonias específicas
-        // Por ahora usamos colonias genéricas
-        const colonias = mexicoData.colonias.default;
-        
-        coloniaSelect.innerHTML = '<option value="">Selecciona una colonia</option>';
-        colonias.forEach(colonia => {
-            const option = document.createElement('option');
-            option.value = colonia;
-            option.textContent = colonia;
-            coloniaSelect.appendChild(option);
-        });
-        
-        // Si tenemos datos específicos para este municipio, los cargamos
-        const key = `${estado}-${municipio}`;
-        if (mexicoData.colonias[key]) {
-            mexicoData.colonias[key].forEach(colonia => {
-                const option = document.createElement('option');
-                option.value = colonia;
-                option.textContent = colonia;
-                coloniaSelect.appendChild(option);
-            });
-        }
-        
-        console.log(`Colonias cargadas para ${municipio}:`, colonias.length);
-    }, 300);
-}
-
-function buscarPorCP(cp) {
-    const cpLoading = document.getElementById('cp-loading');
-    const cpError = document.getElementById('cp-error');
-    const estadoSelect = document.getElementById('estado_select');
-    const municipioSelect = document.getElementById('municipio_select');
-    const coloniaSelect = document.getElementById('colonia_select');
-    
-    if (!cp || cp.length !== 5) {
-        if (cpError) {
-            cpError.textContent = 'El código postal debe tener 5 dígitos';
-            cpError.style.display = 'block';
-        }
-        return;
-    }
-    
-    if (cpLoading) cpLoading.style.display = 'block';
-    if (cpError) cpError.style.display = 'none';
-    
-    // Simular búsqueda con delay
-    setTimeout(() => {
-        if (cpLoading) cpLoading.style.display = 'none';
-        
-        const datosCP = mexicoData.codigosPostales[cp];
-        
-        if (datosCP) {
-            // Llenar automáticamente con los datos del CP
-            estadoSelect.value = datosCP.estado;
-            cargarMunicipios();
-            
-            setTimeout(() => {
-                municipioSelect.value = datosCP.municipio;
-                cargarColonias();
-                
-                setTimeout(() => {
-                    if (datosCP.colonia) {
-                        coloniaSelect.value = datosCP.colonia;
-                    }
-                }, 500);
-            }, 500);
-            
-            if (cpError) cpError.style.display = 'none';
-        } else {
-            if (cpError) {
-                cpError.textContent = 'Código postal no encontrado en la base local';
-                cpError.style.display = 'block';
-            }
-        }
-    }, 800);
-}
-
-function limpiarDireccion() {
-    const estadoSelect = document.getElementById('estado_select');
-    const municipioSelect = document.getElementById('municipio_select');
-    const coloniaSelect = document.getElementById('colonia_select');
-    const cpError = document.getElementById('cp-error');
-    const cpLoading = document.getElementById('cp-loading');
-    
-    if (estadoSelect) estadoSelect.value = '';
-    if (municipioSelect) {
-        municipioSelect.innerHTML = '<option value="">Selecciona un estado primero</option>';
-        municipioSelect.disabled = true;
-    }
-    if (coloniaSelect) {
-        coloniaSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
-        coloniaSelect.disabled = true;
-    }
-    if (cpError) cpError.style.display = 'none';
-    if (cpLoading) cpLoading.style.display = 'none';
-}
-
-// Inicializar cuando se abre el modal
-document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('createClientModal');
-    if (modal) {
-        modal.addEventListener('show.bs.modal', function() {
-            setTimeout(() => {
-                cargarEstados();
-            }, 100);
-        });
-    }
-});
-</script>
-
+<div class="modal fade" id="confirmGoLiveModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar Go-Live</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Deseas poner a este cliente como activo (Go-Live)?</p>
+      </div>
+      <div class="modal-footer">
+        <button id="goLiveCancel" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button id="goLiveConfirm" type="button" class="btn btn-primary">Sí, poner activo</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 @endsection
