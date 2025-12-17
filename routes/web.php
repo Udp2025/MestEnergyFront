@@ -168,7 +168,12 @@ Route::post('/cfe/store', [CFEController::class, 'store'])->name('cfe.store');
 Route::get('/cfe', [CFEController::class, 'index'])->name('cfe.index');
  
 Route::get('/energy', [EnergyDashboardController::class, 'index'])->name('energy.dashboard');
- 
+
+    Route::get('/config', [configController::class, 'index'])->name('config');
+    Route::get('/config/users', [configController::class, 'manageUsers'])->name('config.users');
+    Route::post('/config/users', [configController::class, 'storeUser'])->name('config.users.store');
+    Route::patch('/config/users/{user}', [configController::class, 'updateUser'])->name('config.users.update');
+    Route::delete('/config/users/{user}', [configController::class, 'destroyUser'])->name('config.users.destroy');
  
 });
 
@@ -178,10 +183,6 @@ Route::get('/energy', [EnergyDashboardController::class, 'index'])->name('energy
 Route::group(['middleware' => ['auth', Admin::class]], function () {
     // Clientes (vista y CRUD) – solo admin
     Route::resource('clientes', ClientesController::class);
- 
-
-    // Configuración del sistema – solo admin
-    Route::get('/config', [configController::class, 'index'])->name('config');
 });
 
 Route::get('/api/energy-data', [ApiDataController::class, 'obtenerInfo']);

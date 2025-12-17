@@ -1,103 +1,138 @@
 @extends('layouts.complete')
 
-@section('title', 'Configuración de Cuenta')
+@section('title', 'Configuración')
+
+@push('head')
+    <link rel="stylesheet" href="{{ asset('css/config.css') }}">
+@endpush
+
+@php
+    use Illuminate\Support\Facades\Storage;
+    $disk = config('filesystems.default', 'public');
+    $profileImageUrl = asset('images/profile.png');
+    if ($user?->profile_image) {
+        $profileImageUrl = Storage::disk($disk)->url($user->profile_image);
+    }
+    $roleValue = in_array($user?->role, ['admin', 'operaciones'], true) ? $user->role : 'operaciones';
+    $isAdmin = $user?->role === 'admin';
+@endphp
 
 @section('content')
-<link rel="stylesheet" href="{{ asset('css/config.css') }}">
+<div class="config-page">
+    <header class="config-header">
+        <div>
+            <h1>Configuración</h1>
+            <p>Gestiona tu información personal y las cuentas del equipo.</p>
+        </div>
+        <div class="config-header__actions">
+            <span class="pill pill--muted">Rol: {{ $user->role ?? 'N/D' }}</span>
+            @if($isAdmin)
+                <a class="btn-link" href="{{ route('config.users') }}">Gestionar usuarios</a>
+            @endif
+        </div>
+    </header>
 
-<div class="config-container">
-    <aside class="config-menu">
-        <h2>Opciones</h2>
-        <ul>
-            <li class="active">Información Personal</li>
-            <li>
-                <a href="{{ route('permisosuser') }}" style="text-decoration: none; color: inherit;">
-                    Seguridad
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('preferencias') }}" style="text-decoration: none; color: inherit;">
-                    Preferencias
-            </li>
-        </ul>
-    </aside>
+    @if(session('status') === 'profile-updated')
+        <div class="config-alert config-alert--success">Perfil actualizado correctamente.</div>
+    @elseif(session('status') === 'password-updated')
+        <div class="config-alert config-alert--success">Contraseña actualizada correctamente.</div>
+    @endif
 
-    <main class="config-main">
-        {{-- Mensajes de estado y errores --}}
-        @if(session('status') == 'profile-updated')
-            <div class="alert alert-success">Perfil actualizado correctamente.</div>
-        @elseif(session('status') == 'password-updated')
-            <div class="alert alert-success">Contraseña actualizada correctamente.</div>
-        @endif
+    @if(session('user-created'))
+        <div class="config-alert config-alert--success">{{ session('user-created') }}</div>
+    @endif
 
-        @if($errors->any())
-            <div class="alert alert-danger">
-                <ul>
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+    @if($errors->any())
+        <div class="config-alert config-alert--error">
+            <strong>Revisa los campos:</strong>
+            <ul>
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
-        <!-- Formulario para Datos Personales y Foto de Perfil -->
-        <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data">
-            @csrf
-            @method('patch')
-            <div class="config-grid">
-                <section class="config-card">
-                    <h3>Datos Personales</h3>
-                    <label>Nombre</label>
-                    <input type="text" name="name" value="{{ old('name', $user->name) }}" required>
-                    
-                    <label>Email</label>
-                    <input type="email" name="email" value="{{ old('email', $user->email) }}" required>
-                    
-                    <button type="submit" id="updateAccount">Actualizar Datos</button>
-                </section>
-
-                <section class="config-card profile-card">
-                    <h3>Foto de Perfil</h3>
-                    <label for="profileImage" class="profile-label">
-                        <img id="profilePreview" src="{{ $user->profile_image ? asset('storage/' . $user->profile_image) : asset('images/profile.png') }}" alt="Perfil">
-                        <span>Editar</span>
-                    </label>
-                    <input type="file" id="profileImage" name="profile_image" accept="image/*" style="display: none;">
-                    <button type="submit" id="saveProfileImage">Guardar Cambios</button>
-                </section>
-            </div>
-        </form>
-
-        <p class="alert-text">Es recomendable actualizar tu contraseña regularmente.</p>
-
-        <!-- Formulario para Actualizar Contraseña -->
-        <form method="POST" action="{{ route('profile.update') }}">
-            @csrf
-            @method('patch')
-            <section class="config-card">
-                <h3>Actualizar Contraseña</h3>
-                <label>Nueva Contraseña</label>
-                <input type="password" name="password" required>
-                <label>Confirmar Contraseña</label>
-                <input type="password" name="password_confirmation" required>
-                <button type="submit" id="updatePassword">Cambiar Contraseña</button>
-            </section>
-        </form>
-
- 
-    </main>
+    <div class="config-grid config-grid--single">
+        <section class="config-card config-card--wide">
+            <header class="config-card__header">
+                <div>
+                    <p class="eyebrow">Mis datos</p>
+                    <h2>Perfil y acceso</h2>
+                    <p class="config-subtitle">Actualiza tu nombre, correo, rol, contraseña y foto.</p>
+                </div>
+                <label class="avatar-floating" for="profile_image" title="Cambiar foto">
+                    <img id="profilePreview" src="{{ $profileImageUrl }}" alt="Foto de perfil" class="avatar-floating__img">
+                </label>
+            </header>
+            <form class="config-form" method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data">
+                @csrf
+                @method('patch')
+                <div class="config-form__grid">
+                    <div class="config-field">
+                        <label for="name">Nombre</label>
+                        <input id="name" name="name" type="text" value="{{ old('name', $user->name) }}" required>
+                        @error('name')
+                            <span class="field-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="config-field">
+                        <label for="email">Email</label>
+                        <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}" required>
+                        @error('email')
+                            <span class="field-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="config-field">
+                        <label for="role">Rol</label>
+                        <select id="role" name="role" required>
+                            <option value="operaciones" {{ old('role', $roleValue) === 'operaciones' ? 'selected' : '' }}>Operaciones</option>
+                            <option value="admin" {{ old('role', $roleValue) === 'admin' ? 'selected' : '' }}>Admin</option>
+                        </select>
+                        <small>Solo se permiten los roles admin u operaciones.</small>
+                        @error('role')
+                            <span class="field-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="password-block">
+                        <div class="config-field">
+                            <label for="password">Nueva contraseña</label>
+                            <input id="password" name="password" type="password" autocomplete="new-password" placeholder="Déjala en blanco para conservarla">
+                            @error('password')
+                                <span class="field-error">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div class="config-field">
+                            <label for="password_confirmation">Confirmar contraseña</label>
+                            <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" placeholder="Repite la contraseña nueva">
+                            @error('password_confirmation')
+                                <span class="field-error">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+                    <input id="profile_image" name="profile_image" type="file" accept="image/png,image/jpeg" hidden>
+                </div>
+                <div class="config-form__actions">
+                    <button type="submit" class="btn-primary">Guardar cambios</button>
+                </div>
+            </form>
+        </section>
+    </div>
 </div>
 
-<!-- Script para vista previa de la imagen de perfil -->
 <script>
-    document.getElementById("profileImage").addEventListener("change", function(event) {
-        const reader = new FileReader();
-        reader.onload = function(){
-            document.getElementById("profilePreview").src = reader.result;
-        }
-        reader.readAsDataURL(event.target.files[0]);
-    });
+    const profileInput = document.getElementById('profile_image');
+    const profilePreview = document.getElementById('profilePreview');
+    if (profileInput && profilePreview) {
+        profileInput.addEventListener('change', (event) => {
+            const [file] = event.target.files || [];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                profilePreview.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
 </script>
-
-  
 @endsection

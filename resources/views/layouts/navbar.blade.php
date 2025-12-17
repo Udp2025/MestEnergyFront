@@ -294,11 +294,11 @@
 
       <div class="custom-avatar" id="avatar">
       <img src="{{ Auth::user()->profile_image 
-                    ? asset('storage/' . Auth::user()->profile_image) 
+                    ? \Illuminate\Support\Facades\Storage::disk(config('filesystems.default', 'public'))->url(Auth::user()->profile_image) 
                     : asset('images/mest.jpeg') }}" alt="Large User Avatar">        <div class="custom-profile-menu" id="profile-menu">
           <div class="custom-profile-header">
             <img src="{{ Auth::user()->profile_image 
-                    ? asset('storage/' . Auth::user()->profile_image) 
+                    ? \Illuminate\Support\Facades\Storage::disk(config('filesystems.default', 'public'))->url(Auth::user()->profile_image) 
                     : asset('images/mest.jpeg') }}" alt="Large User Avatar">
             <h3>{{ Auth::user()->name }}</h3> <!-- Nombre del usuario -->
             <p>{{ Auth::user()->email }}</p> <!-- Correo del usuario -->

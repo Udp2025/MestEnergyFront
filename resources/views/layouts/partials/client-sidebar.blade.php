@@ -177,6 +177,22 @@
                         <span>Grupos</span>
                     </a>
                 </li>
+                @if(!$isSuperAdmin)
+                    <li class="{{ request()->routeIs('config') ? 'custom-active' : '' }}">
+                        <i class="fas fa-cog" aria-hidden="true"></i>
+                        <a href="{{ route('config') }}">
+                            <span>Configuración</span>
+                        </a>
+                    </li>
+                    @if(auth()->user()?->role === 'admin')
+                        <li class="{{ request()->routeIs('config.users') ? 'custom-active' : '' }}">
+                            <i class="fas fa-users" aria-hidden="true"></i>
+                            <a href="{{ route('config.users') }}">
+                                <span>Usuarios</span>
+                            </a>
+                        </li>
+                    @endif
+                @endif
             </ul>
         </nav>
         @if(!$isSuperAdmin)

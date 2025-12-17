@@ -47,8 +47,21 @@
     <!-- Perfil -->
     <div class="profile-header">
         <div class="profile-image">
-            @if($user && $user->profile_image)
-                <img src="{{ asset($user->profile_image) }}" alt="{{ $user->name }}">
+            @php
+                $profilePath = $user->profile_image ?? null;
+                $profileUrl = null;
+                if ($profilePath) {
+                    $defaultDisk = config('filesystems.default', 'public');
+                    $storage = \Illuminate\Support\Facades\Storage::disk($defaultDisk);
+                    if ($storage->exists($profilePath)) {
+                        $profileUrl = $storage->url($profilePath);
+                    } elseif (\Illuminate\Support\Facades\Storage::disk('public')->exists($profilePath)) {
+                        $profileUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($profilePath);
+                    }
+                }
+            @endphp
+            @if($profileUrl)
+                <img src="{{ $profileUrl }}" alt="{{ $user->name }}">
             @else
                 <span>{{ strtoupper(substr($cliente->nombre, 0, 1)) }}</span>
             @endif

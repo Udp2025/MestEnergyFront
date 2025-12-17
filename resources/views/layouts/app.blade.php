@@ -25,6 +25,12 @@
         ];
         $currentUser = Auth::user();
         $isSuperAdmin = session('is_super_admin', (int) ($currentUser?->cliente_id ?? -1) === 0);
+        $profileImageUrl = asset('images/mest.jpeg');
+        if ($currentUser && $currentUser->profile_image) {
+            $path = $currentUser->profile_image;
+            $defaultDisk = config('filesystems.default', 'public');
+            $profileImageUrl = \Illuminate\Support\Facades\Storage::disk($defaultDisk)->url($path);
+        }
     @endphp
     <script>
         window.App = @json($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -76,7 +82,7 @@
                     </ul>
                 @endif
 
-                @if(auth()->check() && auth()->user()->role === 'normal' && auth()->user()->cliente)
+                @if(auth()->check() && in_array(auth()->user()->role, ['normal','operaciones']) && auth()->user()->cliente)
                     <h3 class="custom-menu-title">Mi perfil</h3>
                     <ul>
                         <li class="mcst {{ request()->routeIs('mi-perfil') ? 'custom-active' : '' }}">
@@ -218,19 +224,15 @@
                         </div>
                     </div>
                     <div class="custom-avatar" id="avatar">
-                        <img src="{{ Auth::user()->profile_image 
-                            ? asset('storage/' . Auth::user()->profile_image) 
-                            : asset('images/mest.jpeg') }}" alt="Large User Avatar">
+                        <img src="{{ $profileImageUrl }}" alt="Large User Avatar">
                         <div class="custom-profile-menu" id="profile-menu">
                             <div class="custom-profile-header">
-                                <img src="{{ Auth::user()->profile_image 
-                                    ? asset('storage/' . Auth::user()->profile_image) 
-                                    : asset('images/mest.jpeg') }}" alt="Large User Avatar">
+                                <img src="{{ $profileImageUrl }}" alt="Large User Avatar">
                                 <h3>{{ Auth::user()->name }}</h3>
                                 <p>{{ Auth::user()->email }}</p>
                             </div>
                             <div class="custom-profile-actions">
-                                <a href="{{ route('profile.edit') }}">
+                                <a href="{{ route('config') }}">
                                     <i class="fas fa-user"></i>
                                     Editar perfil
                                 </a>

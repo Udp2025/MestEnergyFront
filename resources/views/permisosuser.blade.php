@@ -51,10 +51,22 @@
                 @foreach($usuarios as $usuario)
                 <tr>
                     <td>
-                        @if($usuario->profile_image)
-                        <img src="{{ asset('storage/'.$usuario->profile_image) }}" alt="Foto de {{ $usuario->nombre }}" class="avatar">
+                        @php
+                            $userProfileUrl = null;
+                            if ($usuario->profile_image) {
+                                $defaultDisk = config('filesystems.default', 'public');
+                                $storage = \Illuminate\Support\Facades\Storage::disk($defaultDisk);
+                                if ($storage->exists($usuario->profile_image)) {
+                                    $userProfileUrl = $storage->url($usuario->profile_image);
+                                } elseif (\Illuminate\Support\Facades\Storage::disk('public')->exists($usuario->profile_image)) {
+                                    $userProfileUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($usuario->profile_image);
+                                }
+                            }
+                        @endphp
+                        @if($userProfileUrl)
+                            <img src="{{ $userProfileUrl }}" alt="Foto de {{ $usuario->nombre }}" class="avatar">
                         @else
-                        <img src="{{ asset('images/default-avatar.png') }}" alt="Avatar default" class="avatar">
+                            <img src="{{ asset('images/default-avatar.png') }}" alt="Avatar default" class="avatar">
                         @endif
 
                     </td>
