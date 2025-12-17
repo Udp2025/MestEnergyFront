@@ -10,6 +10,18 @@
     use Illuminate\Support\Facades\Storage;
     $disk = config('filesystems.default', 'public');
     $isSuperAdmin = session('is_super_admin', (int) (auth()->user()?->cliente_id ?? -1) === 0);
+    $selectedClientId = $selectedClientId ?? ($isSuperAdmin ? null : auth()->user()?->cliente_id);
+    $search = $search ?? '';
+    $clients = $clients ?? [];
+    $currentUserId = $currentUserId ?? auth()->id();
+@endphp
+
+@php
+    $selectedClientName = '';
+    if ($selectedClientId && !empty($clients)) {
+        $match = collect($clients)->firstWhere('id', (int) $selectedClientId);
+        $selectedClientName = $match->nombre ?? '';
+    }
 @endphp
 
 @section('content')
@@ -51,11 +63,24 @@
                 <div>
                     <p class="eyebrow">Nuevo usuario</p>
                     <h2>Crear</h2>
-                    <p class="config-subtitle">Se asigna al mismo cliente.</p>
                 </div>
             </header>
             <form class="config-form" method="POST" action="{{ route('config.users.store') }}" enctype="multipart/form-data">
                 @csrf
+                @if($isSuperAdmin)
+                    <div class="config-field">
+                        <label for="new_cliente_id">Cliente</label>
+                        <input list="cliente_options_create" id="new_cliente_name" name="new_cliente_name" value="{{ old('new_cliente_name', $selectedClientName ?? '') }}" placeholder="Escribe para filtrar clientes" autocomplete="off" data-client-name>
+                        <input type="hidden" id="new_cliente_id" name="new_cliente_id" value="{{ old('new_cliente_id', $selectedClientId) }}">
+                        <datalist id="cliente_options_create">
+                            @foreach($clients as $client)
+                                <option value="{{ $client->nombre }}" data-id="{{ $client->id }}"></option>
+                            @endforeach
+                        </datalist>
+                    </div>
+                @else
+                    <input type="hidden" name="new_cliente_id" value="{{ auth()->user()->cliente_id }}">
+                @endif
                 <div class="config-field">
                     <label for="new_name">Nombre</label>
                     <input id="new_name" name="new_name" type="text" value="{{ old('new_name') }}" required>
@@ -97,6 +122,25 @@
                     <p class="config-subtitle">Edita o elimina usuarios existentes.</p>
                 </div>
             </header>
+            <form method="GET" class="config-filters" id="userFilters">
+                @if($isSuperAdmin)
+                    <div class="config-field">
+                        <label for="cliente_filter">Cliente</label>
+                        <input list="cliente_options_filter" id="cliente_filter_name" name="cliente_name" value="{{ $selectedClientName ?? '' }}" placeholder="Filtrar cliente" autocomplete="off" data-client-filter>
+                        <input type="hidden" id="cliente_filter" name="cliente" value="{{ $selectedClientId }}">
+                        <datalist id="cliente_options_filter">
+                            <option value="">Todos</option>
+                            @foreach($clients as $client)
+                                <option value="{{ $client->nombre }}" data-id="{{ $client->id }}"></option>
+                            @endforeach
+                        </datalist>
+                    </div>
+                @endif
+                <div class="config-field">
+                    <label for="user_search">Buscar</label>
+                    <input id="user_search" name="q" type="search" value="{{ $search }}" placeholder="Nombre o correo">
+                </div>
+            </form>
             <div class="config-table-wrap">
                 <table class="config-table">
                     <thead>
@@ -120,49 +164,19 @@
                                 <td>
                                     <img class="table-avatar" src="{{ $profileUrl }}" alt="Foto de {{ $item->name }}">
                                 </td>
-                                <td>{{ $item->name }}</td>
+                                <td class="user-name-cell">{{ $item->name }} @if((int)$currentUserId === (int)$item->id)<span class="pill pill--muted">Tú</span>@endif</td>
                                 <td>{{ $item->email }}</td>
                                 <td>{{ ucfirst($item->role) }}</td>
                                 <td class="config-table__actions">
-                                    <details class="config-details">
-                                        <summary class="btn-link" aria-label="Editar usuario"><i class="fas fa-edit" aria-hidden="true"></i></summary>
-                                        <form class="inline-form" method="POST" action="{{ route('config.users.update', $item) }}" enctype="multipart/form-data">
-                                            @csrf
-                                            @method('PATCH')
-                                            <div class="config-form__grid">
-                                                <div class="config-field">
-                                                    <label>Nombre</label>
-                                                    <input type="text" name="name" value="{{ $item->name }}" required>
-                                                </div>
-                                                <div class="config-field">
-                                                    <label>Email</label>
-                                                    <input type="email" name="email" value="{{ $item->email }}" required>
-                                                </div>
-                                                <div class="config-field">
-                                                    <label>Rol</label>
-                                                    <select name="role" required>
-                                                        <option value="operaciones" {{ $item->role === 'operaciones' ? 'selected' : '' }}>Operaciones</option>
-                                                        <option value="admin" {{ $item->role === 'admin' ? 'selected' : '' }}>Admin</option>
-                                                    </select>
-                                                </div>
-                                                <div class="config-field">
-                                                    <label>Nueva contraseña</label>
-                                                    <input type="password" name="password" placeholder="Opcional">
-                                                </div>
-                                                <div class="config-field">
-                                                    <label>Confirmar contraseña</label>
-                                                    <input type="password" name="password_confirmation" placeholder="Opcional">
-                                                </div>
-                                                <div class="config-field">
-                                                    <label>Foto</label>
-                                                    <input type="file" name="profile_image" accept="image/png,image/jpeg">
-                                                </div>
-                                            </div>
-                                            <div class="config-form__actions">
-                                                <button type="submit" class="btn-primary"><i class="fas fa-save" aria-hidden="true"></i></button>
-                                            </div>
-                                        </form>
-                                    </details>
+                                    <button class="btn-link" type="button"
+                                        data-edit-user
+                                        data-id="{{ $item->id }}"
+                                        data-url="{{ route('config.users.update', $item) }}"
+                                        data-name="{{ $item->name }}"
+                                        data-email="{{ $item->email }}"
+                                        data-role="{{ $item->role }}">
+                                        <i class="fas fa-edit" aria-hidden="true"></i>
+                                    </button>
                                     <form method="POST" action="{{ route('config.users.destroy', $item) }}" onsubmit="return confirm('¿Eliminar usuario?');">
                                         @csrf
                     @method('DELETE')
@@ -180,5 +194,135 @@
             </div>
         </section>
     </div>
+    <div class="config-modal" id="userModal" aria-hidden="true">
+        <div class="config-modal__backdrop" data-modal-close></div>
+        <div class="config-modal__content" role="dialog" aria-modal="true">
+            <div class="config-modal__header">
+                <h3 id="modalTitle">Editar usuario</h3>
+                <button type="button" class="btn-link danger" data-modal-close aria-label="Cerrar"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="modalForm" class="config-form" method="POST" enctype="multipart/form-data">
+                @csrf
+                @method('PATCH')
+                <div class="config-form__grid">
+                    <div class="config-field">
+                        <label for="modal_name">Nombre</label>
+                        <input id="modal_name" name="name" type="text" required>
+                    </div>
+                    <div class="config-field">
+                        <label for="modal_email">Email</label>
+                        <input id="modal_email" name="email" type="email" required>
+                    </div>
+                    <div class="config-field">
+                        <label for="modal_role">Rol</label>
+                        <select id="modal_role" name="role" required>
+                            <option value="operaciones">Operaciones</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="config-field">
+                        <label for="modal_password">Nueva contraseña</label>
+                        <input id="modal_password" name="password" type="password" placeholder="Opcional">
+                    </div>
+                    <div class="config-field">
+                        <label for="modal_password_confirmation">Confirmar contraseña</label>
+                        <input id="modal_password_confirmation" name="password_confirmation" type="password" placeholder="Opcional">
+                    </div>
+                    <div class="config-field">
+                        <label for="modal_profile_image">Foto</label>
+                        <input id="modal_profile_image" name="profile_image" type="file" accept="image/png,image/jpeg">
+                    </div>
+                </div>
+                <div class="config-form__actions">
+                    <button type="submit" class="btn-primary"><i class="fas fa-save" aria-hidden="true"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+<script>
+    (function () {
+        const modal = document.getElementById('userModal');
+        const form = document.getElementById('modalForm');
+        const nameInput = document.getElementById('modal_name');
+        const emailInput = document.getElementById('modal_email');
+        const roleInput = document.getElementById('modal_role');
+        const passwordInput = document.getElementById('modal_password');
+        const passwordConfirmInput = document.getElementById('modal_password_confirmation');
+        const clientCreateInput = document.getElementById('new_cliente_name');
+        const clientCreateHidden = document.getElementById('new_cliente_id');
+        const clientFilterInput = document.getElementById('cliente_filter_name');
+        const clientFilterHidden = document.getElementById('cliente_filter');
+        const createList = document.getElementById('cliente_options_create');
+        const filterList = document.getElementById('cliente_options_filter');
+
+        function openModal(target) {
+            const id = target.dataset.id;
+            const url = target.dataset.url;
+            nameInput.value = target.dataset.name || '';
+            emailInput.value = target.dataset.email || '';
+            roleInput.value = target.dataset.role || 'operaciones';
+            passwordInput.value = '';
+            passwordConfirmInput.value = '';
+            form.action = url || `/config/users/${id}`;
+            modal.setAttribute('aria-hidden', 'false');
+            modal.classList.add('is-visible');
+        }
+
+        function closeModal() {
+            modal.setAttribute('aria-hidden', 'true');
+            modal.classList.remove('is-visible');
+        }
+
+        document.querySelectorAll('[data-edit-user]').forEach(btn => {
+            btn.addEventListener('click', () => openModal(btn));
+        });
+
+        modal?.querySelectorAll('[data-modal-close]').forEach(btn => {
+            btn.addEventListener('click', closeModal);
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('is-visible')) {
+                closeModal();
+            }
+        });
+
+        function resolveClientId(inputEl, dataListEl) {
+            if (!inputEl || !dataListEl) return null;
+            const entered = inputEl.value.trim().toLowerCase();
+            const options = Array.from(dataListEl.options || []);
+            const match = options.find(opt => opt.value.toLowerCase() === entered);
+            return match ? (match.dataset.id || match.value) : null;
+        }
+
+        if (clientCreateInput && createList) {
+            clientCreateInput.addEventListener('change', () => {
+                const resolved = resolveClientId(clientCreateInput, createList);
+                if (clientCreateHidden) clientCreateHidden.value = resolved || '';
+            });
+        }
+
+        const filtersForm = document.getElementById('userFilters');
+        if (filtersForm) {
+            const triggerSubmit = () => filtersForm.submit();
+            if (clientFilterInput && filterList) {
+                clientFilterInput.addEventListener('input', () => {
+                    const resolved = resolveClientId(clientFilterInput, filterList);
+                    if (clientFilterHidden) clientFilterHidden.value = resolved || '';
+                    triggerSubmit();
+                });
+                clientFilterInput.addEventListener('change', () => {
+                    const resolved = resolveClientId(clientFilterInput, filterList);
+                    if (clientFilterHidden) clientFilterHidden.value = resolved || '';
+                    triggerSubmit();
+                });
+            }
+            const searchInput = document.getElementById('user_search');
+            if (searchInput) {
+                ['input','change'].forEach(ev => searchInput.addEventListener(ev, triggerSubmit));
+            }
+        }
+    })();
+</script>
 @endsection

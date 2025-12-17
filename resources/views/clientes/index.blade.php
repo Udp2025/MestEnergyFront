@@ -1161,17 +1161,18 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.set('fact_auto', factAuto && factAuto.checked ? '1' : '0');
       formData.set('recordatorios', recordatorios && recordatorios.checked ? '1' : '0');
 
-      fetch("{{ route('clientes.store') }}", {
-        method: "POST",
-        headers: {
-          "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-          "Accept": "application/json"
-        },
-        body: formData
-      })
-      .then(async (response) => {
-        const contentType = response.headers.get('content-type') || '';
-        const data = contentType.includes('application/json') ? await response.json() : null;
+  fetch("{{ route('clientes.store') }}", {
+    method: "POST",
+    headers: {
+      "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+      "Accept": "application/json"
+    },
+    body: formData,
+    credentials: "same-origin"
+  })
+  .then(async (response) => {
+    const contentType = response.headers.get('content-type') || '';
+    const data = contentType.includes('application/json') ? await response.json() : null;
 
         if (response.ok) {
           const bsModal = bootstrap.Modal.getInstance(modal);

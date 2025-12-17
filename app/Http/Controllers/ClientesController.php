@@ -91,10 +91,18 @@ class ClientesController extends Controller
 
             $cliente = Cliente::create($input);
 
-            $contractPath = null;
-            if ($request->hasFile('contrato')) {
-                $contractPath = $request->file('contrato')->store($this->contractStorageDirectory(), 's3');
+        $contractPath = null;
+        $contractDisk = config('filesystems.default', 's3');
+        if ($request->hasFile('contrato')) {
+            try {
+                $contractPath = Storage::disk($contractDisk)
+                    ->putFile($this->contractStorageDirectory(), $request->file('contrato'), 'public');
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                \Log::error('clientes.contract.upload_failed', ['error' => $e->getMessage()]);
+                return $this->respondError($request, 'No se pudo subir el contrato. Verifica conexión y permisos.');
             }
+        }
 
             $infoFiscal = InfoFiscalUsuario::create([
                 'cliente_id' => $cliente->id,
@@ -375,12 +383,18 @@ class ClientesController extends Controller
             abort(404, 'Información fiscal no disponible.');
         }
 
-        if ($infoFiscal->csf) {
-            Storage::disk('s3')->delete($infoFiscal->csf);
+        $contractDisk = config('filesystems.default', 's3');
+        try {
+            if ($infoFiscal->csf) {
+                Storage::disk($contractDisk)->delete($infoFiscal->csf);
+            }
+            $path = Storage::disk($contractDisk)
+                ->putFile($this->contractStorageDirectory(), $request->file('contrato'), 'public');
+            $infoFiscal->update(['csf' => $path]);
+        } catch (\Throwable $e) {
+            \Log::error('clientes.contract.update_failed', ['error' => $e->getMessage()]);
+            return $this->respondError($request, 'No se pudo actualizar el contrato. Intenta de nuevo.');
         }
-
-        $path = $request->file('contrato')->store($this->contractStorageDirectory(), 's3');
-        $infoFiscal->update(['csf' => $path]);
 
         return redirect()->back()->with('success', 'Contrato actualizado correctamente.');
     }
@@ -398,6 +412,14 @@ class ClientesController extends Controller
         $infoFiscal->update(['csf' => null]);
 
         return redirect()->back()->with('success', 'Contrato eliminado correctamente.');
+    }
+
+    protected function respondError(Request $request, string $message)
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => $message], 500);
+        }
+        return redirect()->back()->with('error', $message);
     }
 
     protected function authorizeContractRead(Cliente $cliente): void
