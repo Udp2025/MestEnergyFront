@@ -5,13 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\KpiAlert;
 use App\Models\KpiAlertEvent;
 use App\Services\Kpi\KpiAlertEvaluator;
+use App\Services\Plot\PlotClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class KpiAlertController extends Controller
 {
-    public function __construct(private readonly KpiAlertEvaluator $evaluator)
+    public function __construct(
+        private readonly KpiAlertEvaluator $evaluator,
+        private readonly PlotClient $plotClient
+    )
     {
     }
 
@@ -156,6 +160,7 @@ class KpiAlertController extends Controller
                     abort(422, 'Debes seleccionar un sitio para esta alerta.');
                 }
                 $data['site_id'] = (string) $siteId;
+                $this->assertSiteExists($request, $data['site_id']);
             } else {
                 $data['site_id'] = null;
             }
@@ -227,6 +232,53 @@ class KpiAlertController extends Controller
 
     protected function eventsQuery(Request $request)
     {
-        return $request->user()->kpiAlertEvents()->with('alert');
+        return $request->user()
+            ->kpiAlertEvents()
+            ->with('alert')
+            ->orderByDesc('triggered_at');
+    }
+
+    protected function assertSiteExists(Request $request, string $siteId): void
+    {
+        $normalized = ltrim($siteId, '=');
+
+        try {
+            $response = $this->plotClient->dataForUser($request->user(), [
+                'table' => 'sites',
+                'select_columns' => ['site_id'],
+                'filter_map' => ['site_id' => '=' . $normalized],
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('alerts.site_validation_failed', [
+                'site_id' => $normalized,
+                'message' => $e->getMessage(),
+            ]);
+            return;
+        }
+
+        $rows = $response['data'] ?? (is_array($response) ? $response : []);
+        if (!empty($rows)) {
+            return;
+        }
+
+        try {
+            $allSites = $this->plotClient->dataForUser($request->user(), [
+                'table' => 'sites',
+                'select_columns' => ['site_id'],
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('alerts.site_validation_fallback_failed', [
+                'site_id' => $normalized,
+                'message' => $e->getMessage(),
+            ]);
+            return;
+        }
+
+        $allRows = $allSites['data'] ?? (is_array($allSites) ? $allSites : []);
+        if (empty($allRows)) {
+            return;
+        }
+
+        abort(422, 'El sitio seleccionado no es válido.');
     }
 }

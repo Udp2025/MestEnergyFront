@@ -26,6 +26,7 @@ class KpiAlert extends Model
         'is_active' => 'boolean',
         'last_triggered_at' => 'datetime',
         'last_value' => 'float',
+        'last_evaluated_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

@@ -496,6 +496,27 @@ class LocalPlotService
                 }
 
                 $raw = $filterMap[$column];
+                if (is_string($raw) && $this->looksLikeRange($raw)) {
+                    [$from, $to] = $this->parseDateRange($raw);
+                    if ($from || $to) {
+                        $value = $row[$column] ?? null;
+                        if (!$value) {
+                            return false;
+                        }
+                        try {
+                            $timestamp = Carbon::parse($value);
+                        } catch (\Throwable $e) {
+                            return false;
+                        }
+                        if ($from && $timestamp->lt($from)) {
+                            return false;
+                        }
+                        if ($to && $timestamp->gt($to)) {
+                            return false;
+                        }
+                        continue;
+                    }
+                }
                 if (is_array($raw)) {
                     $expected = array_map(function ($value) {
                         return $this->normaliseEquals($value) ?? $value;
@@ -514,6 +535,16 @@ class LocalPlotService
 
             return true;
         }));
+    }
+
+    protected function looksLikeRange(string $value): bool
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return false;
+        }
+        return (str_starts_with($trimmed, '[') || str_starts_with($trimmed, '('))
+            && str_contains($trimmed, ',');
     }
 
     protected function parseDateRange(?string $range): array

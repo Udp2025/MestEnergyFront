@@ -7,7 +7,7 @@ const state = {
   alerts: [],
   sites: [],
   editingId: null,
-  isSuperAdmin: canViewAllSites(),
+  isSuperAdmin: false,
   recentEvents: [],
   eventMap: new Map(),
   eventFilterSite: "ALL",
@@ -93,13 +93,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     operatorSelect.value = definition.default_operator || "above";
     thresholdInput.value = definition.default_threshold ?? "";
-    if (state.isSuperAdmin) {
+    if (state.isSuperAdmin && siteSelector) {
       const requiresSite = definition.supports_site_selection;
-      siteSelector.disabled = !requiresSite || !state.sites.length;
-      siteSelector.parentElement.classList.toggle(
-        "is-hidden",
-        !requiresSite
-      );
+      siteSelector.disabled = !requiresSite;
+      siteSelector.parentElement.classList.toggle("is-hidden", !requiresSite);
     }
   }
 
@@ -114,12 +111,23 @@ document.addEventListener("DOMContentLoaded", () => {
       populateSiteSelector();
     } catch (error) {
       console.error("site_alerts: unable to fetch sites", error);
+      if (siteSelector) {
+        siteSelector.disabled = false;
+      }
+      const hint = document.querySelector("[data-site-hint]");
+      if (hint) {
+        hint.textContent = "No se pudieron cargar los sitios.";
+      }
     }
   }
 
   function populateSiteSelector() {
     if (!siteSelector) return;
     siteSelector.innerHTML = '<option value="">Selecciona un sitio</option>';
+    if (!state.sites.length) {
+      siteSelector.disabled = false;
+      return;
+    }
     state.sites.forEach((site) => {
       const option = document.createElement("option");
       option.value = site.id;
@@ -522,6 +530,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     closeEventDetails();
   });
+
+  const page = document.querySelector(".alerts-page");
+  const serverFlag = page?.dataset?.canViewAllSites;
+  if (serverFlag !== undefined) {
+    state.isSuperAdmin = serverFlag === "1";
+  } else {
+    state.isSuperAdmin = canViewAllSites();
+  }
 
   init();
 });
