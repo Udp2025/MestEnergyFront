@@ -43,6 +43,7 @@ class HomeController extends Controller
                     'sites' => $totalSites,
                     'devices' => $totalDevices,
                 ],
+                'user_site_id' => session('site'),
                 'recent_clients' => $recentClients,
             ];
         } else {
@@ -147,6 +148,7 @@ class HomeController extends Controller
                     'devices' => $totalDevices,
                     'site_name' => $siteName,
                 ],
+                'user_site_id' => $siteId,
                 'client_missing' => !$client,
                 'client_summary' => $clientSummary,
                 'client_users' => $clientUsers,
