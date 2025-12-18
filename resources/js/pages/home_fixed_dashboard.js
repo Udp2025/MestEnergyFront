@@ -151,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     try {
-      const [daily, hourly] = await Promise.all([
+      const [daily, hourly, energyAgg] = await Promise.all([
         fetchDB({
           table: "site_daily_kpi",
           filter_map: {
@@ -174,6 +174,21 @@ document.addEventListener("DOMContentLoaded", () => {
           },
           select_columns: ["site_id", "hour_start", "active_devices"],
         }),
+        fetchDB({
+          table: "device_daily_kpi",
+          filter_map: {
+            site_id: "=" + siteId,
+            kpi_date: [todayISO()],
+          },
+          aggregation: [
+            {
+              group_by: ["site_id"],
+              aggregations: {
+                energy_wh_sum: ["sum"],
+              },
+            },
+          ],
+        }),
       ]);
 
       const dailyRow = (Array.isArray(daily?.data) ? daily.data : []).find(
@@ -181,7 +196,11 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       const pf = dailyRow?.pf_compliance_pct ?? null;
       const availability = dailyRow?.availability_pct ?? null;
-      const energy = dailyRow?.total_energy_wh ?? null;
+      const energyAggRow = (Array.isArray(energyAgg?.data) ? energyAgg.data : [])
+        .filter((row) => String(row.site_id) === String(siteId))
+        .shift();
+      const energy =
+        energyAggRow?.energy_wh_sum_sum ?? dailyRow?.total_energy_wh ?? null;
 
       const hourlyRows = Array.isArray(hourly?.data) ? hourly.data : [];
       const latestHour = hourlyRows
