@@ -163,6 +163,11 @@ class ClientesController extends Controller
     // Mostrar un cliente con sus archivos relacionados, usuario, info fiscal y plan
     public function show($id)
     {
+        $user = Auth::user();
+        if (!$user || !$user->isSuperAdmin()) {
+            abort(403, 'No autorizado.');
+        }
+
         $cliente = Cliente::with(['files', 'user', 'infoFiscal', 'planUsuario'])->findOrFail($id);
 
         session()->put([
@@ -170,7 +175,6 @@ class ClientesController extends Controller
             'selected_cliente_name' => $cliente->nombre,
         ]);
 
-        $user = Auth::user();
         $isSuperAdmin = session('is_super_admin', (int) ($user?->cliente_id ?? -1) === 0);
         if ($isSuperAdmin) {
             session()->put('site', $cliente->site);

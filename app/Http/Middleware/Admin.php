@@ -16,8 +16,9 @@ class Admin
      */
     public function handle(Request $request, Closure $next)
     {
-        // Usamos Auth::check() y Auth::user() en lugar del helper auth()
-        if (Auth::check() && Auth::user()->role === 'admin') {
+        // Solo super admins (cliente_id = 0) pueden acceder a rutas de clientes.
+        $user = Auth::user();
+        if ($user && $user->isSuperAdmin()) {
             return $next($request);
         }
 

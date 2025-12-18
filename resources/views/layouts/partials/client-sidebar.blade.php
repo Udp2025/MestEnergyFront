@@ -76,9 +76,9 @@
             <h3 class="custom-menu-title">Menú</h3>
             <ul>
                 @unless($isSuperAdmin)
-                    <li class="{{ request()->routeIs('clientes.show') ? 'custom-active' : '' }}">
+                    <li class="{{ request()->routeIs('home') ? 'custom-active' : '' }}">
                         <i class="fa fa-home" aria-hidden="true"></i>
-                        <a href="{{ $clienteLinkId ? route('clientes.show', ['cliente' => $clienteLinkId]) : '#' }}">
+                        <a href="{{ route('home') }}">
                             <span>Home</span>
                         </a>
                     </li>
