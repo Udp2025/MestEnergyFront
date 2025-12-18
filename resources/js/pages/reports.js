@@ -270,23 +270,25 @@ async function renderArea(areaKey, elements) {
 
 async function renderComparisonSection(areaKey, grid, filters, renderId) {
   if (!grid || areaKey === "finanzas") return;
+  const prevRange = getPreviousPeriod(filters.from, filters.to);
+  const rangeLabels = describeComparisonRanges(filters, prevRange);
   const container = document.createElement("article");
   container.className = "report-card report-card--wide";
   container.innerHTML = `
     <div class="report-card__meta">
-      <h3 class="report-card__title">Comparativa vs. periodo anterior</h3>
+      <h3 class="report-card__title">Comparativa de periodos</h3>
+      <p class="report-note">Actual: ${rangeLabels.currentLabel} · Anterior: ${rangeLabels.previousLabel} (${rangeLabels.spanNote})</p>
     </div>
     <div class="comparison-grid" data-comparison-grid>
       <p class="report-note">Calculando comparativos...</p>
     </div>
     <div class="report-card__footer">
       <span class="dot"></span>
-      <span>Comparativo automático según los filtros actuales</span>
+      <span>Comparando ${rangeLabels.currentLabel} vs ${rangeLabels.previousLabel} (${rangeLabels.spanNote})</span>
     </div>
   `;
   grid.appendChild(container);
   const target = container.querySelector("[data-comparison-grid]");
-  const prevRange = getPreviousPeriod(filters.from, filters.to);
   const prevFilters = { ...filters, ...prevRange };
 
   try {
@@ -367,9 +369,11 @@ async function renderDireccionSummary(container, filters, renderId) {
   if (!container) return;
   setLoading(container);
   try {
+    const prevRange = previousRange(filters);
+    const rangeLabels = describeComparisonRanges(filters, prevRange);
     const [current, previous] = await Promise.all([
       fetchSiteAggregates(filters),
-      fetchSiteAggregates(previousRange(filters)),
+      fetchSiteAggregates(prevRange),
     ]);
     if (renderId !== state.renderToken) return;
     const energyTotal = sumField(current, "total_energy_wh_sum");
@@ -389,8 +393,11 @@ async function renderDireccionSummary(container, filters, renderId) {
     renderSummaryRows(container, rows);
     const note = document.createElement("p");
     note.className = "report-note";
-    const variation = change === null ? "sin histórico previo" : `${change >= 0 ? "↑" : "↓"} ${Math.abs(change).toFixed(1)}% vs periodo anterior`;
-    note.textContent = `En el periodo ${filters.from} a ${filters.to} se registraron ${formatEnergy(energyTotal)}. ${variation}.`;
+    const variation =
+      change === null
+        ? `sin histórico previo para ${rangeLabels.previousLabel}`
+        : `${change >= 0 ? "↑" : "↓"} ${Math.abs(change).toFixed(1)}% vs ${rangeLabels.previousLabel}`;
+    note.textContent = `En el periodo ${rangeLabels.currentLabel} se registraron ${formatEnergy(energyTotal)}; ${variation} (${rangeLabels.spanNote}).`;
     container.appendChild(note);
     renderNarrative("direccion", filters, {
       energyTotal,
@@ -1371,6 +1378,29 @@ function describeRange(range) {
   return `${range.from} a ${range.to}`;
 }
 
+function spanDaysInclusive(range) {
+  if (!range?.from || !range?.to) return null;
+  const start = new Date(range.from);
+  const end = new Date(range.to);
+  if (Number.isNaN(start) || Number.isNaN(end)) return null;
+  const diffMs = end.getTime() - start.getTime();
+  return Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1);
+}
+
+function describeComparisonRanges(currentRange, previousRange) {
+  const currentLabel = describeRange(currentRange);
+  const previousLabel = describeRange(previousRange);
+  const currentDays = spanDaysInclusive(currentRange);
+  const previousDays = spanDaysInclusive(previousRange);
+  const spanNote =
+    currentDays && previousDays
+      ? currentDays === previousDays
+        ? `mismo número de días (${currentDays}d)`
+        : `${currentDays}d vs ${previousDays}d`
+      : "comparación con el periodo previo";
+  return { currentLabel, previousLabel, spanNote };
+}
+
 function formatToday() {
   try {
     return new Intl.DateTimeFormat("es-MX", { dateStyle: "long" }).format(
@@ -1571,6 +1601,8 @@ function renderNarrative(areaKey, filters, data, err) {
     return;
   }
   const rangeLabel = describeRange(filters);
+  const prevRange = getPreviousPeriod(filters.from, filters.to);
+  const comparison = describeComparisonRanges(filters, prevRange);
   const today = formatToday();
   const siteName = siteLabel(filters.siteId);
   if (areaKey === "direccion") {
@@ -1578,9 +1610,9 @@ function renderNarrative(areaKey, filters, data, err) {
     const topSite = data?.topSite || "—";
     const change =
       data && typeof data.change === "number"
-        ? `${data.change >= 0 ? "↑" : "↓"} ${Math.abs(data.change).toFixed(1)}% vs periodo previo`
-        : "sin referencia previa";
-    target.textContent = `Al ${today}, ${siteName} registró ${energy} en el periodo ${rangeLabel}; ${change}. El sitio con mayor demanda fue ${topSite}.`;
+        ? `${data.change >= 0 ? "↑" : "↓"} ${Math.abs(data.change).toFixed(1)}% vs ${comparison.previousLabel}`
+        : `sin referencia previa para ${comparison.previousLabel}`;
+    target.textContent = `Al ${today}, ${siteName} registró ${energy} en el periodo ${rangeLabel}; ${change} (${comparison.spanNote}). El sitio con mayor demanda fue ${topSite}.`;
     return;
   }
 
