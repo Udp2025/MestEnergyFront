@@ -13,6 +13,7 @@
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
+
 .page-shell { background: var(--bg); min-height:100vh; padding:28px 20px; }
 .page-inner { max-width:1200px; margin:0 auto; }
 

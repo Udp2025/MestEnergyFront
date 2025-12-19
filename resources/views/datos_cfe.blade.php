@@ -27,8 +27,6 @@
 
 <div class="page-wrap">
 
-  <!-- Top selectors card -->
-   <!-- Top selectors card -->
   <div class="filters-card">
     <div class="filter-item">
       <label for="region_select">Región (tarifa_region)</label>
@@ -52,19 +50,18 @@
   </div>
 
 
-  <!-- Main card -->
   <div class="main-card">
     <div class="card-header">
       <div>
         <h2>Industria — valores editables por mes</h2>
-        <p class="muted">Columnas: Base, Intermedia, Punta (Variable Energía), Distribución, Capacidad</p>
       </div>
       <div class="card-actions">
-        <button class="btn btn-light" id="importCsv">... Importar CSV</button>
+        <button class="btn btn-light" id="importCsv">📥 Importar CSV</button>
+        <button class="btn btn-light" id="exportCsv">📤 Exportar CSV</button>
+        <input type="file" id="csvFile" accept=".csv" style="display:none" />
       </div>
     </div>
 
-    <!-- Form: envia los arrays de meses -->
     <form method="POST" action="{{ route('cfe.store') }}" id="cfeForm">
       @csrf
 
@@ -76,9 +73,9 @@
           <thead>
             <tr>
               <th>Mes</th>
-              <th><div class="col-title">Base<br><small>Variable (Energía)</small></div></th>
-              <th><div class="col-title">Intermedia<br><small>Variable (Energía)</small></div></th>
-              <th><div class="col-title">Punta<br><small>Variable (Energía)</small></div></th>
+              <th><div class="col-title">Base<br></div></th>
+              <th><div class="col-title">Intermedia<br></div></th>
+              <th><div class="col-title">Punta<br></div></th>
               <th><div class="col-title">Distribución</div></th>
               <th><div class="col-title">Capacidad</div></th>
             </tr>
@@ -122,9 +119,10 @@
   </div>
 </div>
 
-<!-- Scripts: calcula totales, carga region y formatea -->
 <script>
   (function(){
+    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
     function floatVal(v){
       var n = parseFloat(String(v).replace(/,/g,'.'));
       return isNaN(n) ? 0 : n;
@@ -142,36 +140,36 @@
       });
     }
 
-    // referencias
-    const regionSelect = document.getElementById('region_select');         // select visible (puede estar fuera del form)
-    const regionHidden = document.getElementById('region_select_hidden'); // hidden dentro del form
-    const fijoInp = document.getElementById('fijo');                     // input visible (puede estar fuera del form)
-    const fijoHidden = document.getElementById('fijo_hidden');           // hidden dentro del form
+    const regionSelect = document.getElementById('region_select');
+    const regionHidden = document.getElementById('region_select_hidden');
+    const fijoInp = document.getElementById('fijo');
+    const fijoHidden = document.getElementById('fijo_hidden');
     const cfeForm = document.getElementById('cfeForm');
 
-    // sanitize inputs and event attach (numerical inputs en la tabla)
-    document.querySelectorAll('.num').forEach(function(inp){
-      inp.addEventListener('input', function(){
-        this.value = this.value.replace(/[^0-9\.,\-]/g,'');
-        updateTotals();
+    function attachNumEvents(){
+      document.querySelectorAll('.num').forEach(function(inp){
+        if (inp._hasEvents) return;
+        inp._hasEvents = true;
+        inp.addEventListener('input', function(){
+          this.value = this.value.replace(/[^0-9\.,\-]/g,'');
+          updateTotals();
+        });
+        inp.addEventListener('blur', function(){
+          var v = parseFloat(this.value.replace(/,/g,'.'));
+          this.value = isNaN(v) ? 0 : v;
+          updateTotals();
+        });
       });
-      inp.addEventListener('blur', function(){
-        var v = parseFloat(this.value.replace(/,/g,'.'));
-        this.value = isNaN(v) ? 0 : v;
-        updateTotals();
-      });
-    });
+    }
+    attachNumEvents();
 
-    // Inicializar totales al cargar
     document.addEventListener('DOMContentLoaded', function(){
-      // asegurar que los hidden reflejen los visibles al cargar
       if(regionSelect && regionHidden) regionHidden.value = regionSelect.value || regionHidden.value;
       if(fijoInp && fijoHidden) fijoHidden.value = fijoInp.value || fijoHidden.value;
-
       updateTotals();
     });
 
-    // cuando cambia el select de región -> sincronizar hidden y obtener defaults
+    // region change -> obtener defaults (ahora trae el set más reciente por meses)
     if(regionSelect){
       regionSelect.addEventListener('change', function(){
         const regionId = this.value;
@@ -182,13 +180,40 @@
           .then(r => r.json())
           .then(data => {
             if(!data) return;
-            var fijoVal = (data.fijo !== null && data.fijo !== undefined) ? data.fijo : 0;
 
-            // actualizar visible y hidden de fijo
+            // si el backend retornó los meses individuales -> aplicar por mes
+            if(data.months && typeof data.months === 'object'){
+              // aplicar fijo si viene
+              if(typeof data.fijo !== 'undefined' && fijoInp){
+                fijoInp.value = data.fijo;
+                if(fijoHidden) fijoHidden.value = data.fijo;
+              }
+
+              Object.keys(data.months).forEach(function(m){
+                const v = data.months[m] || {};
+                // proteger con existencia de input
+                const baseEl = document.querySelector('input[name="base['+m+']"]');
+                if(baseEl) baseEl.value = (v.variable_base !== undefined ? v.variable_base : 0);
+                const interEl = document.querySelector('input[name="intermedia['+m+']"]');
+                if(interEl) interEl.value = (v.variable_intermedia !== undefined ? v.variable_intermedia : 0);
+                const puntaEl = document.querySelector('input[name="punta['+m+']"]');
+                if(puntaEl) puntaEl.value = (v.variable_punta !== undefined ? v.variable_punta : 0);
+                const distEl = document.querySelector('input[name="distribucion['+m+']"]');
+                if(distEl) distEl.value = (v.distribucion !== undefined ? v.distribucion : 0);
+                const capEl = document.querySelector('input[name="capacidad['+m+']"]');
+                if(capEl) capEl.value = (v.capacidad !== undefined ? v.capacidad : 0);
+              });
+
+              attachNumEvents();
+              updateTotals();
+              return;
+            }
+
+            // compatibilidad: si backend devolviera los valores uniformes (variable_base, etc.) — aplicar a todos
+            var fijoVal = (data.fijo !== null && data.fijo !== undefined) ? data.fijo : 0;
             if(fijoInp) fijoInp.value = fijoVal;
             if(fijoHidden) fijoHidden.value = fijoVal;
 
-            // seed meses con valores retornados
             const v_base = (data.variable_base !== undefined && data.variable_base !== null) ? data.variable_base : 0;
             const v_inter = (data.variable_intermedia !== undefined && data.variable_intermedia !== null) ? data.variable_intermedia : 0;
             const v_punta = (data.variable_punta !== undefined && data.variable_punta !== null) ? data.variable_punta : 0;
@@ -201,6 +226,7 @@
             document.querySelectorAll('input[name^="distribucion["]').forEach(i => i.value = v_dist);
             document.querySelectorAll('input[name^="capacidad["]').forEach(i => i.value = v_cap);
 
+            attachNumEvents();
             updateTotals();
           })
           .catch(err => {
@@ -209,9 +235,8 @@
       });
     }
 
-    // sincronizar el input fijo visible con su hidden cuando el usuario escriba
+    // sincronizar fijo
     if(fijoInp && fijoHidden){
-      // inicial
       fijoHidden.value = fijoInp.value || fijoHidden.value;
 
       fijoInp.addEventListener('input', function(){
@@ -227,13 +252,190 @@
       });
     }
 
-    // Antes de enviar el formulario, aseguramos que los hidden contienen los valores visibles
     if(cfeForm){
       cfeForm.addEventListener('submit', function(){
         if(regionSelect && regionHidden) regionHidden.value = regionSelect.value || regionHidden.value;
         if(fijoInp && fijoHidden) fijoHidden.value = fijoInp.value || fijoHidden.value;
+
+        // opcional: incluir tariff_year en un hidden si quieres (no lo agregué por defecto)
       });
     }
+
+    // -------------------
+    // IMPORT CSV (cliente) -> ahora admite Fijo en primera linea "Fijo,697.99" o columna 'Fijo'
+    // -------------------
+    const importBtn = document.getElementById('importCsv');
+    const fileInput = document.getElementById('csvFile');
+
+    function parseCSVText(text){
+      const rows = text.split(/\r?\n/).map(r => r.trim()).filter(r => r.length > 0);
+      if(rows.length === 0) return {error: 'CSV vacío'};
+
+      // posible primer linea: "Fijo,<valor>" o header con columnas incluyendo 'Fijo'
+      let fijoFromCsv = null;
+
+      // detectar primero si la primera línea es "Fijo,valor"
+      const firstCols = rows[0].split(',').map(c => c.trim());
+      if(firstCols[0].toLowerCase() === 'fijo' && firstCols.length >= 2){
+        fijoFromCsv = firstCols[1];
+        rows.shift(); // quitar la linea de fijo
+      }
+
+      // ahora evaluar si hay header
+      const first = rows[0].split(',').map(h => h.trim().toLowerCase());
+      const hasHeader = first.some(h => ['mes','base','intermedia','punta','distribucion','distribución','capacidad','fijo'].includes(h));
+      let header = null;
+      let dataRows = [];
+
+      if(hasHeader){
+        header = rows[0].split(',').map(h => h.trim().toLowerCase());
+        dataRows = rows.slice(1);
+      } else {
+        dataRows = rows;
+      }
+
+      const result = {};
+      meses.forEach(m => {
+        result[m] = { base:0, intermedia:0, punta:0, distribucion:0, capacidad:0 };
+      });
+
+      dataRows.forEach((r, idx) => {
+        const cols = r.split(',').map(c => c.trim());
+        if(hasHeader){
+          const obj = {};
+          header.forEach((h,i) => obj[h] = cols[i] !== undefined ? cols[i] : '');
+          let mes = obj['mes'] || obj['month'] || '';
+          mes = mes.trim();
+          if(!mes){
+            mes = meses[idx] || null;
+          }
+          if(!mes) return;
+          const capital = mes.charAt(0).toUpperCase() + mes.slice(1).toLowerCase();
+          const targetMes = meses.find(mn => mn.toLowerCase() === capital.toLowerCase() || mn.toLowerCase().startsWith(capital.toLowerCase().slice(0,3)));
+          const keyMes = targetMes || capital;
+          result[keyMes] = {
+            base: obj['base'] || obj['energia_base'] || obj['variable_base'] || obj['b'] || 0,
+            intermedia: obj['intermedia'] || obj['variable_intermedia'] || obj['i'] || 0,
+            punta: obj['punta'] || obj['variable_punta'] || obj['p'] || 0,
+            distribucion: obj['distribucion'] || obj['distribución'] || obj['d'] || 0,
+            capacidad: obj['capacidad'] || obj['c'] || 0
+          };
+
+          // también si el header trae 'fijo' lo guardamos
+          if(obj['fijo'] !== undefined && obj['fijo'] !== '') {
+            fijoFromCsv = obj['fijo'];
+          }
+        } else {
+          if(cols.length >= 6){
+            const mesRaw = cols[0];
+            const capital = mesRaw.charAt(0).toUpperCase() + mesRaw.slice(1).toLowerCase();
+            const targetMes = meses.find(mn => mn.toLowerCase() === capital.toLowerCase() || mn.toLowerCase().startsWith(capital.toLowerCase().slice(0,3)));
+            const keyMes = targetMes || capital;
+            result[keyMes] = {
+              base: cols[1] || 0,
+              intermedia: cols[2] || 0,
+              punta: cols[3] || 0,
+              distribucion: cols[4] || 0,
+              capacidad: cols[5] || 0
+            };
+          } else if (cols.length === 5) {
+            // fila sin mes -> tomar por orden
+            const mIndex = idx;
+            const keyMes = meses[mIndex] || meses[0];
+            result[keyMes] = {
+              base: cols[0] || 0,
+              intermedia: cols[1] || 0,
+              punta: cols[2] || 0,
+              distribucion: cols[3] || 0,
+              capacidad: cols[4] || 0
+            };
+          }
+        }
+      });
+
+      return {data: result, fijo: fijoFromCsv};
+    }
+
+    importBtn && importBtn.addEventListener('click', function(){ fileInput.click(); });
+
+    fileInput && fileInput.addEventListener('change', function(e){
+      const f = e.target.files[0];
+      if(!f) return;
+      const reader = new FileReader();
+      reader.onload = function(ev){
+        const text = ev.target.result;
+        const parsed = parseCSVText(text);
+        if(parsed.error){
+          alert('Error importando CSV: ' + parsed.error);
+          return;
+        }
+        const data = parsed.data;
+        for(const mesKey in data){
+          const baseInput = document.querySelector('input[name="base['+mesKey+']"]');
+          if(!baseInput) continue;
+          document.querySelector('input[name="base['+mesKey+']"]').value = data[mesKey].base;
+          document.querySelector('input[name="intermedia['+mesKey+']"]').value = data[mesKey].intermedia;
+          document.querySelector('input[name="punta['+mesKey+']"]').value = data[mesKey].punta;
+          document.querySelector('input[name="distribucion['+mesKey+']"]').value = data[mesKey].distribucion;
+          document.querySelector('input[name="capacidad['+mesKey+']"]').value = data[mesKey].capacidad;
+        }
+
+        // aplicar fijo si vino en CSV
+        if(parsed.fijo !== null && parsed.fijo !== undefined && fijoInp){
+          fijoInp.value = parsed.fijo;
+          if(fijoHidden) fijoHidden.value = parsed.fijo;
+        }
+
+        attachNumEvents();
+        updateTotals();
+        alert('CSV importado y aplicado en la tabla.');
+        fileInput.value = '';
+      };
+      reader.readAsText(f, 'UTF-8');
+    });
+
+    // -------------------
+    // EXPORT CSV (cliente) -> ahora incluye Fijo en primera linea y nombre de region en filename
+    // -------------------
+    const exportBtn = document.getElementById('exportCsv');
+    exportBtn && exportBtn.addEventListener('click', function(){
+      const fijoVal = fijoInp ? (fijoInp.value || 0) : 0;
+      const headers = ['Mes','Base','Intermedia','Punta','Distribucion','Capacidad'];
+      let csv = '';
+      // linea de fijo primero
+      csv += ['Fijo', fijoVal].join(',') + '\n\n';
+      csv += headers.join(',') + '\n';
+      meses.forEach(function(m){
+        const b = document.querySelector('input[name="base['+m+']"]').value || 0;
+        const i = document.querySelector('input[name="intermedia['+m+']"]').value || 0;
+        const p = document.querySelector('input[name="punta['+m+']"]').value || 0;
+        const d = document.querySelector('input[name="distribucion['+m+']"]').value || 0;
+        const c = document.querySelector('input[name="capacidad['+m+']"]').value || 0;
+        csv += [m, b, i, p, d, c].join(',') + '\n';
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      // nombre del archivo con region
+      let regionName = 'region';
+      if(regionSelect && regionSelect.selectedIndex >= 0){
+        regionName = regionSelect.options[regionSelect.selectedIndex].text || regionName;
+      }
+      // sanitizar nombre
+      regionName = regionName.replace(/[^0-9a-zA-Z-_]/g, '_');
+
+      const filename = 'tarifas_cfe_' + regionName + '_' + (new Date()).toISOString().slice(0,10) + '.csv';
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1000);
+    });
 
   })();
 </script>

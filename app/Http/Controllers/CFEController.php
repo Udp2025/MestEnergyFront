@@ -25,24 +25,54 @@ class CFEController extends Controller
      * Endpoint AJAX: devuelve el último registro de tarifa_region para la region solicitada
      */
     public function getRegion(Request $request)
-    {
-        // aceptamos region_id como parámetro GET (también soportamos 'region' por compatibilidad)
-        $regionId = $request->query('region_id') ?? $request->query('region');
-        if (!$regionId) {
-            return response()->json(null, 400);
-        }
-
-        $row = DB::table('tarifa_region')
-            ->where('id_region', $regionId)
-            ->orderBy('id', 'desc')
-            ->first();
-
-        if (!$row) {
-            return response()->json(null);
-        }
-
-        return response()->json($row);
+{
+    $regionId = $request->query('region_id') ?? $request->query('region');
+    if (!$regionId) {
+        return response()->json(null, 400);
     }
+
+    // obtener el timestamp más reciente para esa región
+    $latestTs = DB::table('tarifa_region')
+        ->where('id_region', $regionId)
+        ->max('date_actualizacion');
+
+    if (!$latestTs) {
+        // si no hay por timestamp, devolver null
+        return response()->json(null);
+    }
+
+    $rows = DB::table('tarifa_region')
+        ->where('id_region', $regionId)
+        ->where('date_actualizacion', $latestTs)
+        ->get();
+
+    if ($rows->isEmpty()) {
+        return response()->json(null);
+    }
+
+    // construir estructura por mes
+    $months = [];
+    foreach ($rows as $r) {
+        $mesName = $r->mes;
+        $months[$mesName] = [
+            'variable_base' => $r->variable_base,
+            'variable_intermedia' => $r->variable_intermedia,
+            'variable_punta' => $r->variable_punta,
+            'distribucion' => $r->distribucion,
+            'capacidad' => $r->capacidad,
+        ];
+    }
+
+    // tomar fijo / tariff_year / date_actualizacion de la primera fila (todas deberían compartirlo)
+    $first = $rows->first();
+
+    return response()->json([
+        'fijo' => $first->fijo,
+        'date_actualizacion' => $first->date_actualizacion,
+        'tariff_year' => property_exists($first, 'tariff_year') ? $first->tariff_year : (int)date('Y', $first->date_actualizacion),
+        'months' => $months,
+    ]);
+}
 
     /**
      * Guarda un nuevo registro en tarifa_region usando los arrays mensuales.
@@ -58,6 +88,7 @@ public function store(Request $request)
     $request->validate([
         'region_select' => 'required|integer|exists:catalogo_regiones,id',
         'fijo' => 'nullable',
+        'tariff_year' => 'nullable|integer',
         'base' => 'required|array',
         'intermedia' => 'required|array',
         'punta' => 'required|array',
@@ -68,6 +99,9 @@ public function store(Request $request)
     $regionId = (int) $request->input('region_select');
     $fijoRaw = str_replace(',', '.', $request->input('fijo', '0'));
     $fijo = is_numeric($fijoRaw) ? floatval($fijoRaw) : 0.0;
+
+    // si se envio tariff_year usarlo, si no usar año actual
+    $year = $request->input('tariff_year') ? (int)$request->input('tariff_year') : (int)date('Y');
 
     $baseArr = $request->input('base', []);
     $interArr = $request->input('intermedia', []);
@@ -83,64 +117,68 @@ public function store(Request $request)
         return is_numeric($v) ? floatval($v) : 0.0;
     };
 
-    // LOG inicial: confirmamos que la petición llegó
     Log::info('CFE::store called', [
         'ip' => request()->ip(),
         'user_id' => auth()->id() ?? null,
         'inputs_keys' => array_keys($request->all()),
         'region_select' => $request->input('region_select'),
+        'tariff_year' => $year,
     ]);
 
     $now = time();
-    $rows = [];
-
-    foreach ($meses as $mes) {
-        $valorBase = array_key_exists($mes, $baseArr) ? $toFloat($baseArr[$mes]) : 0.0;
-        $valorInter = array_key_exists($mes, $interArr) ? $toFloat($interArr[$mes]) : 0.0;
-        $valorPunta = array_key_exists($mes, $puntaArr) ? $toFloat($puntaArr[$mes]) : 0.0;
-        $valorDist  = array_key_exists($mes, $distArr) ? $toFloat($distArr[$mes]) : 0.0;
-        $valorCap   = array_key_exists($mes, $capArr)  ? $toFloat($capArr[$mes])  : 0.0;
-
-        $rows[] = [
-            'fijo' => $fijo,
-            'variable_base' => $valorBase,
-            'variable_intermedia' => $valorInter,
-            'variable_punta' => $valorPunta,
-            'distribucion' => $valorDist,
-            'capacidad' => $valorCap,
-            'date_actualizacion' => $now,
-            'mes' => $mes,
-            'id_region' => $regionId,
-        ];
-    }
-
-    // LOG: conteo y preview
-    Log::info('CFE rows prepared', [
-        'rows_count' => count($rows),
-        'rows_preview' => array_slice($rows, 0, 3)
-    ]);
-
-    // ### OPCIÓN TEMPORAL: ver en pantalla los datos antes de insertar ###
-    // Descomenta la siguiente línea para detener la ejecución y ver $rows en el navegador:
-    // dd(['llego_al_store' => true, 'rows_count' => count($rows), 'rows' => $rows]);
+    $inserted = 0;
+    $updated = 0;
 
     try {
-        \DB::transaction(function() use ($rows) {
-            \DB::table('tarifa_region')->insert($rows);
+        DB::transaction(function() use (&$inserted, &$updated, $meses, $baseArr, $interArr, $puntaArr, $distArr, $capArr, $toFloat, $regionId, $fijo, $now, $year) {
+            foreach ($meses as $mes) {
+                $valorBase = array_key_exists($mes, $baseArr) ? $toFloat($baseArr[$mes]) : 0.0;
+                $valorInter = array_key_exists($mes, $interArr) ? $toFloat($interArr[$mes]) : 0.0;
+                $valorPunta = array_key_exists($mes, $puntaArr) ? $toFloat($puntaArr[$mes]) : 0.0;
+                $valorDist  = array_key_exists($mes, $distArr) ? $toFloat($distArr[$mes]) : 0.0;
+                $valorCap   = array_key_exists($mes, $capArr)  ? $toFloat($capArr[$mes])  : 0.0;
+
+                $keys = [
+                    'id_region' => $regionId,
+                    'mes' => $mes,
+                    'tariff_year' => $year,
+                ];
+
+                $values = [
+                    'fijo' => $fijo,
+                    'variable_base' => $valorBase,
+                    'variable_intermedia' => $valorInter,
+                    'variable_punta' => $valorPunta,
+                    'distribucion' => $valorDist,
+                    'capacidad' => $valorCap,
+                    'date_actualizacion' => $now,
+                ];
+
+                // updateOrInsert
+                $updatedRows = DB::table('tarifa_region')->where($keys)->update($values);
+                if ($updatedRows > 0) {
+                    $updated++;
+                } else {
+                    // no se actualizó porque no existía -> insertar combinando keys + values
+                    $toInsert = array_merge($keys, $values);
+                    DB::table('tarifa_region')->insert($toInsert);
+                    $inserted++;
+                }
+            }
         });
 
-        Log::info('CFE insert OK', ['region_id' => $regionId, 'inserted' => count($rows)]);
+        Log::info('CFE upsert OK', ['region_id' => $regionId, 'inserted' => $inserted, 'updated' => $updated, 'tariff_year' => $year]);
 
-        return redirect()->back()->with('success', 'Se insertaron '.count($rows).' registros correctamente para la región (id): '.$regionId);
+        return redirect()->back()->with('success', "Se insertaron {$inserted} y actualizaron {$updated} registros para la región (id): {$regionId} (año: {$year}).");
     } catch (\Throwable $e) {
-        Log::error('Error al insertar tarifas por mes: '.$e->getMessage(), [
+        Log::error('Error al upsert tarifas por mes: '.$e->getMessage(), [
             'region_id' => $regionId,
-            'rows_count' => count($rows),
             'exception' => (string)$e
         ]);
         return redirect()->back()->with('error', 'Error al guardar tarifas: '.$e->getMessage());
     }
 }
+
 
 
 

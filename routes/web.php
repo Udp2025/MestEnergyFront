@@ -43,6 +43,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ApiDataController;
 use App\Http\Controllers\PostalCodeController;
 use App\Http\Controllers\EnergyDashboardController;
+use App\Http\Controllers\SitesController;
 
 // Rutas públicas
 Route::get('/', function () {
@@ -166,6 +167,11 @@ Route::post('sites/update-name', [SensoresController::class, 'updateSiteName'])-
 Route::get('/cfe/region', [CFEController::class, 'getRegion']);
 Route::post('/cfe/store', [CFEController::class, 'store'])->name('cfe.store');
 Route::get('/cfe', [CFEController::class, 'index'])->name('cfe.index');
+Route::get('/sites', [SitesController::class, 'index'])->name('sites.index');        // opcional
+Route::post('/sites', [SitesController::class, 'store'])->name('sites.store');
+Route::post('/sites/update-name', [SitesController::class, 'updateName'])->name('sites.updateName');
+Route::delete('/sites/{siteId}', [SitesController::class, 'destroyBySiteId'])->name('sites.destroyBySiteId');
+
  
 Route::get('/energy', [EnergyDashboardController::class, 'index'])->name('energy.dashboard');
 
