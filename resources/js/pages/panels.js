@@ -352,6 +352,15 @@ function computeDateRange(days = 7) {
   };
 }
 
+function defaultRangeForSlug(slug) {
+  switch (slug) {
+    case "scatter_chart":
+      return computeDateRange(30); // voltaje vs corriente: último mes
+    default:
+      return computeDateRange();
+  }
+}
+
 function formatNumber(value) {
   return new Intl.NumberFormat(undefined, {
     maximumFractionDigits: 0,
@@ -1964,7 +1973,8 @@ function renderChartWidget(widget, definition, container) {
   const filters = {
     siteId,
     deviceId: widget.data_filters?.deviceId || "ALL",
-    dateRange: widget.data_filters?.dateRange || computeDateRange(),
+    dateRange:
+      widget.data_filters?.dateRange || defaultRangeForSlug(widget.slug),
   };
   if (widget.data_filters?.horizon) {
     filters.horizon = Number(widget.data_filters.horizon);
@@ -2166,6 +2176,7 @@ function buildChartRequest(slug, filters) {
             nbins: 30,
             color: "device_id",
           },
+          title: "Histograma de corriente · semana",
         },
       };
     case "scatter_chart":
@@ -2188,6 +2199,7 @@ function buildChartRequest(slug, filters) {
           x: "current_a_avg",
           y: "voltage_v_avg",
           style: { color: "device_id", opacity: 0.75 },
+          title: "Voltaje vs corriente · mes",
         },
       };
     case "timeseries_chart":
@@ -2230,6 +2242,7 @@ function buildChartRequest(slug, filters) {
           x: "device_name",
           y: "energy_wh_sum",
           style: { orientation: "v", color: "device_id" },
+          title: "Energía por dispositivo · semana",
         },
       };
     case "heatmap_chart":
@@ -2250,6 +2263,7 @@ function buildChartRequest(slug, filters) {
           x: "hour",
           y: "weekday",
           z: "power_w_avg",
+          title: "Mapa de calor · semana",
         },
       };
     case "histogram_today_chart": {
