@@ -15,7 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         RunKpiAlerts::class,
     ])
     ->withSchedule(function (Schedule $schedule) {
-        $schedule->command('kpi:run-alerts')->everyFifteenMinutes();
+        $schedule->command('kpi:run-alerts')->everyMinute();
     })
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web([

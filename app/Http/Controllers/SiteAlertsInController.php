@@ -11,7 +11,7 @@ class SiteAlertsInController extends Controller
      */
     public function index()
     {
-        return view('site_alerts_in');
+        return redirect()->route('site_alerts');
 
     }
 

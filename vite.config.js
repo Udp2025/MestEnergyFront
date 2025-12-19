@@ -29,6 +29,7 @@ export default defineConfig({
         "resources/css/pages/histogram.css",
         "resources/js/pages/reports.js",
         "resources/css/pages/reports.css",
+        "resources/js/pages/home_fixed_dashboard.js",
       ],
       refresh: true,
     }),

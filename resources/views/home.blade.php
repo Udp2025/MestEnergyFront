@@ -2,6 +2,10 @@
 
 @section('title', 'Inicio')
 
+@push('head')
+    @vite(['resources/js/pages/home_fixed_dashboard.js'])
+@endpush
+
 @section('content')
 <div class="home-dashboard">
     @if($is_super_admin)
@@ -33,33 +37,92 @@
             </div>
         </section>
 
+        <section class="home-section" data-fixed-dashboard data-super-admin="{{ $is_super_admin ? '1' : '0' }}" data-site-id="{{ $user_site_id ?? '' }}">
+            <header class="home-section__header home-section__header--fixed">
+                <div>
+                    <h2>Estatus sitio</h2>
+                    <p class="home-section__hint">Vistazo rápido</p>
+                </div>
+                <div class="home-section__actions">
+                    @if($is_super_admin)
+                        <label class="inline-field">
+                            <span>Sitio</span>
+                            <select data-site-select class="home-select">
+                                <option value="">Cargando sitios...</option>
+                            </select>
+                        </label>
+                    @endif
+                </div>
+            </header>
+            <div class="fixed-kpi-row">
+                <article class="home-card kpi-card" data-kpi-card="pf">
+                    <p class="kpi-label">Cumplimiento PF</p>
+                    <p class="kpi-value" data-kpi-value="pf">—</p>
+                    <p class="kpi-meta">Hoy</p>
+                </article>
+                <article class="home-card kpi-card" data-kpi-card="availability">
+                    <p class="kpi-label">Disponibilidad</p>
+                    <p class="kpi-value" data-kpi-value="availability">—</p>
+                    <p class="kpi-meta">Hoy</p>
+                </article>
+                <article class="home-card kpi-card" data-kpi-card="activeDevices">
+                    <p class="kpi-label">Sensores activos</p>
+                    <p class="kpi-value" data-kpi-value="activeDevices">—</p>
+                    <p class="kpi-meta">Última hora</p>
+                </article>
+                <article class="home-card kpi-card" data-kpi-card="energy">
+                    <p class="kpi-label">Energía total</p>
+                    <p class="kpi-value" data-kpi-value="energy">—</p>
+                    <p class="kpi-meta">Hoy</p>
+                </article>
+            </div>
+            <article class="home-card fixed-card fixed-card--main fixed-card--full">
+                <div class="fixed-card__header">
+                    <div>
+                        <h3>Energía acumulada hoy</h3>
+                        <p class="home-card__hint">Serie de energía por hora</p>
+                    </div>
+                    <div class="fixed-toggle" role="group" aria-label="Modo de agregación">
+                        <button type="button" class="fixed-toggle__btn is-active" data-mode="agg">Agregada</button>
+                        <button type="button" class="fixed-toggle__btn" data-mode="deagg">Por dispositivo</button>
+                    </div>
+                </div>
+                <div class="fixed-chart" data-dashboard-chart aria-label="Energía acumulada del día"></div>
+                <p class="home-card__hint" data-chart-status>Calculando…</p>
+            </article>
+        </section>
+    @endif
+
+    @if($is_super_admin)
         <section class="home-section">
             <header class="home-section__header">
                 <h2>Clientes Recientes</h2>
             </header>
-            <div class="home-grid home-grid--three">
-                @forelse($recent_clients as $client)
-                    <article class="home-card">
-                        <div class="home-card__header">
-                            <h3>{{ $client->nombre }}</h3>
-                            <span class="badge">ID {{ $client->id }}</span>
-                        </div>
-                        <dl class="home-card__list">
-                            <div>
-                                <dt>Alta:</dt>
-                                <dd>{{ optional($client->created_at)->format('d M Y') ?? 'N/D' }}</dd>
-                            </div>
-                            <div>
-                                <dt>Estatus:</dt>
-                                <dd>{{ $client->estado_cliente === 1 ? 'Activo' : 'Onboarding' }}</dd>
-                            </div>
-                        </dl>
-                    </article>
-                @empty
-                    <article class="home-card home-card--empty">
-                        <p>No se han registrado clientes recientemente.</p>
-                    </article>
-                @endforelse
+            <div class="home-table home-table--recent">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Fecha alta</th>
+                            <th>Estatus</th>
+                            <th>ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($recent_clients as $client)
+                            <tr>
+                                <td class="cell-truncate" title="{{ $client->nombre }}">{{ $client->nombre }}</td>
+                                <td>{{ optional($client->created_at)->format('d M Y') ?? 'N/D' }}</td>
+                                <td>{{ $client->estado_cliente === 1 ? 'Activo' : 'Onboarding' }}</td>
+                                <td>#{{ $client->id }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="text-muted">No se han registrado clientes recientemente.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </section>
 
@@ -106,6 +169,62 @@
                     </article>
                     
                 </div>
+            </section>
+
+            <section class="home-section" data-fixed-dashboard data-super-admin="{{ $is_super_admin ? '1' : '0' }}" data-site-id="{{ $user_site_id ?? '' }}">
+                <header class="home-section__header home-section__header--fixed">
+                    <div>
+                        <h2>Estatus sitio</h2>
+                        <p class="home-section__hint">Vistazo rápido</p>
+                    </div>
+                    <div class="home-section__actions">
+                        @if($is_super_admin)
+                            <label class="inline-field">
+                                <span>Sitio</span>
+                                <select data-site-select class="home-select">
+                                    <option value="">Cargando sitios...</option>
+                                </select>
+                            </label>
+
+                        @endif
+                    </div>
+                </header>
+                <div class="fixed-kpi-row">
+                    <article class="home-card kpi-card" data-kpi-card="pf">
+                        <p class="kpi-label">Cumplimiento PF</p>
+                        <p class="kpi-value" data-kpi-value="pf">—</p>
+                        <p class="kpi-meta">Hoy</p>
+                    </article>
+                    <article class="home-card kpi-card" data-kpi-card="availability">
+                        <p class="kpi-label">Disponibilidad</p>
+                        <p class="kpi-value" data-kpi-value="availability">—</p>
+                        <p class="kpi-meta">Hoy</p>
+                    </article>
+                    <article class="home-card kpi-card" data-kpi-card="activeDevices">
+                        <p class="kpi-label">Sensores activos</p>
+                        <p class="kpi-value" data-kpi-value="activeDevices">—</p>
+                        <p class="kpi-meta">Última hora</p>
+                    </article>
+                    <article class="home-card kpi-card" data-kpi-card="energy">
+                        <p class="kpi-label">Energía total</p>
+                        <p class="kpi-value" data-kpi-value="energy">—</p>
+                        <p class="kpi-meta">Hoy</p>
+                    </article>
+                </div>
+                <article class="home-card fixed-card fixed-card--main fixed-card--full">
+                    <div class="fixed-card__header">
+                        <div>
+                            <h3>Energía acumulada hoy</h3>
+                            <p class="home-card__hint">Serie de energía por hora</p>
+                        </div>
+                        <div class="fixed-toggle" role="group" aria-label="Modo de agregación">
+                            <button type="button" class="fixed-toggle__btn is-active" data-mode="agg">Agregada</button>
+                            <button type="button" class="fixed-toggle__btn" data-mode="deagg">Por dispositivo</button>
+                        </div>
+                    </div>
+                    <div class="fixed-chart" data-dashboard-chart aria-label="Energía acumulada del día"></div>
+                    <p class="home-card__hint" data-chart-status>Calculando…</p>
+                </article>
             </section>
 
             <section class="home-section">

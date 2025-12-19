@@ -11,7 +11,7 @@
     $showSiteFilters = auth()->user()?->isSuperAdmin();
 @endphp
 
-<div class="alerts-page">
+<div class="alerts-page" data-can-view-all-sites="{{ $showSiteFilters ? '1' : '0' }}">
     <header class="alerts-header">
         <div class="alerts-header__body">
             <h1>Alertas personalizadas</h1>

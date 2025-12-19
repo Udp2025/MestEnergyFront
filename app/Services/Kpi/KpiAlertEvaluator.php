@@ -23,6 +23,10 @@ class KpiAlertEvaluator
         $alerts = $alerts ?? $user->kpiAlerts()->where('is_active', true)->get();
 
         foreach ($alerts as $alert) {
+            if (!$this->shouldEvaluate($alert)) {
+                continue;
+            }
+
             $definition = $alert->definition();
             if (!$definition) {
                 Log::warning('kpi_alert.missing_definition', ['alert_id' => $alert->id]);
@@ -72,7 +76,7 @@ class KpiAlertEvaluator
         }
 
         $payload['filter_map'] = $filterMap;
-        $selectColumns = [$definition['value_column'], 'site_id'];
+        $selectColumns = [$definition['value_column'], 'site_id', $dateColumn];
         if (!empty($definition['total_column'])) {
             $selectColumns[] = $definition['total_column'];
         }
@@ -135,6 +139,7 @@ class KpiAlertEvaluator
     protected function handleResult(User $owner, KpiAlert $alert, float $value): void
     {
         $alert->last_value = $value;
+        $alert->last_evaluated_at = now();
         $alert->save();
 
         $shouldTrigger = $alert->comparison_operator === 'above'
@@ -164,7 +169,10 @@ class KpiAlertEvaluator
 
     protected function handleMissingValue(User $owner, KpiAlert $alert, string $reason): void
     {
+        $alert->last_evaluated_at = now();
+
         if ($this->onCooldown($alert)) {
+            $alert->save();
             return;
         }
 
@@ -217,5 +225,16 @@ class KpiAlertEvaluator
             return null;
         }
         return $owner->siteId();
+    }
+
+    protected function shouldEvaluate(KpiAlert $alert): bool
+    {
+        $lastEvaluated = $alert->last_evaluated_at;
+        if (!$lastEvaluated) {
+            return true;
+        }
+
+        $interval = max(1, (int) $alert->cooldown_minutes);
+        return $lastEvaluated->lte(Carbon::now()->subMinutes($interval));
     }
 }

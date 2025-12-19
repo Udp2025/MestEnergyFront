@@ -680,11 +680,20 @@ button {
   max-height: 380px;
 }
 
+.home-table--recent {
+  overflow: auto;
+  max-height: 360px;
+}
+
 .home-table--scrollable thead th {
   position: sticky;
   top: 0;
   background: #f8fafc;
   box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.08);
+}
+
+.home-table--recent table {
+  min-width: 620px;
 }
 
 .cell-truncate {
@@ -761,6 +770,103 @@ button {
 
 .summary-meta {
   color: #475569;
+  font-size: 0.9rem;
+}
+
+.home-section__header--fixed {
+  align-items: flex-start;
+}
+
+.home-section__hint {
+  margin: 4px 0 0;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.home-select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  min-width: 200px;
+  background: #fff;
+}
+
+.inline-field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.fixed-card {
+  height: 100%;
+}
+
+.fixed-card--main {
+  grid-column: 1 / span 1;
+  grid-area: chart;
+  padding: var(--gap-sm) var(--gap-md);
+}
+
+.fixed-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.fixed-toggle {
+  display: inline-flex;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.fixed-toggle__btn {
+  background: #fff;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.fixed-toggle__btn.is-active {
+  background: #914c2e;
+  color: #fff;
+}
+
+.fixed-chart {
+  min-height: 520px;
+  width: 100%;
+}
+
+.fixed-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--gap-sm);
+  align-items: stretch;
+}
+
+.kpi-card {
+  gap: 6px;
+}
+
+.kpi-label {
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.kpi-meta {
+  color: #94a3b8;
   font-size: 0.9rem;
 }
 
@@ -886,6 +992,12 @@ button {
 /* --------------------------------
    6. RESPONSIVE
 ----------------------------------*/
+
+@media (max-width: 900px) {
+  .fixed-chart {
+    min-height: 420px;
+  }
+}
 
 @media (max-width: 1024px) {
   .custom-sidebar {
