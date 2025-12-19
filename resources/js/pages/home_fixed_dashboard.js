@@ -81,9 +81,30 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function buildChartPayload() {
-    const groupBy = mode === "deagg" ? ["site_id", "device_id"] : ["site_id"];
-    const style =
-      mode === "deagg" ? { color: "device_id" } : { color: "site_id" };
+    if (mode === "agg") {
+      return {
+        table: "measurements",
+        filter_map: {
+          measurement_time: todayRange(),
+          ...(siteId ? { site_id: "=" + siteId } : {}),
+        },
+        aggregation: [
+          {
+            group_by: ["site_id"],
+            aggregations: { energy_wh: ["sum"] },
+            time_window: "H",
+            time_column: "measurement_time",
+          },
+        ],
+        chart: {
+          chart_type: "line",
+          x: "measurement_time",
+          y: "energy_wh_sum",
+          style: { color: "site_id" },
+        },
+      };
+    }
+
     return {
       table: "measurements",
       filter_map: {
@@ -92,7 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       aggregation: [
         {
-          group_by: groupBy,
+          group_by: ["site_id", "device_id"],
           aggregations: { energy_wh: ["sum"] },
           time_window: "H",
           time_column: "measurement_time",
@@ -102,7 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
         chart_type: "line",
         x: "measurement_time",
         y: "energy_wh_sum",
-        style,
+        style: { color: "device_id" },
       },
     };
   }
@@ -117,21 +138,23 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       setStatus("Cargando serie…", "info");
       const { figure, config, mapping } = await fetchPlot(buildChartPayload());
-      applyMapping(figure, mapping);
-      tuneLayout(figure);
-      if (plotIsEmpty(figure)) {
+      const fig = figure && figure.data ? figure : { data: [], layout: {} };
+      const cfg = config || {};
+      applyMapping(fig, mapping);
+      tuneLayout(fig);
+      if (plotIsEmpty(fig)) {
         setStatus("Sin datos para hoy.", "info");
       } else {
         setStatus("", "success");
       }
       await Plotly.react(
         chartEl,
-        figure.data,
+        fig.data,
         {
-          ...figure.layout,
+          ...fig.layout,
         },
         {
-          ...config,
+          ...cfg,
           responsive: true,
           displayModeBar: false,
         }
@@ -196,7 +219,9 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       const pf = dailyRow?.pf_compliance_pct ?? null;
       const availability = dailyRow?.availability_pct ?? null;
-      const energyAggRow = (Array.isArray(energyAgg?.data) ? energyAgg.data : [])
+      const energyAggRow = (
+        Array.isArray(energyAgg?.data) ? energyAgg.data : []
+      )
         .filter((row) => String(row.site_id) === String(siteId))
         .shift();
       const energy =
@@ -252,6 +277,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function tuneLayout(figure) {
+    if (!figure) return;
     if (!figure.layout) figure.layout = {};
     figure.layout.title = "";
     figure.layout.autosize = true;
