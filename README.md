@@ -1,66 +1,76 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# MestEnergy Frontend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplicación Laravel 11 + Vite para la consola de MestEnergy. Incluye vistas Blade, componentes JS con Plotly y flujo de autenticación basado en roles (super admin vs. usuarios de cliente).
 
-## About Laravel
+## Características principales
+- **Inicio / Tablero fijo**: KPIs y serie de energía del día con selector de sitio para super admins (`resources/views/home.blade.php`, `resources/js/pages/home_fixed_dashboard.js`).
+- **Gestión de clientes**: ficha de cliente, contratos y subida a S3 (`resources/views/clientes/*.blade.php`, `app/Http/Controllers/ClientesController.php`).
+- **Configuración de usuario**: perfil, cambio de contraseña y foto a S3; gestión de usuarios por cliente (`resources/views/config*.blade.php`, `app/Http/Controllers/configController.php`).
+- **Alertas y monitoreo**: alertas de sitio, detección de anomalías y forecast vía proxy ML (`resources/views/alerts.blade.php`, `resources/views/anomaly.blade.php`, `resources/views/forecast.blade.php`, `app/Http/Controllers/KpiAlertController.php`, `app/Http/Controllers/MlProxyController.php`).
+- **Paneles y reportes**: widgets dinámicos y reportes automáticos con comparativas de periodo (`resources/js/pages/panels.js`, `resources/js/pages/reports.js`, `resources/js/pages/timeseries.js`).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Stack y dependencias clave
+- **Backend**: Laravel 11 (PHP ^8.2), Blade, controladores en `app/Http/Controllers`.
+- **Frontend**: Vite + Laravel plugin, Plotly (`plotly.js-dist-min`), CSS en `public/css` y `resources/css`.
+- **Datos y gráficos**: proxy a `/charts/plot` y `/charts/data` (Plot API) en `app/Http/Controllers/PlotProxyController.php`.
+- **ML**: proxy a `/ml/forecast` y `/ml/anomaly-detection` reutilizando la misma API/key que gráficos (`MlProxyController`).
+- **Almacenamiento**: S3 vía Flysystem (`league/flysystem-aws-s3-v3`), rutas de imágenes/contratos parametrizadas por env.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Roles y alcance de datos
+- **Super admin**: `cliente_id === 0`; ve todos los sitios/clientes y puede filtrar dashboards.
+- **Usuarios de cliente**: limitados a su `cliente_id`/site; el proxy de datos fuerza `site_id` en todas las consultas.
+- **Roles de aplicación**: `admin` y `operaciones` controlan capacidades en `/config` (crear/editar usuarios solo admin).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Estructura de carpetas relevante
+- `app/Http/Controllers`: `HomeController`, `ClientesController`, `configController`, `PlotProxyController`, `MlProxyController`, `KpiAlertController`.
+- `app/Services/Plot`: `PlotClient` (llamadas remotas), `LocalPlotService` (stub local).
+- `resources/views`: Blade principales (`home.blade.php`, `config_users.blade.php`, `clientes/*.blade.php`, `alerts.blade.php`, `anomaly.blade.php`, `forecast.blade.php`).
+- `resources/js/pages`: entradas Vite por vista (`home_fixed_dashboard.js`, `panels.js`, `reports.js`, `anomaly.js`, `forecast.js`, `timeseries.js`).
+- `public/css`: estilos globales y páginas (`style.css`, `usuarios.css`, `clientes_show.css`).
+- `routes/web.php`: rutas web, middlewares y nombres de ruta usados en las vistas.
+- `config/services.php`: configuración de API de gráficos/ML (`PLOT_API_BASE`, `PLOT_API_KEY`) y S3.
 
-## Learning Laravel
+## Configuración y variables de entorno
+Duplicar `.env.example` → `.env` y definir:
+- **App**: `APP_URL`, `APP_ENV`, `APP_KEY`.
+- **DB**: `DB_*` según instancia usada.
+- **Plot/ML**: `PLOT_API_BASE` / `VITE_PLOT_API_BASE`, `PLOT_API_KEY` / `VITE_PLOT_API_KEY` (misma API para `/charts/*` y `/ml/*`).
+- **S3**: `FILESYSTEM_DISK=s3`, `AWS_BUCKET`, `AWS_DEFAULT_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_CONTRACTS_PATH`, `AWS_S3_IMAGES_PATH`.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Puesta en marcha (dev)
+```bash
+composer install
+npm install
+cp .env.example .env  # y ajustar variables
+php artisan key:generate
+# si se usa base local: php artisan migrate
+npm run dev           # Vite
+php artisan serve     # servidor Laravel
+```
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## Scripts útiles
+- `npm run dev` / `npm run build`: assets Vite.
+- `composer test` o `php artisan test`: suite de pruebas (Pest).
+- `composer dev`: servidor, cola y Vite concurrentes.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Flujo de datos y gráficos
+- Las vistas JS llaman a `/charts/data` o `/charts/plot` con `table`, `filter_map`, `aggregation`.
+- `PlotProxyController` añade restricción de `site_id` para usuarios de cliente y reenvía al servicio Plot con `x-api-key`.
+- ML (anomalía/forecast) sigue el mismo patrón vía `MlProxyController`.
+- Sin `PLOT_API_BASE`/`PLOT_API_KEY`, el stub `LocalPlotService` devuelve datos simulados en local.
 
-## Laravel Sponsors
+## Notas de dominio
+- Tablero fijo de inicio: KPIs de PF, disponibilidad, sensores activos y energía total hoy; serie “Energía acumulada hoy” con modos agregado/por dispositivo.
+- Configuración: admins pueden crear/editar/eliminar usuarios de su cliente; super admin puede elegir cliente en formularios.
+- Alertas: configurables por sitio; evaluación y eventos vía `KpiAlertController` / `KpiAlertEvaluator`.
+- Cargas a S3: contratos (Clientes) y fotos de perfil (Config) respetan paths definidos en env.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Despliegue
+- Empaquetar assets con `npm run build`.
+- Asegurar variables `PLOT_API_BASE`/`PLOT_API_KEY` y credenciales S3 en el entorno.
+- Ejecutar migraciones si aplica: `php artisan migrate --force`.
 
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Soporte y buenas prácticas
+- Mantener roles/sitio en sesión (`site`, `is_super_admin`) para que los proxies apliquen el filtro correctamente.
+- Para nuevas vistas JS, registrar la entrada en `vite.config.js` y referenciar con `@vite` en Blade.
+- Reutilizar utilidades de `resources/js/utils` para selects (`fillSelect`), autenticación (`ensureAuthenticatedOrRedirect`) y Plotly (`fetchPlot`, `applyMapping`).
