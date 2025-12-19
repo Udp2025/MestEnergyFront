@@ -82,17 +82,14 @@
                             <span>Home</span>
                         </a>
                     </li>
-                @endunless
-                <li class="menu-divider" aria-hidden="true"></li>
-                @if($isSuperAdmin)
-                    <li class="{{ request()->routeIs('general_clientes') ? 'custom-active' : '' }}">
+                    <li class="{{ request()->routeIs('panels.index') ? 'custom-active' : '' }}">
                         <i class="fas fa-tachometer-alt" aria-hidden="true"></i>
-                        <a href="{{ route('general_clientes', $clientQueryParams) }}">
+                        <a href="{{ route('panels.index') }}">
                             <span>Dashboard</span>
                         </a>
                     </li>
-                    <li class="menu-divider" aria-hidden="true"></li>
-                @endif
+                @endunless
+                <li class="menu-divider" aria-hidden="true"></li>
                 <li class="{{ request()->routeIs('heatmap') ? 'custom-active' : '' }}">
                     <i class="fas fa-th-large" aria-hidden="true"></i>
                     <a href="{{ route('heatmap', $clientQueryParams) }}">
@@ -141,22 +138,10 @@
                         <span>Energy Flow</span>
                     </a>
                 </li>
-                <li class="{{ request()->routeIs('reports') ? 'custom-active' : '' }}">
-                    <i class="fas fa-file-alt" aria-hidden="true"></i>
-                    <a href="{{ route('reports', $clientQueryParams) }}">
-                        <span>Reportes automáticos</span>
-                    </a>
-                </li>
                 <li class="{{ request()->routeIs('clientes.clidash') ? 'custom-active' : '' }}">
                     <i class="fas fa-coins" aria-hidden="true"></i>
                     <a href="{{ route('clientes.clidash', $clientQueryParams) }}">
                         <span>Finanzas</span>
-                    </a>
-                </li>
-                <li class="{{ request()->routeIs('site_alerts') ? 'custom-active' : '' }}">
-                    <i class="fas fa-bell" aria-hidden="true"></i>
-                    <a href="{{ route('site_alerts', $clientQueryParams) }}">
-                        <span>Alertas</span>
                     </a>
                 </li>
                 <li class="{{ request()->routeIs('tiggers') ? 'custom-active' : '' }}">
@@ -177,6 +162,21 @@
                         <span>Grupos</span>
                     </a>
                 </li>
+                @unless($isSuperAdmin)
+                    <li class="{{ request()->routeIs('reports') ? 'custom-active' : '' }}">
+                        <i class="fas fa-file-alt" aria-hidden="true"></i>
+                        <a href="{{ route('reports', $clientQueryParams) }}">
+                            <span>Reportes automáticos</span>
+                        </a>
+                    </li>
+                    <li class="{{ request()->routeIs('site_alerts') ? 'custom-active' : '' }}">
+                        <i class="fas fa-bell" aria-hidden="true"></i>
+                        <a href="{{ route('site_alerts', $clientQueryParams) }}">
+                            <span>Alertas</span>
+                        </a>
+                    </li>
+                <li class="menu-divider" aria-hidden="true"></li>
+                @endunless
                 @if(!$isSuperAdmin)
                     <li class="{{ request()->routeIs('config') ? 'custom-active' : '' }}">
                         <i class="fas fa-cog" aria-hidden="true"></i>

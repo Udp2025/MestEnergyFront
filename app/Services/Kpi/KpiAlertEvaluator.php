@@ -88,6 +88,7 @@ class KpiAlertEvaluator
             Log::warning('kpi_alert.fetch_error', [
                 'alert_id' => $alert->id,
                 'message' => $e->getMessage(),
+                'code' => method_exists($e, 'getStatusCode') ? $e->getStatusCode() : null,
             ]);
             return ['status' => 'missing', 'reason' => 'fetch_error'];
         }

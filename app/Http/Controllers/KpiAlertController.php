@@ -83,7 +83,28 @@ class KpiAlertController extends Controller
     public function events(Request $request): JsonResponse
     {
         $user = $request->user();
-        $this->evaluator->evaluate($user);
+        try {
+            $this->evaluator->evaluate($user);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            \Log::warning('alerts.events.evaluate_failed', [
+                'user_id' => $user?->id,
+                'status' => $e->getStatusCode(),
+                'message' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'events' => [],
+                'message' => 'No se pudieron actualizar las alertas en este momento.',
+            ], $e->getStatusCode());
+        } catch (\Throwable $e) {
+            \Log::error('alerts.events.evaluate_failed', [
+                'user_id' => $user?->id,
+                'message' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'events' => [],
+                'message' => 'No se pudieron actualizar las alertas en este momento.',
+            ], 500);
+        }
 
         $query = $this->eventsQuery($request);
         $siteFilter = $request->input('site_id');
