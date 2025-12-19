@@ -1564,11 +1564,6 @@ function mapCategoricalAxisToLabels(figure) {
   figure.data.forEach((trace) => {
     if (Array.isArray(trace.x)) {
       trace.x = trace.x.map((val, idx) => mapValue(val, trace.site_id?.[idx]));
-      if (trace.type === "bar" && (!trace.orientation || trace.orientation === "v")) {
-        figure.layout = figure.layout || {};
-        figure.layout.xaxis = figure.layout.xaxis || {};
-        figure.layout.xaxis.tickangle = figure.layout.xaxis.tickangle ?? -30;
-      }
     }
     // Also map legend names already handled by applyMapping; no change here.
   });

@@ -98,14 +98,7 @@ export function applyMapping(figure, mapping = {}) {
     } else if (Array.isArray(trace.x)) {
       trace.x = trace.x.map(mapValue);
     }
-    /* Tilt category labels for vertical bars if not preset to avoid overlap */
-    if (orientation !== "h") {
-      figure.layout = figure.layout || {};
-      figure.layout.xaxis = figure.layout.xaxis || {};
-      if (figure.layout.xaxis.tickangle === undefined) {
-        figure.layout.xaxis.tickangle = -30;
-      }
-    }
+    // Nota: se elimina la rotación automática de etiquetas en barras verticales.
   });
 }
 

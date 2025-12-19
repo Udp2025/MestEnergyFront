@@ -868,8 +868,7 @@ function appendDeviceSelector(container, widget, onChange) {
           select.appendChild(option);
         });
       }
-      const selected =
-        String(widget.data_filters?.deviceId || "ALL") || "ALL";
+      const selected = String(widget.data_filters?.deviceId || "ALL") || "ALL";
       if (
         Array.from(select.options).some(
           (option) => option.value === selected && !option.disabled
@@ -2241,7 +2240,7 @@ function buildChartRequest(slug, filters) {
           chart_type: "bar",
           x: "device_name",
           y: "energy_wh_sum",
-          style: { orientation: "v", color: "device_id" },
+          style: { orientation: "h", color: "device_id" },
           title: "Energía por dispositivo · semana",
         },
       };
@@ -2485,7 +2484,7 @@ function buildChartRequest(slug, filters) {
           chart_type: "bar",
           x: "device_name",
           y: "energy_wh_sum",
-          style: { orientation: "v", color: "device_id" },
+          style: { orientation: "h", color: "device_id" },
         },
       };
     }
@@ -2516,7 +2515,7 @@ function buildChartRequest(slug, filters) {
           chart_type: "bar",
           x: "device_name",
           y: "energy_wh_sum",
-          style: { orientation: "v", color: "device_id" },
+          style: { orientation: "h", color: "device_id" },
         },
       };
     }
@@ -2644,7 +2643,7 @@ function buildChartRequest(slug, filters) {
         filter_map: map,
         aggregation: [
           {
-            group_by: ["site_id", "hour_start"],
+            group_by: ["site_id"],
             aggregations: {
               availability_pct: ["avg"],
             },
