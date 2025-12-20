@@ -21,27 +21,68 @@ use Illuminate\Database\QueryException;
 class ClientesController extends Controller
 {
     public function index()
-    {
-        $clientes = Cliente::with(['files', 'user', 'locaciones', 'areas', 'medidores', 'reportes'])
-                        ->orderBy('nombre')
-                        ->get();
+{
+    // Eager load de relaciones importantes (ya lo tenías)
+    $clientes = Cliente::with(['files', 'user', 'locaciones', 'areas', 'medidores', 'reportes'])
+                    ->orderBy('nombre')
+                    ->get();
 
-        // Clientes cuyo estado_cliente == 2 (Onboarding)
-        $onboardingClients = $clientes->filter(function($c) {
-            return intval($c->estado_cliente) === 2;
-        })->values();
+    // Normalizamos/añadimos atributos calculados para cada cliente:
+    $clientes = $clientes->map(function($c) {
+        // Consideramos que el paso "sensores" está completado si:
+        // - hay medidores relacionados, o
+        // - el campo `site` tiene un valor, o
+        // - existen locaciones (opcional)
+        $sensorsDone = (
+            (isset($c->medidores) && $c->medidores->count() > 0)
+            || (!empty($c->site) && $c->site != '')
+            || (isset($c->locaciones) && $c->locaciones->count() > 0)
+        );
 
-        // Cargar catálogo de estados (id => estado)
-        $catalogoEstados = DB::table('catalogo_estados_usuarios')->pluck('estado', 'id')->toArray();
+        $capDone = (bool) ($c->capacitacion ?? false);
+        $goDone = intval($c->estado_cliente) === 1;
 
-        // NUEVO: cargar catálogo de regiones (id, region)
-        $catalogoRegiones = DB::table('catalogo_regiones')->orderBy('region')->get();
+        $doneSteps = ($sensorsDone ? 1 : 0) + ($capDone ? 1 : 0) + ($goDone ? 1 : 0);
+        $progreso = intval(round(($doneSteps / 3) * 100));
 
-        // NUEVO: cargar grupo tarifarios (id, nombre, factor_carga)
-        $grupoTarifarios = DB::table('grupo_tarifarios')->orderBy('nombre')->get();
+        if (!$sensorsDone) {
+            $nextStep = 'Vincular sensores';
+        } elseif (!$capDone) {
+            $nextStep = 'Capacitación';
+        } elseif (!$goDone) {
+            $nextStep = 'Go-Live';
+        } else {
+            $nextStep = 'Listo';
+        }
 
-        return view('clientes.index', compact('clientes', 'onboardingClients', 'catalogoEstados', 'catalogoRegiones', 'grupoTarifarios'));
-    }
+        // Añadimos atributos temporales al modelo para usar en la vista
+        $c->setAttribute('sensors_done', $sensorsDone);
+        $c->setAttribute('cap_done', $capDone);
+        $c->setAttribute('go_done', $goDone);
+        $c->setAttribute('done_steps', $doneSteps);
+        $c->setAttribute('progreso', $progreso);
+        $c->setAttribute('next_step', $nextStep);
+
+        return $c;
+    });
+
+    // Clientes en onboarding (estado_cliente == 2)
+    $onboardingClients = $clientes->filter(function($c) {
+        return intval($c->estado_cliente) === 2;
+    })->values();
+
+    // Cargar catálogo de estados (id => estado)
+    $catalogoEstados = DB::table('catalogo_estados_usuarios')->pluck('estado', 'id')->toArray();
+
+    // Cargar catálogo de regiones
+    $catalogoRegiones = DB::table('catalogo_regiones')->orderBy('region')->get();
+
+    // Cargar grupo tarifarios
+    $grupoTarifarios = DB::table('grupo_tarifarios')->orderBy('nombre')->get();
+
+    return view('clientes.index', compact('clientes', 'onboardingClients', 'catalogoEstados', 'catalogoRegiones', 'grupoTarifarios'));
+}
+
 
     // Mostrar el formulario para crear un nuevo cliente
     public function create()

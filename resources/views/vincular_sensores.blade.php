@@ -1,23 +1,23 @@
 @extends('layouts.app')
 
-@section('title', 'Vinculación rápida — Mest Energy')
+@section('title', 'Vincular sensores — Mest Energy')
 
 @section('content')
 
 <link rel="stylesheet" href="{{ asset('css/sensores.css') }}">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
-<div class="page">
+<div class="page" style="padding-top: 3rem;">
   <header class="breadcrumbs">
     <div>
-      <div class="title">Vinculación rápida — Mest Energy</div>
+      <div class="title">Vincular sensores</div>
       <div class="subtitle">Asigna sites a clientes existentes en segundos.</div>
     </div>
 
     <div class="controls">
 
       <!-- Nuevo site -->
-      <button id="openCreateSiteBtn" class="btn ghost" data-bs-toggle="modal" data-bs-target="#createSiteModal">+ Nuevo site</button>
+      <button id="openCreateSiteBtn" class="btn " data-bs-toggle="modal" data-bs-target="#createSiteModal">+ Nuevo site</button>
     </div>
   </header>
 

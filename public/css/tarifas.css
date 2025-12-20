@@ -1,0 +1,155 @@
+/* tarifas.css — Estilos para index.blade (Tarifas y Grupos Tarifarios)
+   Inspirado en el estilo proporcionado: limpio, con cards suaves, tipografía neutra y tablas legibles.
+*/
+
+:root{
+  --bg: #f4f6f6;
+  --card-bg: #ffffff;
+  --muted: #7f8b8e;
+  --primary: #b84936;
+  --accent: #2b9e8a;
+  --danger: #d9534f;
+  --shadow: 0 8px 22px rgba(14,30,30,0.05);
+  --radius: 10px;
+  --surface-border: #eef3f3;
+}
+
+/* Reset ligero */
+*{ box-sizing: border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: #223033;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* Contenedor principal (coincide con .container en la blade) */
+.container.my-5{
+  max-width:1180px;
+  margin:32px auto;
+  padding:18px;
+}
+
+h1.text-center{
+  margin-bottom:18px;
+  color: var(--primary);
+  font-weight:600;
+  letter-spacing:0.2px;
+  font-size:24px;
+}
+
+/* Card base (sobreescribe/acompaña bootstrap.card) */
+.custom-card{
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding:0;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(18,52,51,0.03);
+}
+.custom-card .card-header{
+  background: transparent;
+  border-bottom: none;
+  padding:18px 20px;
+}
+.custom-card .card-header h3{
+  margin:0; font-size:16px; color:#b84936; font-weight:600;
+}
+.custom-card .card-body{ padding:16px; }
+
+/* Botón crear */
+.custom-btn-create{
+  background: #b84936;
+  color:#fff; font-weight:600; border:none; padding:10px 14px; border-radius:10px;
+  box-shadow: 0 8px 20px rgba(43,158,138,0.12);
+}
+.custom-btn-create i{ margin-right:6px; }
+.custom-btn-create:hover{ transform:translateY(-1px); }
+
+/* Tablas limpias */
+.custom-table{
+width:100%;
+border-collapse:collapse;
+font-size:14px;
+}
+.custom-table thead th{
+background:#f8f9f9;
+color:#b84936;;
+padding:12px 10px; text-align:left; font-weight:700; font-size:13px;
+border-bottom:1px solid var(--surface-border);
+}
+.custom-table tbody td{
+padding:12px 10px;
+border-bottom:1px solid #f2f6f6;
+vertical-align:middle;
+}
+.custom-table tbody tr:hover{ background:#fcfcfc; }
+
+
+/* Quitar bordes de Bootstrap */
+.table-bordered > :not(caption) > * > *{
+border: none !important;
+}
+
+/* Small helper for truncated text */
+.truncate{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px; display:inline-block; }
+
+/* Acciones (botones) */
+.custom-actions .btn{ margin-right:8px; }
+.custom-actions .btn-warning{ background:#ffdd57; border:none; color:#5a3f00; border-radius:8px; padding:6px 8px; box-shadow:none; }
+.custom-actions .btn-danger{ background:transparent; border:none; color:var(--danger); }
+.custom-actions .btn-danger i{ font-size:16px; }
+
+/* Modal personalizado */
+.custom-modal-content{
+  border-radius:12px; overflow:hidden; box-shadow: 0 18px 40px rgba(14,30,30,0.12);
+}
+.custom-modal-header{ background: linear-gradient(180deg,#fbfdfc 0%, #ffffff 100%); padding:16px 18px; }
+.custom-modal-header .modal-title{ color:#184042; font-weight:800; font-size:16px; }
+.modal-body{ padding:18px; }
+.modal-footer{ padding:14px 18px; }
+
+/* Form inputs (armonizados) */
+.form-control{
+  padding:10px 12px; border-radius:8px; border:1px solid #e7efee; background:#fff; font-size:14px;
+}
+.form-label{ font-weight:600; color:#b84936; font-size:13px; }
+
+/* Table responsive wrapper */
+.table-responsive{ overflow-x:auto; border-radius:10px; }
+
+/* Badges de estatus (útiles para estatus Pendiente/Finalizado) */
+.badge-status{ display:inline-block; padding:6px 10px; border-radius:999px; font-weight:600; font-size:12px; }
+.badge-status.pending{ background:#fff5f5; color:#b71c1c; border:1px solid rgba(183,28,28,0.06); }
+.badge-status.finished{ background:#e9f6ef; color:#1f6f3b; border:1px solid rgba(31,111,59,0.06); }
+
+/* Footer de modal: botones */
+.modal-footer .btn-secondary{ background:#fff; border:1px solid #e7efee; color:#3f6b69; border-radius:8px; padding:8px 12px; }
+.modal-footer .btn-primary{ background:var(--accent); border:none; color:#fff; font-weight:800; border-radius:8px; padding:8px 12px; }
+
+/* Ajustes para tablas pequeñas dentro de cards */
+.custom-card table{ margin-bottom:0; }
+
+/* Card header small subtitle */
+.card-sub{ font-size:13px; color:var(--muted); margin-top:6px; }
+
+/* Sombra y elevación para iconos/mini-cards si se añade más UI */
+.icon-box{ width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; background: rgba(43,158,138,0.06); }
+
+/* Responsive */
+@media (max-width:1080px){
+  .container.my-5{ padding:14px; }
+  .custom-table thead th, .custom-table tbody td{ padding:10px 8px; }
+}
+@media (max-width:760px){
+  .container.my-5{ margin:12px; }
+  .custom-btn-create{ width:100%; display:block; }
+  .custom-actions .btn{ margin-bottom:6px; }
+  .truncate{ max-width:160px; }
+}
+
+/* Nota: si vas a usar inputs en modales que se generan dentro de bucles, evita repetir ids iguales.
+   Usa clases o añade el id con el sufijo del registro (ej: id="clasificacion-{{ $tarifa->id }}") para
+   mantener validez del HTML y mejorar accesibilidad. */

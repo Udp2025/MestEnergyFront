@@ -5,6 +5,8 @@
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="{{ asset('css/tarifas.css') }}" rel="stylesheet">
+
 
 <div class="container my-5">
     <h1 class="text-center mb-4">Gestión de Tarifas y Grupos Tarifarios</h1>
@@ -44,13 +46,13 @@
                                 <td>{{ $grupo->nombre }}</td>
                                 <td>{{ $grupo->factor_carga }}</td>
                                 <td>
-                                    <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editGrupoModal-{{ $grupo->id }}">
+                                    <button class="btn custom-btn-create" data-bs-toggle="modal" data-bs-target="#editGrupoModal-{{ $grupo->id }}">
                                         <i class="fa fa-pencil"></i>
                                     </button>
                                     <form action="{{ route('grupo_tarifarios.destroy', $grupo->id) }}" method="POST" style="display:inline;">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-danger">
+                                        <button type="submit" class="btn custom-btn-create">
                                             <i class="fa-solid fa-trash-can"></i>
                                         </button>
                                     </form>

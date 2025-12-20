@@ -56,11 +56,11 @@
           </div>
         </div>
 
-        <!-- SEARCH / FILTER -->
+        <!-- SEARCH / FILTER 
         <div class="controls">
           <input id="searchCliente" class="search" placeholder="Buscar por cliente o RFC..." />
           <button class="filter">Filtrar estatus</button>
-        </div>
+        </div>-->
 
         <!-- TABLE: CLIENTES -->
         <div class="table-card">
@@ -125,15 +125,30 @@
           </div>
           <div class="kpi-card small">
             @php
-              $avg = $onboardingClients->count() ? round($onboardingClients->avg(function($c){ return $c->progreso ?? 0; })) : 0;
+              $avg = $onboardingClients->count() ? round($onboardingClients->avg(function($c){
+                $sensorsDone = (
+                    (isset($c->medidores) && $c->medidores->count() > 0)
+                    || (!empty($c->site) && $c->site != '')
+                    || (isset($c->locaciones) && $c->locaciones->count() > 0)
+                ) ? 1 : 0;
+                $capDone = ($c->capacitacion ?? 0) ? 1 : 0;
+                $goDone = ($c->estado_cliente == 1) ? 1 : 0;
+                $doneSteps = $sensorsDone + $capDone + $goDone;
+                return intval(round(($doneSteps / 3) * 100));
+              })) : 0;
             @endphp
             <div class="kpi-number">{{ $avg }}%</div>
             <div class="kpi-label">Promedio avance</div>
           </div>
           <div class="kpi-card small">
-            <div class="kpi-number">{{ $onboardingClients->where('progreso', '>=', 100)->count() }}</div>
+            <div class="kpi-number">
+              {{ $onboardingClients->filter(function($c){ 
+                  return (!empty($c->sensors_done) && $c->sensors_done) && (!empty($c->cap_done) && $c->cap_done); 
+                })->count() }}
+            </div>
             <div class="kpi-label">Listos para Go-Live</div>
           </div>
+
           <div class="kpi-card small">
             <div class="kpi-number">{{ $onboardingClients->where('capacitacion', 1)->count() }}</div>
             <div class="kpi-label">Capacitación agendada</div>
@@ -153,12 +168,28 @@
             <div class="onboarding-list">
               @foreach($onboardingClients as $cliente)
                 @php
-                  $progreso = intval($cliente->progreso ?? 0);
-                  $steps = ['Configuración sensores','Capacitación','Go-Live'];
-                  $done = intval(round(($progreso / 100) * count($steps)));
+                  $sensorsDone = (
+                      (isset($cliente->medidores) && $cliente->medidores->count() > 0)
+                      || (!empty($cliente->site) && $cliente->site != '')
+                      || (isset($cliente->locaciones) && $cliente->locaciones->count() > 0)
+                  );
+
+                  $capDone = ($cliente->capacitacion ?? 0) ? true : false;
+                  $goDone = ($cliente->estado_cliente == 1);
+                  $doneSteps = ($sensorsDone ? 1 : 0) + ($capDone ? 1 : 0) + ($goDone ? 1 : 0);
+                  $progresoCalc = intval(round(($doneSteps / 3) * 100));
+                  if (!$sensorsDone) {
+                    $nextStep = 'Vincular sensores';
+                  } elseif (!$capDone) {
+                    $nextStep = 'Capacitación';
+                  } elseif (!$goDone) {
+                    $nextStep = 'Go-Live';
+                  } else {
+                    $nextStep = 'Listo';
+                  }
                 @endphp
 
-                <article class="onboard-card">
+                <article class="onboard-card" data-cliente-id="{{ $cliente->id }}">
                   <div class="onboard-left">
                     <div class="onboard-title">
                       <a href="{{ route('clientes.show', $cliente) }}" class="c-link">{{ $cliente->nombre }}</a>
@@ -173,23 +204,25 @@
                   <div class="onboard-middle">
                     <div class="progress-td">
                       <div class="progress-line" aria-hidden="true">
-                        <div class="progress-bar" style="width: {{ $progreso > 100 ? 100 : $progreso }}%"></div>
+                        <div class="progress-bar" style="width: {{ $progresoCalc }}%"></div>
                       </div>
-                      <div class="progress-percent">{{ $progreso }}%</div>
+                      <div class="progress-percent">{{ $progresoCalc }}%</div>
 
                       <div class="chips">
-                        <a href="{{ route('vincular_sensores') }}" class="chip {{ $done >= 1 ? 'done' : '' }}">
-                          Configuración sensores
-                        </a>
+                        @if($sensorsDone)
+                          <span class="chip done">Configuración sensores</span>
+                        @else
+                          <a href="{{ route('vincular_sensores') }}" class="chip chip-sensors">Configuración sensores</a>
+                        @endif
 
                         <button type="button"
-                                class="chip btn-capacitacion {{ $done >= 2 || $cliente->capacitacion ? 'done' : '' }}"
+                                class="chip btn-capacitacion {{ $capDone ? 'done' : '' }}"
                                 data-cliente-id="{{ $cliente->id }}">
                           Capacitación
                         </button>
 
                         <button type="button"
-                                class="chip btn-go-live {{ $cliente->estado_cliente == 1 ? 'done' : '' }}"
+                                class="chip btn-go-live {{ $goDone ? 'done' : '' }}"
                                 data-cliente-id="{{ $cliente->id }}">
                           Go-Live
                         </button>
@@ -199,14 +232,13 @@
 
                   <div class="onboard-right">
                     <div class="next-step">
-                      <div><strong>Próximo paso:</strong> {{ $cliente->proximo_paso ?? '—' }}</div>
-                      <div><strong>Fecha objetivo:</strong> {{ optional($cliente->fecha_objetivo)->format('Y-m-d') ?? '—' }}</div>
+                      <div><strong>Próximo paso:</strong> <span class="next-step-text">{{ $nextStep }}</span></div>
                     </div>
 
                     <div class="onboard-actions">
                       <a href="{{ route('clientes.show', $cliente) }}" class="btn small edit" title="Ver detalle"><i class="fas fa-eye"></i></a>
-                      <button class="btn small edit" data-bs-toggle="modal" data-bs-target="#editClientModal{{ $cliente->id }}" title="Editar"><i class="fas fa-pen"></i></button>
-                      <a href="#" class="btn continue" onclick="handleContinueOnboarding({{ $cliente->id }})">Continuar</a>
+                      <!-- Edita usando el mismo modal único -->
+                      <button class="btn small edit btn-edit" data-id="{{ $cliente->id }}" title="Editar"><i class="fas fa-pen"></i></button>
                     </div>
                   </div>
                 </article>
@@ -490,7 +522,6 @@
   </div>
 </div>
 
-
 <!-- Modal confirmación eliminar -->
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-sm modal-dialog-centered">
@@ -511,8 +542,7 @@
   </div>
 </div>
 
-
-<!-- EDIT modal: solo "Generales" -->
+<!-- EDIT modal: solo \"Generales\" -->
 <div class="modal fade" id="editClientModal" tabindex="-1" aria-hidden="true" aria-labelledby="editClientLabel">
   <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content create-client-modal">
@@ -539,12 +569,10 @@
               <input id="edit_rfc" name="rfc" type="text" class="form-control">
             </div>
 
-            <!-- añadir/renombrar campo -->
             <div class="form-group">
               <label>Razón social (CFDI)</label>
               <input id="edit_razon_social" name="razon_social" type="text" class="form-control" placeholder="">
             </div>
-
 
             <div class="form-group">
               <label>Email</label>
@@ -670,10 +698,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   // ============================================
-  // 1. FUNCIONES GLOBALES PARA DIRECCIONES
+  // DIRECCIONES (cargar estados/municipios/colonias)
   // ============================================
-
-  // --- Funciones para modal de CREACIÓN ---
   function cargarEstados() {
     const estadoSelect = document.getElementById('estado_select');
     if (!estadoSelect || typeof mexicoData === 'undefined') return;
@@ -817,7 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cpLoading) cpLoading.style.display = 'none';
   }
 
-  // --- Funciones para modal de EDICIÓN ---
+  // Edit modal versions
   function cargarEstadosEdit() {
     const estadoSelect = document.getElementById('edit_estado_select');
     if (!estadoSelect || typeof mexicoData === 'undefined') return;
@@ -921,120 +947,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ============================================
-  // 2. ASIGNAR EVENT LISTENERS A DIRECCIONES
+  // ASIGNAR EVENT LISTENERS A DIRECCIONES
   // ============================================
   function asignarEventListenersDirecciones() {
-    // Modal Creación
     const estadoSelect = document.getElementById('estado_select');
     const municipioSelect = document.getElementById('municipio_select');
     const cpInput = document.getElementById('codigo_postal');
-    
+
     if (estadoSelect) estadoSelect.addEventListener('change', cargarMunicipios);
     if (municipioSelect) municipioSelect.addEventListener('change', cargarColonias);
     if (cpInput) cpInput.addEventListener('blur', function() { buscarPorCP(this.value); });
 
-    // Modal Edición
     const editEstadoSelect = document.getElementById('edit_estado_select');
     const editMunicipioSelect = document.getElementById('edit_municipio_select');
     const editCpInput = document.getElementById('edit_codigo_postal');
-    
+
     if (editEstadoSelect) editEstadoSelect.addEventListener('change', cargarMunicipiosEdit);
     if (editMunicipioSelect) editMunicipioSelect.addEventListener('change', cargarColoniasEdit);
     if (editCpInput) editCpInput.addEventListener('blur', function() { buscarPorCPEdit(this.value); });
   }
 
-  // Llamar al cargar la página
   asignarEventListenersDirecciones();
 
   // ============================================
-  // 3. MANEJO DE MODALES Y REASIGNACIÓN
+  // TABS, SEARCH, TOGGLE STATUS
   // ============================================
-  const createModal = document.getElementById('createClientModal');
-  if (createModal) {
-    createModal.addEventListener('shown.bs.modal', function() {
-      if (typeof mexicoData !== 'undefined') cargarEstados();
-      asignarEventListenersDirecciones();
-    });
-  }
-
-  const editModal = document.getElementById('editClientModal');
-  if (editModal) {
-    editModal.addEventListener('shown.bs.modal', function() {
-      if (typeof mexicoData !== 'undefined') cargarEstadosEdit();
-      asignarEventListenersDirecciones();
-    });
-  }
-
-  // ============================================
-  // 4. CÓDIGO ORIGINAL (TABS, STEPPER, etc.)
-  // ============================================
-
-  // Variables globales de modales
-  const confirmCapModalEl = document.getElementById('confirmCapacitacionModal');
-  const confirmGoModalEl = document.getElementById('confirmGoLiveModal');
-  let pendingClienteId = null;
-
-  // CAPACITACION modal
-  if (confirmCapModalEl) {
-    const capModal = new bootstrap.Modal(confirmCapModalEl);
-    document.querySelectorAll('.btn-capacitacion').forEach(btn => {
-      btn.addEventListener('click', () => {
-        pendingClienteId = btn.dataset.clienteId;
-        capModal.show();
-      });
-    });
-    document.getElementById('capacitacionConfirm').addEventListener('click', () => {
-      if (!pendingClienteId) return;
-      fetch(`/clientes/${pendingClienteId}/capacitacion`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: JSON.stringify({})
-      })
-      .then(r => r.json())
-      .then(res => {
-        if (res.success) window.location.reload();
-        else alert(res.message || 'Error al actualizar capacitación');
-      }).catch(e => {
-        console.error(e);
-        alert('Error al comunicar con el servidor');
-      });
-    });
-  }
-
-  // GO-LIVE modal
-  if (confirmGoModalEl) {
-    const goModal = new bootstrap.Modal(confirmGoModalEl);
-    document.querySelectorAll('.btn-go-live').forEach(btn => {
-      btn.addEventListener('click', () => {
-        pendingClienteId = btn.dataset.clienteId;
-        goModal.show();
-      });
-    });
-    document.getElementById('goLiveConfirm').addEventListener('click', () => {
-      if (!pendingClienteId) return;
-      fetch(`/clientes/${pendingClienteId}/go-live`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: JSON.stringify({})
-      })
-      .then(r => r.json())
-      .then(res => {
-        if (res.success) window.location.reload();
-        else alert(res.message || 'Error al marcar Go-Live');
-      }).catch(e => {
-        console.error(e);
-        alert('Error al comunicar con el servidor');
-      });
-    });
-  }
-
-  // --- TABS ---
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
@@ -1045,7 +982,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // --- Toggle status ---
   document.querySelectorAll('.toggle-status').forEach(toggle => {
     toggle.addEventListener('change', function() {
       const id = this.dataset.id;
@@ -1071,7 +1007,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // --- Search local ---
   const search = document.getElementById('searchCliente');
   if (search) {
     search.addEventListener('input', () => {
@@ -1082,18 +1017,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- Abrir modales si servidor lo indica ---
-  const hasErrors = {{ $errors->any() ? 'true' : 'false' }};
-  const editModalId = @json(session('edit_modal'));
-  if(editModalId){
-    const el = document.getElementById('editClientModal' + editModalId);
-    if(el) new bootstrap.Modal(el).show();
-  } else if(hasErrors){
-    const cm = document.getElementById('createClientModal');
-    if(cm) new bootstrap.Modal(cm).show();
-  }
-
-  // --- Create modal stepper ---
+  // ============================================
+  // CREATE MODAL (stepper + submit)
+  // ============================================
   (function initCreateStepper(){
     const modal = document.getElementById('createClientModal');
     if(!modal) return;
@@ -1186,18 +1112,18 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.set('fact_auto', factAuto && factAuto.checked ? '1' : '0');
       formData.set('recordatorios', recordatorios && recordatorios.checked ? '1' : '0');
 
-  fetch("{{ route('clientes.store') }}", {
-    method: "POST",
-    headers: {
-      "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-      "Accept": "application/json"
-    },
-    body: formData,
-    credentials: "same-origin"
-  })
-  .then(async (response) => {
-    const contentType = response.headers.get('content-type') || '';
-    const data = contentType.includes('application/json') ? await response.json() : null;
+      fetch("{{ route('clientes.store') }}", {
+        method: "POST",
+        headers: {
+          "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+          "Accept": "application/json"
+        },
+        body: formData,
+        credentials: "same-origin"
+      })
+      .then(async (response) => {
+        const contentType = response.headers.get('content-type') || '';
+        const data = contentType.includes('application/json') ? await response.json() : null;
 
         if (response.ok) {
           const bsModal = bootstrap.Modal.getInstance(modal);
@@ -1237,7 +1163,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editModal = new bootstrap.Modal(editModalEl);
     const editForm = document.getElementById('editClientForm');
 
-    // Hook edit buttons in table
+    // Hook edit buttons in table and onboarding (btn-edit)
     document.querySelectorAll('.btn-edit').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.dataset.id;
@@ -1256,7 +1182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ['edit_cliente_id', data.id || id],
             ['edit_nombre', data.nombre ?? ''],
             ['edit_rfc', data.rfc ?? ''],
-            ['edit_razon_social', data.edit_razon_social ?? ''],
+            ['edit_razon_social', data.razon_social ?? data.razon_fiscal ?? ''],
             ['edit_email', data.email ?? ''],
             ['edit_telefono', data.telefono ?? ''],
             ['edit_calle', data.calle ?? ''],
@@ -1312,7 +1238,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const contratoDiv = getEl('edit_contrato_actual');
           if (contratoDiv) {
             const info = data.infoFiscal ?? data.info_fiscal ?? {};
-            if (info.csf) {
+            if (info && info.csf) {
               contratoDiv.innerHTML = `<a href="/clientes/${data.id}/download-contract" target="_blank" rel="noopener">Contrato actual</a>`;
             } else {
               contratoDiv.innerHTML = '<em>No hay contrato</em>';
@@ -1368,6 +1294,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const bsModal = bootstrap.Modal.getInstance(editModalEl);
         if (bsModal) bsModal.hide();
+        // Actualizamos la fila o recargamos: aquí recargamos para simplicidad
         window.location.reload();
       } catch (err) {
         console.error(err);
@@ -1377,102 +1304,254 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   })();
 
-  // ---- Confirm deletion modal handling ----
-(function() {
-  const deleteModalEl = document.getElementById('confirmDeleteModal');
-  if (!deleteModalEl) return;
-  const deleteModal = new bootstrap.Modal(deleteModalEl);
-  let pendingForm = null;
+  // ============================================
+  // ONBOARD CARD HELPERS: recalcular progreso y texto siguiente paso
+  // ============================================
+  function updateOnboardCardState(card) {
+    // chips: consider ones with class 'done' as completed
+    const chips = card.querySelectorAll('.chips .chip');
+    let done = 0;
+    let sensorsDone = false, capDone = false, goDone = false;
 
-  // wire delete buttons
-  document.querySelectorAll('.btn-delete').forEach(btn => {
-    btn.addEventListener('click', (ev) => {
-      ev.preventDefault();
-      const form = btn.closest('form.delete-client-form');
-      if (!form) return console.warn('Formulario de borrado no encontrado');
-      pendingForm = form;
-      const nombre = form.dataset.clienteNombre || btn.closest('tr')?.querySelector('.c-link')?.innerText || 'este cliente';
-      document.getElementById('confirmDeleteText').textContent = `¿Confirmas eliminar "${nombre}"? Esta acción no se puede deshacer.`;
-      // limpiar mensaje de error previo
-      document.getElementById('deleteErrorMessage').style.display = 'none';
-      document.getElementById('deleteErrorMessage').textContent = '';
-      deleteModal.show();
+    chips.forEach(ch => {
+      const txt = ch.textContent.trim().toLowerCase();
+      if (ch.classList.contains('done')) {
+        done++;
+        if (txt.includes('sensor')) sensorsDone = true;
+        if (txt.includes('capacit')) capDone = true;
+        if (txt.includes('go-live') || txt.includes('go live')) goDone = true;
+      } else {
+        // If chip is not done but is a non-anchor sensor (rare), skip
+      }
     });
-  });
 
-  // confirmar: submit del form
-  // Reemplaza esta parte del JavaScript (alrededor de la línea 1300)
-document.getElementById('deleteConfirm').addEventListener('click', async () => {
-  if (!pendingForm) { deleteModal.hide(); return; }
-  const action = pendingForm.getAttribute('action');
-  const token = pendingForm.querySelector('input[name="_token"]').value;
-  
-  // Mostrar indicador de carga
-  const confirmBtn = document.getElementById('deleteConfirm');
-  const originalText = confirmBtn.textContent;
-  confirmBtn.disabled = true;
-  confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
-  
-  const errorDiv = document.getElementById('deleteErrorMessage');
-  errorDiv.style.display = 'none';
-  errorDiv.textContent = '';
-  
-  try {
-    const res = await fetch(action, {
-      method: 'POST',
-      headers: {
-        'X-CSRF-TOKEN': token,
-        'Accept': 'application/json'
-      },
-      body: new URLSearchParams(new FormData(pendingForm))
-    });
-    
-    const data = await res.json().catch(() => null);
-    
-    if (res.ok) {
-      // Éxito: recargar página
-      deleteModal.hide();
-      // Mostrar mensaje de éxito antes de recargar
-      const successMsg = document.createElement('div');
-      successMsg.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
-      successMsg.style.zIndex = '9999';
-      successMsg.innerHTML = `
-        <strong>✓ Éxito!</strong> Cliente eliminado correctamente.
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      `;
-      document.body.appendChild(successMsg);
-      
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-      
-    } else {
-      // Error: mostrar mensaje amigable
-      const msg = data?.message || 'No se pudo eliminar el cliente. Inténtalo de nuevo.';
-      errorDiv.style.display = 'block';
-      errorDiv.textContent = msg;
-      errorDiv.className = 'error-message text-danger mt-2';
-      
-      // Restaurar botón
-      confirmBtn.disabled = false;
-      confirmBtn.textContent = originalText;
-    }
-  } catch (err) {
-    // Error de red o conexión
-    errorDiv.style.display = 'block';
-    errorDiv.textContent = 'Error de conexión. Verifica tu internet e inténtalo de nuevo.';
-    errorDiv.className = 'error-message text-danger mt-2';
-    
-    // Restaurar botón
-    confirmBtn.disabled = false;
-    confirmBtn.textContent = originalText;
-    console.error('Error eliminando cliente:', err);
+    // also detect sensor done if chip-sensors is not a link but a span (already covered)
+    const percent = Math.round((done / 3) * 100);
+    const bar = card.querySelector('.progress-bar');
+    const pctEl = card.querySelector('.progress-percent');
+    if (bar) bar.style.width = percent + '%';
+    if (pctEl) pctEl.textContent = percent + '%';
+
+    const nextStepEl = card.querySelector('.next-step-text');
+    let next = 'Listo';
+    if (!sensorsDone) next = 'Vincular sensores';
+    else if (!capDone) next = 'Capacitación';
+    else if (!goDone) next = 'Go-Live';
+    if (nextStepEl) nextStepEl.textContent = next;
   }
-});
 
+  function recalcOnboardProgressCards(){
+    document.querySelectorAll('.onboard-card').forEach(card => updateOnboardCardState(card));
+  }
 
-})();
+  recalcOnboardProgressCards();
 
+  // ============================================
+  // CAPACITACION y GO-LIVE: confirm modals con actualización DOM
+  // ============================================
+  const confirmCapModalEl = document.getElementById('confirmCapacitacionModal');
+  const confirmGoModalEl = document.getElementById('confirmGoLiveModal');
+  let pendingClienteId = null;
+
+  if (confirmCapModalEl) {
+    const capModal = new bootstrap.Modal(confirmCapModalEl);
+    document.querySelectorAll('.btn-capacitacion').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pendingClienteId = btn.dataset.clienteId;
+        capModal.show();
+      });
+    });
+
+    document.getElementById('capacitacionConfirm').addEventListener('click', async () => {
+      if (!pendingClienteId) return;
+      const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      const btn = document.getElementById('capacitacionConfirm');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+      try {
+        const res = await fetch(`/clientes/${pendingClienteId}/capacitacion`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({})
+        });
+        const data = await res.json().catch(()=>null);
+        if (res.ok && data?.success) {
+          // Actualizar DOM: buscar la tarjeta onboarding del cliente y marcar capacitación como done
+          const card = document.querySelector(`.onboard-card[data-cliente-id="${pendingClienteId}"]`);
+          if (card) {
+            const capBtn = card.querySelector('.btn-capacitacion');
+            if (capBtn) {
+              capBtn.classList.add('done');
+              capBtn.disabled = true;
+            }
+            updateOnboardCardState(card);
+          }
+          capModal.hide();
+        } else {
+          alert(data?.message || 'Error al marcar capacitación');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error al comunicar con el servidor');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    });
+  }
+
+  if (confirmGoModalEl) {
+    const goModal = new bootstrap.Modal(confirmGoModalEl);
+    document.querySelectorAll('.btn-go-live').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pendingClienteId = btn.dataset.clienteId;
+        goModal.show();
+      });
+    });
+
+    document.getElementById('goLiveConfirm').addEventListener('click', async () => {
+      if (!pendingClienteId) return;
+      const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      const btn = document.getElementById('goLiveConfirm');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+      try {
+        const res = await fetch(`/clientes/${pendingClienteId}/go-live`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({})
+        });
+        const data = await res.json().catch(()=>null);
+        if (res.ok && data?.success) {
+          const card = document.querySelector(`.onboard-card[data-cliente-id="${pendingClienteId}"]`);
+          if (card) {
+            const goBtn = card.querySelector('.btn-go-live');
+            if (goBtn) {
+              goBtn.classList.add('done');
+              goBtn.disabled = true;
+            }
+            // También marcar la pill de estado (si tienes one)
+            updateOnboardCardState(card);
+          }
+          goModal.hide();
+        } else {
+          alert(data?.message || 'Error al marcar Go-Live');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error al comunicar con el servidor');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    });
+  }
+
+  // ============================================
+  // DELETE: confirm modal (reutiliza pendingForm)
+  // ============================================
+  (function() {
+    const deleteModalEl = document.getElementById('confirmDeleteModal');
+    if (!deleteModalEl) return;
+    const deleteModal = new bootstrap.Modal(deleteModalEl);
+    let pendingForm = null;
+
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+      btn.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        const form = btn.closest('form.delete-client-form');
+        if (!form) return console.warn('Formulario de borrado no encontrado');
+        pendingForm = form;
+        const nombre = form.dataset.clienteNombre || btn.closest('tr')?.querySelector('.c-link')?.innerText || 'este cliente';
+        document.getElementById('confirmDeleteText').textContent = `¿Confirmas eliminar "${nombre}"? Esta acción no se puede deshacer.`;
+        document.getElementById('deleteErrorMessage').style.display = 'none';
+        document.getElementById('deleteErrorMessage').textContent = '';
+        deleteModal.show();
+      });
+    });
+
+    document.getElementById('deleteConfirm').addEventListener('click', async () => {
+      if (!pendingForm) { deleteModal.hide(); return; }
+      const action = pendingForm.getAttribute('action');
+      const token = pendingForm.querySelector('input[name="_token"]').value;
+
+      const confirmBtn = document.getElementById('deleteConfirm');
+      const originalText = confirmBtn.textContent;
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
+
+      const errorDiv = document.getElementById('deleteErrorMessage');
+      errorDiv.style.display = 'none';
+      errorDiv.textContent = '';
+
+      try {
+        const res = await fetch(action, {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json'
+          },
+          body: new URLSearchParams(new FormData(pendingForm))
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (res.ok) {
+          deleteModal.hide();
+          const successMsg = document.createElement('div');
+          successMsg.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+          successMsg.style.zIndex = '9999';
+          successMsg.innerHTML = `
+            <strong>✓ Éxito!</strong> Cliente eliminado correctamente.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          `;
+          document.body.appendChild(successMsg);
+          setTimeout(() => {
+            window.location.reload();
+          }, 900);
+        } else {
+          const msg = data?.message || 'No se pudo eliminar el cliente. Inténtalo de nuevo.';
+          errorDiv.style.display = 'block';
+          errorDiv.textContent = msg;
+          errorDiv.className = 'error-message text-danger mt-2';
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = originalText;
+        }
+      } catch (err) {
+        errorDiv.style.display = 'block';
+        errorDiv.textContent = 'Error de conexión. Verifica tu internet e inténtalo de nuevo.';
+        errorDiv.className = 'error-message text-danger mt-2';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = originalText;
+        console.error('Error eliminando cliente:', err);
+      }
+    });
+  })();
+
+  // Abrir modales si el servidor lo indica (errores/edición)
+  const hasErrors = @json($errors->any());
+  const editModalId = @json(session('edit_modal'));
+  if(editModalId){
+    // si en session pediste abrir un edit modal específico (id) y tu plantilla tenía editClientModal{id} no aplicará,
+    // aquí asumimos el flujo que carga mediante AJAX
+    const el = document.getElementById('editClientModal');
+    if(el) new bootstrap.Modal(el).show();
+  } else if(hasErrors){
+    const cm = document.getElementById('createClientModal');
+    if(cm) new bootstrap.Modal(cm).show();
+  }
 
 });
 </script>
