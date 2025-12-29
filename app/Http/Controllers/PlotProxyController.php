@@ -63,6 +63,7 @@ class PlotProxyController extends Controller
             'site_hourly_kpi',
             'device_daily_kpi',
             'ingestion_run_kpi',
+            'cost_agg',
         ];
         if (!in_array($table, $allowed, true)) {
             abort(422, "La tabla solicitada ({$table}) no está permitida.");
