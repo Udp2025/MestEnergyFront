@@ -219,7 +219,10 @@ async function renderArea(areaKey, elements) {
   elements.grid.innerHTML = "";
   const filters = currentFilters(elements, areaKey);
   // Preload device labels (all sites when needed) to de-ambiguate legends/summaries
-  if (areaKey === "mantenimiento") {
+  //if (areaKey === "mantenimiento") {
+  //  await ensureDeviceLabels(filters.siteId || "ALL");
+  //}
+  if (areaKey === "mantenimiento" || areaKey === "finanzas") {
     await ensureDeviceLabels(filters.siteId || "ALL");
   }
   await renderComparisonSection(areaKey, elements.grid, filters, renderId);
@@ -262,7 +265,9 @@ async function renderArea(areaKey, elements) {
       loadDireccionCard(card, cardEl, filters, renderId);
     } else if (areaKey === "mantenimiento") {
       loadMantenimientoCard(card, cardEl, filters, renderId);
-    } else {
+    } else if (areaKey === "finanzas") {
+      loadFinanzasCard(card, cardEl, filters, renderId);
+    }else {
       renderSeededCard(card, cardEl, filters, renderId);
     }
   });
@@ -333,6 +338,117 @@ function setActiveTab(area, elements) {
     tab.setAttribute("aria-selected", isActive ? "true" : "false");
   });
 }
+
+
+/* ------------------------------------------------------------------ */
+/*  Finanzas                                                          */
+/* ------------------------------------------------------------------ */
+
+function loadFinanzasCard(card, cardEl, filters, renderId) {
+  if (card.type === "summary") {
+    const container = cardEl.querySelector("[data-summary-key]");
+    renderFinanzasSummary(container, filters, renderId);
+    return;
+  }
+
+  const chartEl = cardEl.querySelector("[data-chart-key]");
+
+  switch (card.key) {
+    case "energyByDay":
+      renderPlotCard(chartEl, () => buildEnergyByDayPayload(filters));
+      break;
+    case "energyBySensor":
+      renderPlotCard(chartEl, () => buildEnergyBySensorPayload(filters, "bar"));
+      break;
+    case "energyByTariff":
+      renderPlotCard(chartEl, () => buildEnergyByTariffPayload(filters));
+      break;
+    case "costBySensor":
+      renderPlotCard(chartEl, () => buildCostBySensorPayload(filters));
+      break;
+    case "costByTariff":
+      renderPlotCard(chartEl, () => buildCostByTariffPayload(filters));
+      break;
+    default:
+      setMessage(chartEl, "Sin datos disponibles.");
+  }
+}
+
+
+async function renderFinanzasSummary(container, filters, renderId) {
+  if (!container) return;
+  setLoading(container);
+
+  try {
+    await ensureDeviceLabels(filters.siteId || "ALL");
+
+    const rows = await fetchCostAggregates(filters);
+
+    if (renderId !== state.renderToken) return;
+
+    let totalEnergyWh = 0;
+    let totalCost = 0;
+    let costsByZone = {
+      Base: 0,
+      Intermedia: 0,
+      Punta: 0,
+    };
+
+    let topSensor = "—";
+    let topSensorCost = 0;
+
+    rows.forEach((r) => {
+      const energy = r.energy_kwh_sum || 0;
+      const costBase = r.cost_base_sum || 0;
+      const costInter = r.cost_intermediate_sum || 0;
+      const costPeak = r.cost_peak_sum || 0;
+
+      const sensorCost = costBase + costInter + costPeak;
+
+      totalEnergyWh += energy;
+      totalCost += sensorCost;
+
+      costsByZone.Base += costBase;
+      costsByZone.Intermedia += costInter;
+      costsByZone.Punta += costPeak;
+
+      if (sensorCost > topSensorCost) {
+        topSensorCost = sensorCost;
+        topSensor = deviceLabel(r.device_id, r.device_name, r.site_id);
+      }
+    });
+
+    const topZone = Object.entries(costsByZone).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+
+    const daily = await fetchDailyEnergy(filters);
+    const topDay = daily[0]?.kpi_date || "—";
+
+
+
+    const summaryRows = [
+      { label: "Consumo total", value: formatEnergy(totalEnergyWh) },
+      { label: "Costo total", value: formatCurrency(totalCost) },
+      { label: "Sensor más costoso", value: topSensor },
+      { label: "Zona más cara", value: topZone },
+      { label: "Día mayor consumo", value: topDay || "—" },
+    ];
+
+    renderSummaryRows(container, summaryRows);
+
+    renderNarrative("finanzas", filters, {
+      totalEnergyWh,
+      totalCost,
+      topSensor,
+      topZone,
+    });
+  } catch (err) {
+    if (renderId !== state.renderToken) return;
+    console.error("reports: finanzas summary", err);
+    setMessage(container, "No se pudo calcular el resumen financiero.");
+    renderNarrative("finanzas", filters, null, err);
+  }
+}
+
 
 /* ------------------------------------------------------------------ */
 /*  Dirección                                                         */
@@ -520,6 +636,229 @@ function buildBaseSiteMap(filters, column = "kpi_date") {
   }
   return map;
 }
+
+/* ------------------------------------------------------------------ */
+/*  COSTOS                                                */
+/* ------------------------------------------------------------------ */
+
+function buildCostAggFilter(filters) {
+  const map = {
+    timestamp: `[${filters.from} 00:00:00, ${filters.to} 23:59:59]`,
+  };
+
+  if (filters.siteId && filters.siteId !== "ALL") {
+    map.site_id = [String(filters.siteId)];
+  }
+
+  return map;
+}
+
+function buildEnergyByDayPayload(filters) {
+  const filter_map = {
+    kpi_date: `[${filters.from}, ${filters.to}]`,
+  };
+
+  if (filters.siteId && filters.siteId !== "ALL") {
+    filter_map.site_id = [String(filters.siteId)];
+  }
+
+  return {
+    table: "site_daily_kpi",
+    filter_map,
+    meta: {
+      domain: "finance",
+    },
+
+
+    chart: {
+      chart_type: "line",
+      x: "kpi_date",
+      y: "total_energy_wh",
+      style: {
+        shape: "spline",
+      },
+      xaxis: {
+        type: "date",
+      },
+    },
+
+    sort: [
+      {
+        field: "kpi_date",
+        direction: "asc",
+      },
+    ],
+  };
+}
+
+function buildCostByTariffPayload(filters, chartType = "bar") {
+  const filter_map = buildCostAggFilter(filters);
+
+  if (filters.siteId && filters.siteId !== "ALL") {
+    filter_map.site_id = [String(filters.siteId)];
+  }
+
+  return {
+    table: "cost_agg",
+    filter_map,
+
+    meta: {
+      domain: "finance",
+    },
+
+    aggregation: [
+      {
+        group_by: ["rate"],       // base / intermedio / punta
+        aggregations: {
+          cost: ["sum"],         
+        },
+      },
+    ],
+
+    chart: {
+      chart_type: chartType,
+      x: "rate",                 
+      y: "cost_sum",             
+      style: {
+        color: "rate",
+        orientation: "h",        
+      },
+    },
+
+    sort: [
+      {
+        field: "cost_sum",
+        direction: "desc",
+      },
+    ],
+  };
+}
+
+function buildEnergyByTariffPayload(filters, chartType = "bar") {
+  const filter_map = buildCostAggFilter(filters);
+
+  if (filters.siteId && filters.siteId !== "ALL") {
+    filter_map.site_id = [String(filters.siteId)];
+  }
+
+  return {
+    table: "cost_agg",
+    filter_map,
+    meta: {
+      domain: "finance",
+    },
+    aggregation: [
+      {
+        group_by: ["rate"],
+        aggregations: {
+          energy_kwh: ["sum"],
+        },
+      },
+    ],
+    chart: {
+      chart_type: chartType,
+      x: "rate",
+      y: "energy_kwh_sum",
+      style: {
+        color: "rate",
+        orientation: "h",
+      },
+    },
+    sort: [
+      {
+        field: "energy_kwh_sum",
+        direction: "desc",
+      },
+    ],
+  };
+}
+
+function buildCostBySensorPayload(filters) {
+  const filter_map = buildCostAggFilter(filters);
+
+  if (filters.siteId && filters.siteId !== "ALL") {
+    filter_map.site_id = [String(filters.siteId)];
+  }
+
+  return {
+    table: "cost_agg",
+    filter_map,
+    meta: {
+      domain: "finance",
+    },
+
+    aggregation: [
+      {
+        group_by: ["site_id", "device_id"], 
+        aggregations: {
+          cost: ["sum"],                    
+        },
+      },
+    ],
+
+    chart: {
+      chart_type: "bar",
+      x: "device_id",        
+      y: "cost_sum",         
+      style: {
+        color: "device_id",
+        orientation: "h",
+      },
+    },
+
+    sort: [
+      {
+        field: "cost_sum",
+        direction: "desc",
+      },
+    ],
+  };
+}
+
+
+function buildEnergyBySensorPayload(filters, chartType = "bar") {
+  const filter_map = buildCostAggFilter(filters);
+  const pieFallback = chartType === "pie";
+
+  if (filters.siteId && filters.siteId !== "ALL") {
+    filter_map.site_id = [String(filters.siteId)];
+  }
+
+  return {
+    table: "cost_agg",
+    filter_map,
+    meta: {
+      domain: "finance",
+    },
+
+    aggregation: [
+      {
+        group_by: ["site_id", "device_id"],
+        aggregations: {
+          energy_kwh: ["sum"],
+        },
+      },
+    ],
+
+    chart: {
+      // backend no soporta pie → fallback
+      chart_type: pieFallback ? "bar" : chartType,
+
+      x: "device_id",
+      y: "energy_kwh_sum",
+
+      style: pieFallback
+        ? { color: "device_id", orientation: "h" }
+        : { color: "device_id" },
+    },
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  COSTOS                                                */
+/* ------------------------------------------------------------------ */
+
+
 
 function buildLoadFactorTrendPayload(filters) {
   const filter_map = buildBaseSiteMap(filters);
@@ -739,9 +1078,85 @@ async function fetchDeviceAggregates(filters) {
   }
 }
 
+async function fetchCostAggregates(filters) {
+  const body = {
+    table: "cost_agg",
+    filter_map: {
+      timestamp: `[${filters.from} 00:00:00, ${filters.to} 23:59:59]`,
+    },
+    aggregation: [
+      {
+        group_by: ["site_id", "device_id"],
+        aggregations: {
+          energy_kwh: ["sum"],
+          cost_base: ["sum"],
+          cost_intermediate: ["sum"],
+          cost_peak: ["sum"],
+        },
+      },
+    ],
+  };
+
+  if (filters.siteId && filters.siteId !== "ALL") {
+    body.filter_map.site_id = [String(filters.siteId)];
+  }
+
+  try {
+    const response = await fetchDB(body);
+    return Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+  } catch (error) {
+    console.warn("reports: cost aggregates unavailable", error);
+    return [];
+  }
+}
+
+async function fetchDailyEnergy(filters) {
+  const body = {
+    table: "site_daily_kpi",
+    filter_map: {
+      kpi_date: `[${filters.from}, ${filters.to}]`,
+    },
+    aggregation: [
+      {
+        group_by: ["kpi_date"],
+        aggregations: {
+          total_energy_wh: ["sum"],
+        },
+      },
+    ],
+  };
+
+  if (filters.siteId && filters.siteId !== "ALL") {
+    body.filter_map.site_id = [String(filters.siteId)];
+  }
+
+  try {
+    const response = await fetchDB(body);
+    const rows = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+
+    return rows.sort(
+      (a, b) =>
+        (b.total_energy_wh_sum || 0) - (a.total_energy_wh_sum || 0)
+    );
+  } catch (error) {
+    console.warn("reports: daily energy unavailable", error);
+    return [];
+  }
+}
+
+
 /* ------------------------------------------------------------------ */
 /*  Plot helpers                                                      */
 /* ------------------------------------------------------------------ */
+/*
 async function renderPlotCard(container, payloadBuilder) {
   if (!container) return;
   setLoading(container);
@@ -781,6 +1196,112 @@ async function renderPlotCard(container, payloadBuilder) {
     );
   }
 }
+*/
+
+async function renderPlotCard(container, payloadBuilder) {
+  if (!container) return;
+  setLoading(container);
+  let payload;
+  try {
+    payload = payloadBuilder();
+  } catch (err) {
+    console.error("reports: payload error", err);
+    setMessage(container, "Error al preparar la consulta.");
+    return;
+  }
+
+  try {
+    const { figure, config, mapping } = await fetchPlot(payload);
+    const augmentedMapping = augmentDeviceMapping(mapping);
+    applyMapping(figure, augmentedMapping);
+    mapCategoricalAxisToLabels(figure);
+
+    /* ============================
+       FIX SOLO PARA RATE BY TARIFF
+       ============================ */
+
+    const isRateEnergyChart =
+      payload?.chart?.x === "rate" &&
+      payload?.chart?.y === "energy_kwh_sum";
+
+    const isRateCostChart =
+      payload?.chart?.x === "rate" &&
+      payload?.chart?.y === "cost_sum";
+
+    const isRateTariffChart = isRateEnergyChart || isRateCostChart;
+
+    if (isRateTariffChart) {
+      const valueLabel = isRateEnergyChart
+        ? "Energy Kwh Suma"
+        : "Cost Sum";
+
+      const valueKey = isRateEnergyChart
+        ? "energy"
+        : "cost";
+
+      figure.data.forEach((trace) => {
+        const orientation = trace.orientation || "v";
+
+        if (orientation === "h") {
+          trace.customdata = Array.isArray(trace.y)
+            ? trace.y.map((rate, i) => ({
+                rate,
+                [valueKey]: trace.x?.[i],
+              }))
+            : [];
+
+          trace.hovertemplate =
+            "Rate: %{customdata.rate}" +
+            `<br>${valueLabel}: %{customdata.${valueKey}:.2f}` +
+            "<extra></extra>";
+        } else {
+          trace.customdata = Array.isArray(trace.x)
+            ? trace.x.map((rate, i) => ({
+                rate,
+                [valueKey]: trace.y?.[i],
+              }))
+            : [];
+
+          trace.hovertemplate =
+            "Rate: %{customdata.rate}" +
+            `<br>${valueLabel}: %{customdata.${valueKey}:.2f}` +
+            "<extra></extra>";
+        }
+      });
+    }
+
+    /* ============================ */
+
+    if (plotIsEmpty(figure)) {
+      setMessage(container, "No hay datos para los filtros seleccionados.");
+      return;
+    }
+
+
+    let normalizedLayout = normalizeReportPlotLayout(figure.layout);
+    // SOLO finanzas
+    if (payload?.meta?.domain === "finance") {
+      normalizedLayout = applyFinanceLayoutOverrides(normalizedLayout);
+    }
+
+    Plotly.react(container, figure.data, normalizedLayout, {
+      ...config,
+      displaylogo: false,
+      responsive: true,
+    });
+  } catch (err) {
+    console.error("reports: plot error", err);
+    const { message } = normalisePlotError(err);
+    const text =
+      typeof message === "string"
+        ? message
+        : "No fue posible cargar la gráfica.";
+    setError(container, text, () =>
+      renderPlotCard(container, payloadBuilder)
+    );
+  }
+}
+
 
 /* ------------------------------------------------------------------ */
 /*  Seeded fallback utilities (Finanzas)                              */
@@ -1371,6 +1892,22 @@ function normalizeReportPlotLayout(layout = {}) {
   next.margin = layout.margin || { l: 36, r: 48, t: 12, b: 36 };
   next.autosize = true;
   return next;
+}
+
+function applyFinanceLayoutOverrides(layout = {}) {
+  return {
+    ...layout,
+    height: 360,
+    margin: { l: 80, r: 32, t: 12, b: 36 },
+    xaxis: {
+      ...(layout.xaxis || {}),
+      tickfont: { color: "#737380", size: 11 },
+    },
+    yaxis: {
+      ...(layout.yaxis || {}),
+      tickfont: { color: "#737380", size: 11 },
+    },
+  };
 }
 
 function describeRange(range) {
