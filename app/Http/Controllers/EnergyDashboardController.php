@@ -18,8 +18,12 @@ class EnergyDashboardController extends Controller
     {
         $start = $request->query('start_date', \Carbon\Carbon::now()->startOfMonth()->format('Y-m-d'));
         $end   = $request->query('end_date', \Carbon\Carbon::now()->endOfMonth()->format('Y-m-d'));
-        $device_id = (int)$request->query('device_id', 285377);
-        $site_id = (int)$request->query('site_id', 186431);
+        $site_id = (int) $request->query('site_id');
+        $device_id = $request->query('device_id');
+        $device_id = $device_id !== null && $device_id !== ''
+            ? (int) $device_id
+            : null;
+
 
         $valor = $this->service->getCosts($start, $end, $device_id, $site_id);
         $latestCost = (object) $valor;

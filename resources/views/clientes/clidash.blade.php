@@ -1,5 +1,8 @@
 @extends('layouts.complete')
 @section('title', 'Energy Dashboard')
+@vite([
+    'resources/js/pages/energy-dashboard.js'
+])
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/usuarios.css') }}">
 
@@ -93,6 +96,7 @@ $topDrivers = array_slice($costValues,0,3);
         <label>Fin</label>
         <input type="date" name="end_date" value="{{ request('end_date', $filters['end'] ?? '') }}" />
     </div>
+    <!--
     <div>
         <label>Device ID</label>
         <input type="number" name="device_id" value="{{ request('device_id', $filters['device_id'] ?? '') }}" />
@@ -100,6 +104,15 @@ $topDrivers = array_slice($costValues,0,3);
     <div>
         <label>Site ID</label>
         <input type="number" name="site_id" value="{{ request('site_id', $filters['site_id'] ?? '') }}" />
+    </div>
+    -->
+    <div>
+        <label>Sitio</label>
+        <select name="site_id" id="site-select"></select>
+    </div>
+    <div>
+        <label>Sensor</label>
+        <select name="device_id" id="device-select" disabled></select>
     </div>
     <div>
         <button class="btn btn-primary" type="submit">Aplicar filtros</button>

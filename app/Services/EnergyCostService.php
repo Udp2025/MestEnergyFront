@@ -8,80 +8,113 @@ use Exception;
 class EnergyCostService
 {
     // PUBLIC: método principal que usa la misma firma que tu script original
-    public function getCosts(string $fecha_inicio, string $fecha_fin, int $device_id, int $site_id): array
-    {
-        // normalizar fechas
-        $fecha_inicio = $this->normalizar_fecha($fecha_inicio, true);
-        $fecha_fin = $this->normalizar_fecha($fecha_fin, false);
+public function getCosts(string $fecha_inicio, string $fecha_fin, $device_id = null, int $site_id): array
+{
+    // Normalizar fechas
+    $fecha_inicio = $this->normalizar_fecha($fecha_inicio, true);
+    $fecha_fin    = $this->normalizar_fecha($fecha_fin, false);
 
-        $rangos = $this->dividir_rangos_completos($fecha_inicio, $fecha_fin);
+    // Rangos mensuales
+    $rangos = $this->dividir_rangos_completos($fecha_inicio, $fecha_fin);
 
-        // acumulador
-        $acum = $this->inicializar_arreglo_vacio();
+    // Si no viene sensor → obtener todos los sensores del sitio
+    $devices = $device_id === null
+        ? $this->get_devices($fecha_inicio, $fecha_fin, $site_id)
+        : [$device_id];
+
+    // Acumulador global
+    $acum = $this->inicializar_arreglo_vacio();
+
+    foreach ($devices as $devId) {
 
         foreach ($rangos as $rango) {
-            $reg = $this->main_costs($rango['sumas'], $rango['maximos'], $device_id, $site_id);
-            if (!$reg) continue;
 
-            list($distribucion, $capacidad) = $this->cost_distribution_capacity($rango['sumas'], [$reg]);
-            $real_charge_bonus = $this->get_power_factor([$reg]);
-            list($power_factor_component, $subtotal, $iva, $total) = $this->calculate_total($reg, $distribucion, $capacidad, $real_charge_bonus);
+            $reg = $this->main_costs(
+                $rango['sumas'],
+                $rango['maximos'],
+                $devId,
+                $site_id
+            );
 
-            // acumular
-            $acum['cargo_fijo']         += $reg['fixed_charge'] ?? 0;
-            $acum['capacidad']          += round($capacidad ?? 0, 2);
-            $acum['distribucion']       += round($distribucion ?? 0, 2);
-            $acum['costo_base']         += round($reg['total_base'] ?? 0, 2);
-            $acum['costo_intermedio']   += round($reg['total_intermedio'] ?? 0, 2);
-            $acum['costo_punta']        += round($reg['total_punta'] ?? 0, 2);
-            $acum['subtotal']           += $subtotal ?? 0;
-            $acum['iva']                += $iva ?? 0;
-            $acum['total']              += $total ?? 0;
-            $acum['factor_potencia']    += $power_factor_component ?? 0;
+            if (!$reg) {
+                continue;
+            }
+
+            // Cálculos por sensor / mes
+            [$distribucion, $capacidad] =
+                $this->cost_distribution_capacity($rango['sumas'], [$reg]);
+
+            $real_charge_bonus =
+                $this->get_power_factor([$reg]);
+
+            [
+                $power_factor_component,
+                $subtotal,
+                $iva,
+                $total
+            ] = $this->calculate_total(
+                $reg,
+                $distribucion,
+                $capacidad,
+                $real_charge_bonus
+            );
+
+            // Acumulación global
+            $acum['cargo_fijo']       += $reg['fixed_charge'] ?? 0;
+            $acum['capacidad']        += round($capacidad ?? 0, 2);
+            $acum['distribucion']     += round($distribucion ?? 0, 2);
+            $acum['costo_base']       += round($reg['total_base'] ?? 0, 2);
+            $acum['costo_intermedio'] += round($reg['total_intermedio'] ?? 0, 2);
+            $acum['costo_punta']      += round($reg['total_punta'] ?? 0, 2);
+            $acum['subtotal']         += $subtotal ?? 0;
+            $acum['iva']              += $iva ?? 0;
+            $acum['total']            += $total ?? 0;
+            $acum['factor_potencia']  += $power_factor_component ?? 0;
         }
+    }
+
+    // Porcentajes
+    [
+        $cargo_fijo_pct,
+        $cargo_capacidad_pct,
+        $cargo_distribucion_pct,
+        $cargo_base_pct,
+        $cargo_intermedio_pct,
+        $cargo_punta_pct,
+        $factor_carga_pct
+    ] = $this->calculate_percentage(
+        $acum['subtotal'],
+        $acum['capacidad'],
+        $acum['distribucion'],
+        $acum['factor_potencia'],
+        $acum
+    );
+
+    return [
+        'cargo_fijo' => round($acum['cargo_fijo'], 2),
+        'cargo_capacidad' => round($acum['capacidad'], 2),
+        'cargo_distribucion' => round($acum['distribucion'], 2),
+        'cargo_base' => round($acum['costo_base'], 2),
+        'cargo_intermedio' => round($acum['costo_intermedio'], 2),
+        'cargo_punta' => round($acum['costo_punta'], 2),
+        'subtotal' => round($acum['subtotal'], 2),
+        'iva' => round($acum['iva'], 2),
+        'total' => round($acum['total'], 2),
+        'factor_potencia' => round($acum['factor_potencia'], 2),
 
         // porcentajes
-        list(
-            $cargo_fijo_pct,
-            $cargo_capacidad_pct,
-            $cargo_distribucion_pct,
-            $cargo_base_pct,
-            $cargo_intermedio_pct,
-            $cargo_punta_pct,
-            $factor_carga_pct
-        ) = $this->calculate_percentage(
-            $acum['subtotal'],
-            $acum['capacidad'],
-            $acum['distribucion'],
-            $acum['factor_potencia'],
-            $acum
-        );
+        'cargo_fijo_pt' => (float)$cargo_fijo_pct,
+        'consumo_capa_pt' => (float)$cargo_capacidad_pct,
+        'consumo_dist_pt' => (float)$cargo_distribucion_pct,
+        'consumo_base_pt' => (float)$cargo_base_pct,
+        'consumo_intermedio_pt' => (float)$cargo_intermedio_pct,
+        'consumo_punta_pt' => (float)$cargo_punta_pct,
+        'factor_potencia_pt' => (float)$factor_carga_pct,
 
-        // mapear a claves que usa tu blade
-        $result = [
-            'cargo_fijo' => round($acum['cargo_fijo'], 2),
-            'cargo_capacidad' => round($acum['capacidad'], 2),
-            'cargo_distribucion' => round($acum['distribucion'], 2),
-            'cargo_base' => round($acum['costo_base'], 2),
-            'cargo_intermedio' => round($acum['costo_intermedio'], 2),
-            'cargo_punta' => round($acum['costo_punta'], 2),
-            'subtotal' => round($acum['subtotal'], 2),
-            'iva' => round($acum['iva'], 2),
-            'total' => round($acum['total'], 2),
-            'factor_potencia' => round($acum['factor_potencia'], 2),
-            // porcentajes con el sufijo _pt (compatibilidad con tu Blade)
-            'cargo_fijo_pt' => (float)$cargo_fijo_pct,
-            'consumo_capa_pt' => (float)$cargo_capacidad_pct,
-            'consumo_dist_pt' => (float)$cargo_distribucion_pct,
-            'consumo_base_pt' => (float)$cargo_base_pct,
-            'consumo_intermedio_pt' => (float)$cargo_intermedio_pct,
-            'consumo_punta_pt' => (float)$cargo_punta_pct,
-            'factor_potencia_pt' => (float)$factor_carga_pct,
-            'fecha_inicio' => $fecha_inicio,
-        ];
+        'fecha_inicio' => $fecha_inicio,
+    ];
+}
 
-        return $result;
-    }
 
     /* -------------------------
        Helpers / traducción de tus funciones originales
@@ -103,6 +136,22 @@ class EnergyCostService
             'factor_potencia'    => 0,
         ];
     }
+
+    private function get_devices($start_date, $end_date, $site_id)
+    {
+        $sql = "
+            SELECT DISTINCT device_id
+            FROM cost_agg
+            WHERE timestamp BETWEEN ? AND ?
+            AND site_id = ?
+        ";
+
+        $rows = DB::select($sql, [$start_date, $end_date, $site_id]);
+
+        // devolver arreglo plano de IDs
+        return array_map(fn($r) => (int)$r->device_id, $rows);
+    }
+
 
     private function main_costs($rango_sumas, $rango_maximos, $device_id, $site_id) {
         // SUMAS
