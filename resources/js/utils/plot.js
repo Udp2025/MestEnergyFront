@@ -26,9 +26,12 @@ export async function fetchPlot(body) {
     body: JSON.stringify(body),
   });
   if (!r.ok) {
-    if (r.status === 404 || r.status === 503) {
+    //if (r.status === 404 || r.status === 503) {
+    //  plotApiAvailable = false;
+    //}
+    if (r.status === 503) {
       plotApiAvailable = false;
-    }
+    }   
     let payload;
     try {
       payload = await r.json();
