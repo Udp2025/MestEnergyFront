@@ -30,6 +30,7 @@ export default defineConfig({
         "resources/js/pages/reports.js",
         "resources/css/pages/reports.css",
         "resources/js/pages/home_fixed_dashboard.js",
+        'resources/js/pages/energy-dashboard.js',
       ],
       refresh: true,
     }),
