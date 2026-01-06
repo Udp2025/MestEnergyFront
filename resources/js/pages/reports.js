@@ -1198,6 +1198,7 @@ async function renderPlotCard(container, payloadBuilder) {
 }
 */
 
+/*
 async function renderPlotCard(container, payloadBuilder) {
   if (!container) return;
   setLoading(container);
@@ -1219,6 +1220,124 @@ async function renderPlotCard(container, payloadBuilder) {
     /* ============================
        FIX SOLO PARA RATE BY TARIFF
        ============================ */
+/*       
+
+    const isRateEnergyChart =
+      payload?.chart?.x === "rate" &&
+      payload?.chart?.y === "energy_kwh_sum";
+
+    const isRateCostChart =
+      payload?.chart?.x === "rate" &&
+      payload?.chart?.y === "cost_sum";
+
+    const isRateTariffChart = isRateEnergyChart || isRateCostChart;
+
+    if (isRateTariffChart) {
+      const valueLabel = isRateEnergyChart
+        ? "Energy Kwh Suma"
+        : "Cost Sum";
+
+      const valueKey = isRateEnergyChart
+        ? "energy"
+        : "cost";
+
+      figure.data.forEach((trace) => {
+        const orientation = trace.orientation || "v";
+
+        if (orientation === "h") {
+          trace.customdata = Array.isArray(trace.y)
+            ? trace.y.map((rate, i) => ({
+                rate,
+                [valueKey]: trace.x?.[i],
+              }))
+            : [];
+
+          trace.hovertemplate =
+            "Rate: %{customdata.rate}" +
+            `<br>${valueLabel}: %{customdata.${valueKey}:.2f}` +
+            "<extra></extra>";
+        } else {
+          trace.customdata = Array.isArray(trace.x)
+            ? trace.x.map((rate, i) => ({
+                rate,
+                [valueKey]: trace.y?.[i],
+              }))
+            : [];
+
+          trace.hovertemplate =
+            "Rate: %{customdata.rate}" +
+            `<br>${valueLabel}: %{customdata.${valueKey}:.2f}` +
+            "<extra></extra>";
+        }
+      });
+    }
+
+    /* ============================ */
+/*
+    if (plotIsEmpty(figure)) {
+      setMessage(container, "No hay datos para los filtros seleccionados.");
+      return;
+    }
+
+
+    let normalizedLayout = normalizeReportPlotLayout(figure.layout);
+    // SOLO finanzas
+    if (payload?.meta?.domain === "finance") {
+      normalizedLayout = applyFinanceLayoutOverrides(normalizedLayout);
+    }
+
+    Plotly.react(container, figure.data, normalizedLayout, {
+      ...config,
+      displaylogo: false,
+      responsive: true,
+    });
+  } catch (err) {
+    console.error("reports: plot error", err);
+    const { message } = normalisePlotError(err);
+    const text =
+      typeof message === "string"
+        ? message
+        : "No fue posible cargar la gráfica.";
+    setError(container, text, () =>
+      renderPlotCard(container, payloadBuilder)
+    );
+  }
+}
+*/
+
+async function renderPlotCard(container, payloadBuilder) {
+  if (!container) return;
+  setLoading(container);
+  let payload;
+  try {
+    payload = payloadBuilder();
+  } catch (err) {
+    console.error("reports: payload error", err);
+    setMessage(container, "Error al preparar la consulta.");
+    return;
+  }
+
+  try {
+    const result = await fetchPlot(payload);
+
+    if (
+      !result ||
+      !result.figure ||
+      !Array.isArray(result.figure.data)
+    ) {
+      throw new Error("No se recibieron datos válidos para la gráfica.");
+    }
+
+    const { figure, config, mapping } = result;
+
+    const augmentedMapping = augmentDeviceMapping(mapping);
+    applyMapping(figure, augmentedMapping);
+    mapCategoricalAxisToLabels(figure);
+
+    /* ============================
+       FIX SOLO PARA RATE BY TARIFF
+       ============================ */
+      
 
     const isRateEnergyChart =
       payload?.chart?.x === "rate" &&
