@@ -56,12 +56,6 @@
           </div>
         </div>
 
-        <!-- SEARCH / FILTER 
-        <div class="controls">
-          <input id="searchCliente" class="search" placeholder="Buscar por cliente o RFC..." />
-          <button class="filter">Filtrar estatus</button>
-        </div>-->
-
         <!-- TABLE: CLIENTES -->
         <div class="table-card">
           <table class="clientes-table">
@@ -73,12 +67,20 @@
             </thead>
             <tbody>
               @foreach($clientes as $cliente)
+                @php
+                  // Determinar el estado (status) del cliente
+                  $estadoCliente = $cliente->estado ?? 'Inactivo';
+                  $isActivo = $estadoCliente === 'Activo' || $estadoCliente === 'activo' || $cliente->estado_cliente == 1;
+                  
+                  // Determinar el estado geográfico para mostrar en la columna "Ubicación"
+                  $estadoGeografico = $cliente->ciudad ?? '—';
+                @endphp
                 <tr>
                   <td class="c-name">
                     <a href="{{ route('clientes.show', ['cliente' => $cliente->id]) }}" class="c-link">{{ $cliente->nombre }}</a>
                     <div class="c-sub">{{ $cliente->razon_social }} <span class="rfc">RFC {{ $cliente->rfc ?? '—' }}</span></div>
                   </td>
-                  <td>{{ $cliente->ciudad ?? '—' }}</td>
+                  <td>{{ $estadoGeografico }}</td>
                   <td>{{ $cliente->locaciones->count() }}</td>
                   <td>{{ $cliente->areas->count() }}</td>
                   <td>{{ $cliente->medidores->count() }}</td>
@@ -104,7 +106,8 @@
                     </form>
 
                     <label class="switch" title="Estado">
-                      <input type="checkbox" class="toggle-status" data-id="{{ $cliente->id }}" {{ ($cliente->estado ?? '') == 'Activo' ? 'checked' : '' }}>
+                      <!-- Modificado: verifica si el cliente está activo para marcar el switch -->
+                      <input type="checkbox" class="toggle-status" data-id="{{ $cliente->id }}" {{ $isActivo ? 'checked' : '' }}>
                       <span class="slider"></span>
                     </label>
                   </td>
@@ -308,9 +311,8 @@
 
                 <div class="form-group">
                   <label>Código postal</label>
+                  <!-- Simple input sin búsqueda automática -->
                   <input id="codigo_postal" name="codigo_postal" type="text" class="form-control" maxlength="5" placeholder="Ej: 44100">
-                  <div id="cp-loading" class="loading" style="display: none;">Buscando en base local...</div>
-                  <div id="cp-error" class="error-message" style="display: none; color: red; font-size: 12px;"></div>
                 </div>
 
                 <div class="form-group">
@@ -542,7 +544,7 @@
   </div>
 </div>
 
-<!-- EDIT modal: solo \"Generales\" -->
+<!-- EDIT modal: solo "Generales" -->
 <div class="modal fade" id="editClientModal" tabindex="-1" aria-hidden="true" aria-labelledby="editClientLabel">
   <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content create-client-modal">
@@ -597,16 +599,12 @@
             <div class="form-group">
               <label>Código postal</label>
               <input id="edit_codigo_postal" name="codigo_postal" type="text" class="form-control" maxlength="5">
-              <div id="edit-cp-loading" class="loading" style="display:none">Buscando en base local...</div>
             </div>
 
             <div class="form-group">
               <label>Estado</label>
               <select id="edit_estado_select" name="estado" class="form-control">
                 <option value="">Selecciona un estado</option>
-                @foreach($catalogoEstados as $id => $label)
-                  <option value="{{ $label }}">{{ $label }}</option>
-                @endforeach
               </select>
             </div>
 
@@ -617,7 +615,6 @@
               </select>
             </div>
 
-            <!-- COLONIA ahora input (edit) -->
             <div class="form-group">
               <label>Colonia</label>
               <input id="edit_colonia_input" name="colonia" type="text" class="form-control" placeholder="Primero selecciona un municipio" disabled>
@@ -774,75 +771,6 @@ document.addEventListener('DOMContentLoaded', () => {
     coloniaInput.placeholder = 'Escribe la colonia';
   }
 
-  function buscarPorCP(cp) {
-    const cpLoading = document.getElementById('cp-loading');
-    const cpError = document.getElementById('cp-error');
-    const estadoSelect = document.getElementById('estado_select');
-    const municipioSelect = document.getElementById('municipio_select');
-    const coloniaInput = document.getElementById('colonia_input');
-
-    if (!cp || cp.length !== 5) {
-      if (cpError) {
-        cpError.textContent = 'El código postal debe tener 5 dígitos';
-        cpError.style.display = 'block';
-      }
-      return;
-    }
-
-    if (cpLoading) cpLoading.style.display = 'block';
-    if (cpError) cpError.style.display = 'none';
-
-    setTimeout(() => {
-      if (cpLoading) cpLoading.style.display = 'none';
-      const datosCP = (typeof mexicoData !== 'undefined') ? mexicoData.codigosPostales[cp] : null;
-
-      if (datosCP) {
-        if (estadoSelect) {
-          estadoSelect.value = datosCP.estado;
-          cargarMunicipios();
-        }
-
-        setTimeout(() => {
-          if (municipioSelect) municipioSelect.value = datosCP.municipio;
-          cargarColonias();
-          setTimeout(() => {
-            if (coloniaInput && datosCP.colonia) {
-              coloniaInput.value = datosCP.colonia;
-              coloniaInput.disabled = false;
-            }
-          }, 300);
-        }, 400);
-        if (cpError) cpError.style.display = 'none';
-      } else {
-        if (cpError) {
-          cpError.textContent = 'Código postal no encontrado en la base local';
-          cpError.style.display = 'block';
-        }
-      }
-    }, 800);
-  }
-
-  function limpiarDireccion() {
-    const estadoSelect = document.getElementById('estado_select');
-    const municipioSelect = document.getElementById('municipio_select');
-    const coloniaInput = document.getElementById('colonia_input');
-    const cpError = document.getElementById('cp-error');
-    const cpLoading = document.getElementById('cp-loading');
-
-    if (estadoSelect) estadoSelect.value = '';
-    if (municipioSelect) {
-      municipioSelect.innerHTML = '<option value="">Selecciona un estado primero</option>';
-      municipioSelect.disabled = true;
-    }
-    if (coloniaInput) {
-      coloniaInput.value = '';
-      coloniaInput.disabled = true;
-      coloniaInput.placeholder = 'Primero selecciona un municipio';
-    }
-    if (cpError) cpError.style.display = 'none';
-    if (cpLoading) cpLoading.style.display = 'none';
-  }
-
   // Edit modal versions
   function cargarEstadosEdit() {
     const estadoSelect = document.getElementById('edit_estado_select');
@@ -915,58 +843,26 @@ document.addEventListener('DOMContentLoaded', () => {
     coloniaInput.placeholder = 'Escribe la colonia';
   }
 
-  function buscarPorCPEdit(cp) {
-    const cpLoading = document.getElementById('edit-cp-loading');
-    const estadoSelect = document.getElementById('edit_estado_select');
-    const municipioSelect = document.getElementById('edit_municipio_select');
-    const coloniaInput = document.getElementById('edit_colonia_input');
-
-    if (!cp || cp.length !== 5) return;
-    if (cpLoading) cpLoading.style.display = 'block';
-
-    setTimeout(() => {
-      if (cpLoading) cpLoading.style.display = 'none';
-      const datosCP = (typeof mexicoData !== 'undefined') ? mexicoData.codigosPostales[cp] : null;
-      if (datosCP) {
-        if (estadoSelect) {
-          estadoSelect.value = datosCP.estado;
-          cargarMunicipiosEdit();
-        }
-        setTimeout(() => {
-          if (municipioSelect) municipioSelect.value = datosCP.municipio;
-          cargarColoniasEdit();
-          setTimeout(() => {
-            if (coloniaInput && datosCP.colonia) {
-              coloniaInput.value = datosCP.colonia;
-              coloniaInput.disabled = false;
-            }
-          }, 300);
-        }, 400);
-      }
-    }, 500);
-  }
-
   // ============================================
   // ASIGNAR EVENT LISTENERS A DIRECCIONES
   // ============================================
   function asignarEventListenersDirecciones() {
     const estadoSelect = document.getElementById('estado_select');
     const municipioSelect = document.getElementById('municipio_select');
-    const cpInput = document.getElementById('codigo_postal');
 
     if (estadoSelect) estadoSelect.addEventListener('change', cargarMunicipios);
     if (municipioSelect) municipioSelect.addEventListener('change', cargarColonias);
-    if (cpInput) cpInput.addEventListener('blur', function() { buscarPorCP(this.value); });
 
     const editEstadoSelect = document.getElementById('edit_estado_select');
     const editMunicipioSelect = document.getElementById('edit_municipio_select');
-    const editCpInput = document.getElementById('edit_codigo_postal');
 
     if (editEstadoSelect) editEstadoSelect.addEventListener('change', cargarMunicipiosEdit);
     if (editMunicipioSelect) editMunicipioSelect.addEventListener('change', cargarColoniasEdit);
-    if (editCpInput) editCpInput.addEventListener('blur', function() { buscarPorCPEdit(this.value); });
   }
 
+  // Inicializar estados al cargar la página
+  cargarEstados();
+  cargarEstadosEdit();
   asignarEventListenersDirecciones();
 
   // ============================================
@@ -1075,6 +971,23 @@ document.addEventListener('DOMContentLoaded', () => {
           <div><strong>Ciclo/Día corte:</strong> ${text.ciclo} / ${text.dia}</div>
           <div><strong>Contrato:</strong> ${text.contrato}</div>
         `;
+      }
+    }
+
+    function limpiarDireccion() {
+      const estadoSelect = document.getElementById('estado_select');
+      const municipioSelect = document.getElementById('municipio_select');
+      const coloniaInput = document.getElementById('colonia_input');
+
+      if (estadoSelect) estadoSelect.value = '';
+      if (municipioSelect) {
+        municipioSelect.innerHTML = '<option value="">Selecciona un estado primero</option>';
+        municipioSelect.disabled = true;
+      }
+      if (coloniaInput) {
+        coloniaInput.value = '';
+        coloniaInput.disabled = true;
+        coloniaInput.placeholder = 'Primero selecciona un municipio';
       }
     }
 
@@ -1211,28 +1124,27 @@ document.addEventListener('DOMContentLoaded', () => {
           const factorEl = getEl('edit_factor_carga');
           if (factorEl && data.factor_carga) factorEl.value = data.factor_carga;
 
-          if (data.estado) {
-            const estadoEl = getEl('edit_estado_select');
-            if (estadoEl) {
-              estadoEl.value = data.estado;
-              cargarMunicipiosEdit();
+          // Estado geográfico
+          const estadoEl = getEl('edit_estado_select');
+          if (estadoEl && data.estado) {
+            estadoEl.value = data.estado;
+            cargarMunicipiosEdit();
+            
+            // Esperar a que se carguen los municipios
+            setTimeout(() => {
+              const municipioEl = getEl('edit_municipio_select');
+              if (municipioEl && data.ciudad) {
+                municipioEl.value = data.ciudad;
+              }
+              cargarColoniasEdit();
               setTimeout(() => {
-                const municipioEl = getEl('edit_municipio_select');
-                if (municipioEl && data.ciudad) {
-                  municipioEl.value = data.ciudad;
+                const coloniaInput = getEl('edit_colonia_input');
+                if (coloniaInput && data.colonia) {
+                  coloniaInput.value = data.colonia;
+                  coloniaInput.disabled = false;
                 }
-                cargarColoniasEdit();
-                setTimeout(() => {
-                  const coloniaInput = getEl('edit_colonia_input');
-                  if (coloniaInput && data.colonia) {
-                    coloniaInput.value = data.colonia;
-                    coloniaInput.disabled = false;
-                  }
-                }, 100);
-              }, 200);
-            } else {
-              console.warn('edit_estado_select no existe en el DOM');
-            }
+              }, 100);
+            }, 300);
           }
 
           const contratoDiv = getEl('edit_contrato_actual');
@@ -1544,8 +1456,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const hasErrors = @json($errors->any());
   const editModalId = @json(session('edit_modal'));
   if(editModalId){
-    // si en session pediste abrir un edit modal específico (id) y tu plantilla tenía editClientModal{id} no aplicará,
-    // aquí asumimos el flujo que carga mediante AJAX
     const el = document.getElementById('editClientModal');
     if(el) new bootstrap.Modal(el).show();
   } else if(hasErrors){
