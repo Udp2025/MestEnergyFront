@@ -74,9 +74,15 @@
       <div class="advanced-filters" data-advanced-container>
         <label>Función:
           <select name="agg" id="agg">
+            {{-- 
             @foreach (['avg'=>'Promedio','sum'=>'Suma','min'=>'Mín','max'=>'Máx','count'=>'Conteo','std'=>'Std','median'=>'Mediana','mode'=>'Moda','distinct'=>'Distintos'] as $k=>$v)
               <option value="{{ $k }}" {{ $k==='avg' ? 'selected' : '' }}>{{ $v }}</option>
             @endforeach
+            --}}
+            @foreach (['avg'=>'Promedio','sum'=>'Suma','min'=>'Mín','max'=>'Máx','count'=>'Conteo','std'=>'Std','mode'=>'Moda','distinct'=>'Distintos'] as $k=>$v)
+              <option value="{{ $k }}" {{ $k==='avg' ? 'selected' : '' }}>{{ $v }}</option>
+            @endforeach
+
           </select>
         </label>
       </div>
