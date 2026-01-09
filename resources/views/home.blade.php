@@ -111,7 +111,7 @@
                     <tbody>
                         @forelse($recent_clients as $client)
                             <tr>
-                                <td class="cell-truncate" title="{{ $client->nombre }}">{{ $client->nombre }}</td>
+                                <td  class="cell-truncate" title="{{ $client->nombre }}"><a href="{{ route('clientes.show', $client) }}">{{ $client->nombre }}</a></td>
                                 <td>{{ optional($client->created_at)->format('d M Y') ?? 'N/D' }}</td>
                                 <td>{{ $client->estado_cliente === 1 ? 'Activo' : 'Onboarding' }}</td>
                                 <td>#{{ $client->id }}</td>

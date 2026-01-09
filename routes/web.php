@@ -163,6 +163,8 @@ Route::middleware('auth')->group(function () {
 Route::post('sensores/vincular', [SensoresController::class, 'store'])->name('sensores.vincular');
 Route::post('sensores/vincular/bulk', [SensoresController::class, 'bulkAssign'])->name('sensores.vincular.bulk');
 Route::post('sites/update-name', [SensoresController::class, 'updateSiteName'])->name('sites.updateName');
+Route::post('/sensores/site/update-name', [SensoresController::class, 'updateSiteName'])
+    ->name('sites.updateName');
 
 Route::get('/cfe/region', [CFEController::class, 'getRegion']);
 Route::post('/cfe/store', [CFEController::class, 'store'])->name('cfe.store');
