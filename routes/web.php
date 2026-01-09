@@ -195,4 +195,16 @@ Route::group(['middleware' => ['auth', Admin::class]], function () {
 
 Route::get('/api/energy-data', [ApiDataController::class, 'obtenerInfo']);
 
+
+// Rutas para CRUD de eventos con AJAX
+Route::post('/events', [ManageController::class, 'store'])->name('events.store');
+Route::get('/events/{id}', [ManageController::class, 'show'])->name('events.show');
+Route::put('/events/{id}', [ManageController::class, 'update'])->name('events.update');
+Route::delete('/events/{id}', [ManageController::class, 'destroy'])->name('events.destroy');
+
+Route::get('/manage/clear', function() {
+    return redirect()->route('manage');
+})->name('manage.clear');
+
+
 require __DIR__.'/auth.php';
