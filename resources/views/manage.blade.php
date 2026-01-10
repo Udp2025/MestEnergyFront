@@ -89,7 +89,7 @@
 </div>
 
 <!-- Modal para crear/editar evento -->
-<div id="eventModal" class="modal">
+<div id="eventModal" class="modal" style="overflow: auto;">
     <div class="modal-content">
         <div class="modal-header">
             <h2 id="modalTitle">Nuevo Evento</h2>
