@@ -614,7 +614,7 @@ public function destroy(Request $request, Cliente $cliente)
 
     public function updateStatus(Request $request, Cliente $cliente)
     {
-        $estado = $request->input('estado', null);
+        $estado = $request->input('estado_cliente', null);
 
         if (is_null($estado)) {
             return response()->json(['success' => false, 'message' => 'Estado no proporcionado'], 400);

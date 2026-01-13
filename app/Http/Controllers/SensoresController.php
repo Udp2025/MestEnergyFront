@@ -34,43 +34,74 @@ class SensoresController extends Controller
     }
 
     // Vincular/desasignar un solo site a un cliente
-    public function store(Request $request)
-    {
-        $data = $request->only(['site_id', 'client_id']);
+    // Dentro de App\Http\Controllers\SensoresController
+public function store(Request $request)
+{
+    $data = $request->only(['site_id', 'client_id']);
 
-        $validator = Validator::make($data, [
-            'site_id' => 'required|integer|exists:sites,site_id',
-            'client_id' => 'nullable|integer|exists:clientes,id',
-        ]);
+    $validator = Validator::make($data, [
+        'site_id' => 'required|integer|exists:sites,site_id',
+        'client_id' => 'nullable|integer|exists:clientes,id',
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json(['success' => false, 'message' => 'Datos inválidos', 'errors' => $validator->errors()], 422);
-        }
-
-        $siteId = (int)$data['site_id'];
-        $clientId = $data['client_id'] !== null ? (int)$data['client_id'] : null;
-
-        DB::beginTransaction();
-        try {
-            // Si client_id == null => desasignar: set site = NULL para quien tuviera ese site
-            if (is_null($clientId)) {
-                DB::table('clientes')->where('site', $siteId)->update(['site' => null, 'updated_at' => now()]);
-            } else {
-                // Quitar este site de cualquier otro cliente (asegura 1-1)
-                DB::table('clientes')->where('site', $siteId)->where('id', '!=', $clientId)->update(['site' => null, 'updated_at' => now()]);
-
-                // Asignar el site al cliente seleccionado
-                DB::table('clientes')->where('id', $clientId)->update(['site' => $siteId, 'updated_at' => now()]);
-            }
-
-            DB::commit();
-            return response()->json(['success' => true, 'message' => 'Vinculación actualizada']);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error al vincular site: '.$e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Error interno'], 500);
-        }
+    if ($validator->fails()) {
+        return response()->json(['success' => false, 'message' => 'Datos inválidos', 'errors' => $validator->errors()], 422);
     }
+
+    $siteId = (int)$data['site_id'];
+    $clientId = $data['client_id'] !== null && $data['client_id'] !== '' ? (int)$data['client_id'] : null;
+
+    DB::beginTransaction();
+    try {
+        // quien tenía ese site antes (si existe)
+        $previousClient = DB::table('clientes')->where('site', $siteId)->value('id');
+        $previousClient = $previousClient !== null ? (int)$previousClient : null;
+
+        if (is_null($clientId)) {
+            // Desasignar: quitar site a quien lo tuviera
+            DB::table('clientes')->where('site', $siteId)->update(['site' => null, 'updated_at' => now()]);
+        } else {
+            // Si otro cliente tiene este site, limpiarlo (1-1)
+            DB::table('clientes')->where('site', $siteId)->where('id', '!=', $clientId)->update(['site' => null, 'updated_at' => now()]);
+
+            // Asignar el site al cliente seleccionado
+            DB::table('clientes')->where('id', $clientId)->update(['site' => $siteId, 'updated_at' => now()]);
+        }
+
+        DB::commit();
+
+        // recalcular contadores reales
+        $totalSites = DB::table('sites')->count();
+        $assignedCount = DB::table('clientes')->whereNotNull('site')->where('site', '<>', '')->count();
+        $pendingCount = max(0, $totalSites - $assignedCount);
+
+        // action detection
+        if ($previousClient === $clientId) {
+            $action = 'noop';
+        } elseif (is_null($previousClient) && !is_null($clientId)) {
+            $action = 'assigned';
+        } elseif (!is_null($previousClient) && is_null($clientId)) {
+            $action = 'unassigned';
+        } else {
+            $action = 'reassigned';
+        }
+
+        // devolver info fiable para que el frontend actualice los contadores
+        return response()->json([
+            'success' => true,
+            'message' => 'Vinculación actualizada',
+            'action' => $action,
+            'assignedCount' => (int)$assignedCount,
+            'pendingCount' => (int)$pendingCount,
+            'assigned_client_id' => $clientId // ahora asignado o null
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Error al vincular site: '.$e->getMessage());
+        return response()->json(['success' => false, 'message' => 'Error interno'], 500);
+    }
+}
+
 
     // Vincular en lote (bulk)
     public function bulkAssign(Request $request)
