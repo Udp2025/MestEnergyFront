@@ -133,18 +133,27 @@ class ClientesController extends Controller
 
             $cliente = Cliente::create($input);
 
-        $contractPath = null;
-        $contractDisk = config('filesystems.default', 's3');
-        if ($request->hasFile('contrato')) {
-            try {
-                $contractPath = Storage::disk($contractDisk)
-                    ->putFile($this->contractStorageDirectory(), $request->file('contrato'), 'public');
-            } catch (\Throwable $e) {
-                DB::rollBack();
-                \Log::error('clientes.contract.upload_failed', ['error' => $e->getMessage()]);
-                return $this->respondError($request, 'No se pudo subir el contrato. Verifica conexión y permisos.');
+            $contractPath = null;
+            $contractDisk = $this->contractDisk();
+            if ($request->hasFile('contrato')) {
+                try {
+                    $contractPath = Storage::disk($contractDisk)->putFile(
+                        $this->contractStorageDirectory(),
+                        $request->file('contrato'),
+                        ['visibility' => $this->contractVisibility()]
+                    );
+                    if (!$contractPath) {
+                        throw new \RuntimeException('La ruta del contrato no se pudo generar.');
+                    }
+                } catch (\Throwable $e) {
+                    DB::rollBack();
+                    \Log::error('clientes.contract.upload_failed', [
+                        'error' => $e->getMessage(),
+                        'cliente' => $request->input('nombre'),
+                    ]);
+                    return $this->respondError($request, 'No se pudo subir el contrato. Verifica conexión y permisos.');
+                }
             }
-        }
 
             $infoFiscal = InfoFiscalUsuario::create([
                 'cliente_id' => $cliente->id,
@@ -295,13 +304,21 @@ class ClientesController extends Controller
             $contractPath = null;
             if ($request->hasFile('contrato')) {
                 $infoFiscal = $cliente->infoFiscal;
+                $contractDisk = $this->contractDisk();
                 if ($infoFiscal && $infoFiscal->csf) {
                     // eliminar viejo
                     try {
-                        Storage::disk('s3')->delete($infoFiscal->csf);
+                        Storage::disk($contractDisk)->delete($infoFiscal->csf);
                     } catch (\Exception $_) {}
                 }
-                $contractPath = $request->file('contrato')->store($this->contractStorageDirectory(), 's3');
+                $contractPath = Storage::disk($contractDisk)->putFile(
+                    $this->contractStorageDirectory(),
+                    $request->file('contrato'),
+                    ['visibility' => $this->contractVisibility()]
+                );
+                if (!$contractPath) {
+                    throw new \RuntimeException('No se pudo guardar el contrato en el disco configurado.');
+                }
             }
 
             // Info Fiscal (updateOrCreate)
@@ -494,7 +511,12 @@ public function destroy(Request $request, Cliente $cliente)
             abort(404, 'Contrato no disponible.');
         }
 
-        return Storage::disk('s3')->download(
+        $disk = $this->contractDisk();
+        if (!Storage::disk($disk)->exists($infoFiscal->csf)) {
+            abort(404, 'Contrato no disponible.');
+        }
+
+        return Storage::disk($disk)->download(
             $infoFiscal->csf,
             Str::slug($cliente->nombre) . '-contrato.pdf'
         );
@@ -513,13 +535,17 @@ public function destroy(Request $request, Cliente $cliente)
             abort(404, 'Información fiscal no disponible.');
         }
 
-        $contractDisk = config('filesystems.default', 's3');
+        $contractDisk = $this->contractDisk();
         try {
             if ($infoFiscal->csf) {
                 Storage::disk($contractDisk)->delete($infoFiscal->csf);
             }
             $path = Storage::disk($contractDisk)
-                ->putFile($this->contractStorageDirectory(), $request->file('contrato'), 'public');
+                ->putFile(
+                    $this->contractStorageDirectory(),
+                    $request->file('contrato'),
+                    ['visibility' => $this->contractVisibility()]
+                );
             $infoFiscal->update(['csf' => $path]);
         } catch (\Throwable $e) {
             \Log::error('clientes.contract.update_failed', ['error' => $e->getMessage()]);
@@ -538,7 +564,7 @@ public function destroy(Request $request, Cliente $cliente)
             return redirect()->back()->with('info', 'No existe contrato para eliminar.');
         }
 
-        Storage::disk('s3')->delete($infoFiscal->csf);
+        Storage::disk($this->contractDisk())->delete($infoFiscal->csf);
         $infoFiscal->update(['csf' => null]);
 
         return redirect()->back()->with('success', 'Contrato eliminado correctamente.');
@@ -572,6 +598,16 @@ public function destroy(Request $request, Cliente $cliente)
         if (!$user || !$user->isSuperAdmin()) {
             abort(403, 'No autorizado.');
         }
+    }
+
+    protected function contractDisk(): string
+    {
+        return config('filesystems.contracts_disk', 's3');
+    }
+
+    protected function contractVisibility(): string
+    {
+        return config('filesystems.contracts_visibility', 'private');
     }
 
     protected function contractStorageDirectory(): string

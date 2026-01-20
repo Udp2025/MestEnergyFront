@@ -676,6 +676,12 @@
               <div id="edit_contrato_actual" style="font-size:13px;"><em>No hay contrato</em></div>
             </div>
 
+            <div class="form-group full">
+              <label>Reemplazar contrato (PDF, máximo 10 MB)</label>
+              <input id="edit_contrato" name="contrato" type="file" class="form-control" accept="application/pdf">
+              <small class="text-muted">Si subes un archivo, reemplazará el contrato actual en S3.</small>
+            </div>
+
           </div>
 
           <div class="modal-footer">
@@ -694,6 +700,80 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  const contractDownloadBase = @json(url('/clientes'));
+  const toastStorageKey = 'clientesToastMessage';
+
+  function showToast(message, type = 'success') {
+    const mapped = type === 'error' ? 'danger' : type;
+    let container = document.getElementById('clientes-toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'clientes-toast-container';
+      container.style.position = 'fixed';
+      container.style.top = '16px';
+      container.style.right = '16px';
+      container.style.zIndex = '9999';
+      container.style.maxWidth = '360px';
+      document.body.appendChild(container);
+    }
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${mapped} alert-dismissible fade show shadow-sm`;
+    alert.role = 'alert';
+    alert.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    container.appendChild(alert);
+    setTimeout(() => {
+      alert.classList.remove('show');
+      alert.classList.add('hide');
+      setTimeout(() => alert.remove(), 300);
+    }, 4400);
+  }
+
+  function setButtonLoading(btn, isLoading, loadingText = 'Guardando...') {
+    if (!btn) return;
+    if (isLoading) {
+      if (!btn.dataset.originalHtml) btn.dataset.originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${loadingText}`;
+    } else {
+      btn.disabled = false;
+      if (btn.dataset.originalHtml) {
+        btn.innerHTML = btn.dataset.originalHtml;
+        delete btn.dataset.originalHtml;
+      }
+    }
+  }
+
+  function persistToastAndReload(message, type = 'success') {
+    sessionStorage.setItem(toastStorageKey, JSON.stringify({ message, type }));
+    window.location.reload();
+  }
+
+  function validatePdfInput(input) {
+    const file = input?.files?.[0];
+    if (file && file.size > 10 * 1024 * 1024) {
+      showToast('El contrato excede los 10 MB permitidos.', 'error');
+      input.value = '';
+      return false;
+    }
+    return true;
+  }
+
+  const pendingToast = sessionStorage.getItem(toastStorageKey);
+  if (pendingToast) {
+    try {
+      const { message, type } = JSON.parse(pendingToast);
+      showToast(message, type);
+    } catch (_) {}
+    sessionStorage.removeItem(toastStorageKey);
+  }
+
+  document.querySelectorAll('input[name="contrato"]').forEach(input => {
+    input.addEventListener('change', () => validatePdfInput(input));
+  });
+
   // ============================================
   // DIRECCIONES (cargar estados/municipios/colonias)
   // ============================================
@@ -1003,6 +1083,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Submit create
     form.addEventListener('submit', (ev) => {
       ev.preventDefault();
+      setButtonLoading(createBtn, true, 'Creando...');
       const errorBoxId = 'create-client-errors';
       let errorBox = modal.querySelector('#' + errorBoxId);
       if (!errorBox) {
@@ -1014,6 +1095,11 @@ document.addEventListener('DOMContentLoaded', () => {
       errorBox.innerHTML = '';
 
       const formData = new FormData(form);
+      const contratoInput = form.querySelector('input[name="contrato"]');
+      if (contratoInput && contratoInput.files.length && !validatePdfInput(contratoInput)) {
+        setButtonLoading(createBtn, false);
+        return;
+      }
       formData.set('capacitacion', '0');
       formData.set('estado_cliente', '2');
 
@@ -1024,6 +1110,7 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.set('contrato_aceptado', contratoAceptado && contratoAceptado.checked ? '1' : '0');
       formData.set('fact_auto', factAuto && factAuto.checked ? '1' : '0');
       formData.set('recordatorios', recordatorios && recordatorios.checked ? '1' : '0');
+      const hasContract = formData.get('contrato') instanceof File;
 
       fetch("{{ route('clientes.store') }}", {
         method: "POST",
@@ -1041,7 +1128,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (response.ok) {
           const bsModal = bootstrap.Modal.getInstance(modal);
           if (bsModal) bsModal.hide();
-          window.location.reload();
+          persistToastAndReload(`Cliente creado correctamente${hasContract ? ' y contrato guardado en S3' : ''}.`, 'success');
           return;
         }
 
@@ -1054,15 +1141,18 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           html += '</ul></div>';
           errorBox.innerHTML = html;
+          setButtonLoading(createBtn, false);
           return;
         }
 
         const message = data?.message || 'Error desconocido';
         errorBox.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+        setButtonLoading(createBtn, false);
       })
       .catch(err => {
         console.error(err);
         errorBox.innerHTML = `<div class="alert alert-danger">Error al enviar datos: ${err.message}</div>`;
+        setButtonLoading(createBtn, false);
       });
     });
 
@@ -1151,7 +1241,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (contratoDiv) {
             const info = data.infoFiscal ?? data.info_fiscal ?? {};
             if (info && info.csf) {
-              contratoDiv.innerHTML = `<a href="/clientes/${data.id}/download-contract" target="_blank" rel="noopener">Contrato actual</a>`;
+              contratoDiv.innerHTML = `<a href="${contractDownloadBase}/${data.id}/contract" target="_blank" rel="noopener">Descargar contrato</a>`;
             } else {
               contratoDiv.innerHTML = '<em>No hay contrato</em>';
             }
@@ -1175,6 +1265,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const url = `/clientes/${id}`;
       const fd = new FormData(editForm);
       fd.append('_method', 'PUT');
+      const saveBtn = editForm.querySelector('button[type="submit"]');
+      const contratoInput = document.getElementById('edit_contrato');
+      const hasNewContract = contratoInput?.files?.length > 0;
+      if (hasNewContract && contratoInput && !validatePdfInput(contratoInput)) {
+        return;
+      }
+      setButtonLoading(saveBtn, true, 'Guardando...');
 
       try {
         const res = await fetch(url, {
@@ -1195,23 +1292,26 @@ document.addEventListener('DOMContentLoaded', () => {
           Object.values(data.errors).forEach(messages => messages.forEach(m => html += `<li>${m}</li>`));
           html += '</ul></div>';
           if (errorsBox) errorsBox.innerHTML = html;
+          setButtonLoading(saveBtn, false);
           return;
         }
 
         if (!res.ok) {
           const message = data?.message || 'Error al actualizar cliente';
           if (errorsBox) errorsBox.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+          setButtonLoading(saveBtn, false);
           return;
         }
 
         const bsModal = bootstrap.Modal.getInstance(editModalEl);
         if (bsModal) bsModal.hide();
         // Actualizamos la fila o recargamos: aquí recargamos para simplicidad
-        window.location.reload();
+        persistToastAndReload(`Cliente actualizado${hasNewContract ? ' y contrato reemplazado' : ''}.`, 'success');
       } catch (err) {
         console.error(err);
         const errorsBox = document.getElementById('edit-client-errors');
         if (errorsBox) errorsBox.innerHTML = `<div class="alert alert-danger">Error de comunicación: ${err.message}</div>`;
+        setButtonLoading(saveBtn, false);
       }
     });
   })();

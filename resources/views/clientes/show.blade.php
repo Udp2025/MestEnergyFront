@@ -43,6 +43,14 @@
 </div>
 
 <div class="container">
+    @foreach (['success' => 'success', 'error' => 'danger', 'info' => 'info'] as $flashKey => $class)
+        @if(session($flashKey))
+            <div class="alert alert-{{ $class }} alert-dismissible fade show" role="alert">
+                {{ session($flashKey) }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+    @endforeach
 
     <!-- Perfil -->
     <div class="profile-header">
@@ -135,6 +143,23 @@
                     </span>
                 </div>
             </div>
+            @if($canManageContract)
+                <div class="contract-actions" style="margin-top:10px;">
+                    <form id="contractUpdateForm" action="{{ route('clientes.contract.update', $cliente) }}" method="POST" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-center">
+                        @csrf
+                        <label for="contractUpdateInput" class="form-label mb-0" style="font-weight:600;">Actualizar contrato (PDF, máx 10 MB):</label>
+                        <input id="contractUpdateInput" type="file" name="contrato" accept="application/pdf" required class="form-control" style="max-width:320px;">
+                        <button type="submit" class="btn btn-primary btn-sm">Subir nuevo contrato</button>
+                    </form>
+                    @if($infoFiscal->csf)
+                        <form action="{{ route('clientes.contract.delete', $cliente) }}" method="POST" class="mt-2" onsubmit="return confirm('¿Eliminar contrato actual?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar contrato</button>
+                        </form>
+                    @endif
+                </div>
+            @endif
         @else
             <p>No hay información fiscal registrada.</p>
         @endif
@@ -235,6 +260,18 @@
                 submitButton.style.display = 'none';
             }
         });
+
+        const contractUpdateForm = document.getElementById('contractUpdateForm');
+        const contractUpdateInput = document.getElementById('contractUpdateInput');
+        if (contractUpdateForm && contractUpdateInput) {
+            contractUpdateForm.addEventListener('submit', function(e) {
+                const file = contractUpdateInput.files[0] ?? null;
+                if (file && file.size > 10 * 1024 * 1024) {
+                    e.preventDefault();
+                    alert('El contrato supera el límite de 10 MB.');
+                }
+            });
+        }
     });
 </script>
 
