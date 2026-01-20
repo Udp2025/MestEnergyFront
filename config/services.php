@@ -40,4 +40,10 @@ return [
         'api_key' => env('PLOT_API_KEY', env('VITE_PLOT_API_KEY')),
     ],
 
+    // ML puede usar un host/key distinto; si no se define, hereda de plot
+    'ml' => [
+        'base_url' => env('ML_API_BASE', env('PLOT_API_BASE', env('VITE_PLOT_API_BASE'))),
+        'api_key' => env('ML_API_KEY', env('PLOT_API_KEY', env('VITE_PLOT_API_KEY'))),
+    ],
+
 ];

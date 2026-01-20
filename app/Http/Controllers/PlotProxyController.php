@@ -108,8 +108,8 @@ class PlotProxyController extends Controller
 
     protected function shouldUseRemote(): bool
     {
-        $baseUrl = rtrim((string) config('services.plot.base_url', ''), '/');
-        $apiKey = config('services.plot.api_key');
+        $baseUrl = rtrim((string) $this->getBaseUrl(), '/');
+        $apiKey = $this->getApiKey();
 
         return $baseUrl !== '' && $apiKey;
     }
@@ -119,8 +119,8 @@ class PlotProxyController extends Controller
      */
     protected function forward(array $payload, string $path): JsonResponse
     {
-        $baseUrl = rtrim(config('services.plot.base_url', ''), '/');
-        $apiKey = config('services.plot.api_key');
+        $baseUrl = rtrim($this->getBaseUrl(), '/');
+        $apiKey = $this->getApiKey();
 
         if (!$baseUrl || !$apiKey) {
             abort(500, 'Plot API no está configurado correctamente.');
@@ -152,5 +152,23 @@ class PlotProxyController extends Controller
         }
 
         return response()->json($response->json());
+    }
+
+    /**
+    * Resuelve el host base para el servicio de datos/ML (por defecto el de plot).
+    * Subclases pueden sobreescribirlo.
+    */
+    protected function getBaseUrl(): string
+    {
+        return (string) config('services.plot.base_url', '');
+    }
+
+    /**
+    * Resuelve el API key para el servicio de datos/ML (por defecto el de plot).
+    * Subclases pueden sobreescribirlo.
+    */
+    protected function getApiKey(): ?string
+    {
+        return config('services.plot.api_key');
     }
 }
