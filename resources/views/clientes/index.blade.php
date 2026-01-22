@@ -1180,12 +1180,13 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!res.ok) throw new Error('Error al obtener datos del servidor');
           const data = await res.json();
 
+
           const getEl = id => document.getElementById(id);
           const mappings = [
             ['edit_cliente_id', data.id || id],
             ['edit_nombre', data.nombre ?? ''],
             ['edit_rfc', data.rfc ?? ''],
-            ['edit_razon_social', data.razon_social ?? data.razon_fiscal ?? ''],
+            ['edit_razon_social', data.infoFiscal?.razon_social ?? data.info_fiscal?.razon_social ?? ''],
             ['edit_email', data.email ?? ''],
             ['edit_telefono', data.telefono ?? ''],
             ['edit_calle', data.calle ?? ''],
