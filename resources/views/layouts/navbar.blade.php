@@ -271,6 +271,20 @@
 </head>
 
 <body>
+  @php
+    use Illuminate\Support\Facades\Storage;
+    $profileImageUrl = asset('images/mest.jpeg');
+    if (Auth::check() && Auth::user()->profile_image) {
+      $disk = config('filesystems.images_disk', 'public');
+      $path = Auth::user()->profile_image;
+      if ($disk === 's3') {
+        $profileImageUrl = Storage::disk($disk)->temporaryUrl($path, now()->addMinutes(10));
+      } else {
+        $profileImageUrl = Storage::disk($disk)->url($path);
+      }
+    }
+  @endphp
+
   <!-- Navbar Superior -->
   <header class="custom-navbar">
     <div class="navbar-left">
@@ -293,13 +307,9 @@
       </div>
 
       <div class="custom-avatar" id="avatar">
-      <img src="{{ Auth::user()->profile_image 
-                    ? \Illuminate\Support\Facades\Storage::disk(config('filesystems.default', 'public'))->url(Auth::user()->profile_image) 
-                    : asset('images/mest.jpeg') }}" alt="Large User Avatar">        <div class="custom-profile-menu" id="profile-menu">
+      <img src="{{ $profileImageUrl }}" alt="Large User Avatar">        <div class="custom-profile-menu" id="profile-menu">
           <div class="custom-profile-header">
-            <img src="{{ Auth::user()->profile_image 
-                    ? \Illuminate\Support\Facades\Storage::disk(config('filesystems.default', 'public'))->url(Auth::user()->profile_image) 
-                    : asset('images/mest.jpeg') }}" alt="Large User Avatar">
+            <img src="{{ $profileImageUrl }}" alt="Large User Avatar">
             <h3>{{ Auth::user()->name }}</h3> <!-- Nombre del usuario -->
             <p>{{ Auth::user()->email }}</p> <!-- Correo del usuario -->
           </div>

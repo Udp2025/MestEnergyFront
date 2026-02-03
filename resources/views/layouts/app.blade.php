@@ -28,8 +28,12 @@
         $profileImageUrl = asset('images/mest.jpeg');
         if ($currentUser && $currentUser->profile_image) {
             $path = $currentUser->profile_image;
-            $defaultDisk = config('filesystems.default', 'public');
-            $profileImageUrl = \Illuminate\Support\Facades\Storage::disk($defaultDisk)->url($path);
+            $defaultDisk = config('filesystems.images_disk', 'public');
+            if ($defaultDisk === 's3') {
+                $profileImageUrl = \Illuminate\Support\Facades\Storage::disk($defaultDisk)->temporaryUrl($path, now()->addMinutes(10));
+            } else {
+                $profileImageUrl = \Illuminate\Support\Facades\Storage::disk($defaultDisk)->url($path);
+            }
         }
     @endphp
     <script>

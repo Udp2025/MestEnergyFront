@@ -8,7 +8,7 @@
 
 @php
     use Illuminate\Support\Facades\Storage;
-    $disk = config('filesystems.default', 'public');
+    $disk = config('filesystems.images_disk', 'public');
     $isSuperAdmin = session('is_super_admin', (int) (auth()->user()?->cliente_id ?? -1) === 0);
     $selectedClientId = $selectedClientId ?? ($isSuperAdmin ? null : auth()->user()?->cliente_id);
     $search = $search ?? '';
@@ -157,7 +157,11 @@
                             @php
                                 $profileUrl = asset('images/default-avatar.png');
                                 if ($item->profile_image) {
-                                    $profileUrl = Storage::disk($disk)->url($item->profile_image);
+                                    if ($disk === 's3') {
+                                        $profileUrl = Storage::disk($disk)->temporaryUrl($item->profile_image, now()->addMinutes(10));
+                                    } else {
+                                        $profileUrl = Storage::disk($disk)->url($item->profile_image);
+                                    }
                                 }
                             @endphp
                             <tr>

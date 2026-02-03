@@ -8,10 +8,14 @@
 
 @php
     use Illuminate\Support\Facades\Storage;
-    $disk = config('filesystems.default', 'public');
+    $disk = config('filesystems.images_disk', 'public');
     $profileImageUrl = asset('images/profile.png');
     if ($user?->profile_image) {
-        $profileImageUrl = Storage::disk($disk)->url($user->profile_image);
+        if ($disk === 's3') {
+            $profileImageUrl = Storage::disk($disk)->temporaryUrl($user->profile_image, now()->addMinutes(10));
+        } else {
+            $profileImageUrl = Storage::disk($disk)->url($user->profile_image);
+        }
     }
     $roleValue = in_array($user?->role, ['admin', 'operaciones'], true) ? $user->role : 'operaciones';
     $isAdmin = $user?->role === 'admin';

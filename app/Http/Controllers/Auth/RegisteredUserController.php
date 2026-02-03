@@ -47,7 +47,14 @@ class RegisteredUserController extends Controller
         // Procesar la imagen de perfil si se cargó
         $profileImagePath = null;
         if ($request->hasFile('profile_image')) {
-            $profileImagePath = $request->file('profile_image')->store('profile_images', 'public');
+            $disk = config('filesystems.images_disk', 'public');
+            $directory = env('AWS_S3_IMAGES_PATH', 'profile_images');
+            $visibility = $disk === 's3' ? 'private' : 'public';
+            $profileImagePath = Storage::disk($disk)->putFile(
+                $directory,
+                $request->file('profile_image'),
+                ['visibility' => $visibility]
+            );
         }
 
         // Si el rol es admin, se asigna null al cliente; de lo contrario se usa el valor enviado

@@ -23,6 +23,7 @@ return [
 
     'contracts_disk' => env('FILESYSTEM_CONTRACT_DISK', 's3'),
     'contracts_visibility' => env('FILESYSTEM_CONTRACT_VISIBILITY', 'private'),
+    'images_disk' => env('FILESYSTEM_IMAGES_DISK', 'public'),
 
     /*
     |--------------------------------------------------------------------------
@@ -63,7 +64,7 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
+            'throw' => env('FILESYSTEM_S3_THROW', false),
         ],
 
     ],

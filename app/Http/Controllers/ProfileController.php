@@ -64,8 +64,9 @@ class ProfileController extends Controller
         }
 
         if ($request->hasFile('profile_image')) {
-            $disk = config('filesystems.default', 'public');
+            $disk = config('filesystems.images_disk', 'public');
             $directory = env('AWS_S3_IMAGES_PATH', 'profile_images');
+            $visibility = $disk === 's3' ? 'private' : 'public';
 
             if ($user->profile_image) {
                 $disksToCheck = array_unique([$disk, 'public']);
@@ -76,7 +77,11 @@ class ProfileController extends Controller
                 }
             }
 
-            $path = Storage::disk($disk)->putFile($directory, $request->file('profile_image'), 'public');
+            $path = Storage::disk($disk)->putFile(
+                $directory,
+                $request->file('profile_image'),
+                ['visibility' => $visibility]
+            );
             $user->profile_image = $path;
         }
 

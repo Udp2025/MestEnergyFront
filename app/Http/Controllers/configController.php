@@ -95,12 +95,17 @@ class configController extends Controller
             'new_cliente_id' => [$currentUser->isSuperAdmin() ? 'required' : 'nullable', 'integer', 'exists:clientes,id'],
         ]);
 
-        $disk = config('filesystems.default', 'public');
+        $disk = config('filesystems.images_disk', 'public');
         $directory = env('AWS_S3_IMAGES_PATH', 'profile_images');
+        $visibility = $disk === 's3' ? 'private' : 'public';
         $profileImagePath = null;
 
         if ($request->hasFile('new_profile_image')) {
-            $profileImagePath = Storage::disk($disk)->putFile($directory, $request->file('new_profile_image'), 'public');
+            $profileImagePath = Storage::disk($disk)->putFile(
+                $directory,
+                $request->file('new_profile_image'),
+                ['visibility' => $visibility]
+            );
         }
 
         $newUser = User::create([
@@ -140,14 +145,19 @@ class configController extends Controller
         }
 
         if ($request->hasFile('profile_image')) {
-            $disk = config('filesystems.default', 'public');
+            $disk = config('filesystems.images_disk', 'public');
             $directory = env('AWS_S3_IMAGES_PATH', 'profile_images');
+            $visibility = $disk === 's3' ? 'private' : 'public';
 
             if ($user->profile_image) {
                 $this->deleteFromKnownDisks($user->profile_image, $disk);
             }
 
-            $user->profile_image = Storage::disk($disk)->putFile($directory, $request->file('profile_image'), 'public');
+            $user->profile_image = Storage::disk($disk)->putFile(
+                $directory,
+                $request->file('profile_image'),
+                ['visibility' => $visibility]
+            );
         }
 
         $user->save();
@@ -166,7 +176,7 @@ class configController extends Controller
         }
 
         if ($user->profile_image) {
-            $disk = config('filesystems.default', 'public');
+            $disk = config('filesystems.images_disk', 'public');
             $this->deleteFromKnownDisks($user->profile_image, $disk);
         }
 
