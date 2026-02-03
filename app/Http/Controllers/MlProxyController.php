@@ -38,13 +38,11 @@ class MlProxyController extends PlotProxyController
 
     protected function getBaseUrl(): string
     {
-        // Permite separar el host de ML; si no se define, hereda del de plot
-        return (string) config('services.ml.base_url', config('services.plot.base_url', ''));
+        return (string) config('services.plot.base_url', '');
     }
 
     protected function getApiKey(): ?string
     {
-        // Permite separar el API key de ML; si no se define, hereda del de plot
-        return config('services.ml.api_key', config('services.plot.api_key'));
+        return config('services.plot.api_key');
     }
 }
