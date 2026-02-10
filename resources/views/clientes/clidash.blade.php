@@ -26,7 +26,13 @@ if (!isset($latestCost)) {
         'consumo_intermedio_pt' => 0,
         'consumo_punta_pt' => 0,
         'factor_potencia_pt' => 0,
-        'fecha_inicio' => null
+        'fecha_inicio' => null,
+        'kwh_base' => 0,
+        'kwh_intermedio' => 0,
+        'kwh_punta' => 0,
+        'energia_generada' => 0,
+        'kw_max' => 0,
+        'kw_punta' => 0
     ];
 }
 
@@ -41,6 +47,12 @@ $subSites = [
 $subtotal = $latestCost->subtotal ?? 0;
 $iva = $latestCost->iva ?? 0;
 $total = $latestCost->total ?? 0;
+$kwhBase = $latestCost->kwh_base ?? 0;
+$kwhIntermedio = $latestCost->kwh_intermedio ?? 0;
+$kwhPunta = $latestCost->kwh_punta ?? 0;
+$energiaGenerada = $latestCost->energia_generada ?? 0;
+$kwMax = $latestCost->kw_max ?? 0;
+$kwPunta = $latestCost->kw_punta ?? 0;
 
 $costDetails = [
     ['label'=>'Cargo Fijo (Suministro)','pct'=>$latestCost->cargo_fijo_pt ?? 0,'value'=>$latestCost->cargo_fijo ?? 0],
@@ -157,6 +169,63 @@ $topDrivers = array_slice($costValues,0,3);
                 </div>
             </div>
             <div class="metric-foot">Comparativa con mes previo</div>
+        </div>
+    </div>
+
+    <div class="top-metrics energy-metrics">
+        <div class="metric-card">
+            <div class="metric-row">
+                <div>
+                    <div class="metric-title">kWh base</div>
+                    <div class="metric-value">{{ number_format($kwhBase,2,'.',',') }}</div>
+                </div>
+            </div>
+            <div class="metric-foot">kWh</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-row">
+                <div>
+                    <div class="metric-title">kWh intermedia</div>
+                    <div class="metric-value">{{ number_format($kwhIntermedio,2,'.',',') }}</div>
+                </div>
+            </div>
+            <div class="metric-foot">kWh</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-row">
+                <div>
+                    <div class="metric-title">kWh punta</div>
+                    <div class="metric-value">{{ number_format($kwhPunta,2,'.',',') }}</div>
+                </div>
+            </div>
+            <div class="metric-foot">kWh</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-row">
+                <div>
+                    <div class="metric-title">kW Max</div>
+                    <div class="metric-value">{{ number_format($kwMax,2,'.',',') }}</div>
+                </div>
+            </div>
+            <div class="metric-foot">kW</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-row">
+                <div>
+                    <div class="metric-title">kW punta</div>
+                    <div class="metric-value">{{ number_format($kwPunta,2,'.',',') }}</div>
+                </div>
+            </div>
+            <div class="metric-foot">kW</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-row">
+                <div>
+                    <div class="metric-title">Energia Generada</div>
+                    <div class="metric-value">{{ number_format($energiaGenerada,2,'.',',') }}</div>
+                </div>
+            </div>
+            <div class="metric-foot">kWh</div>
         </div>
     </div>
 

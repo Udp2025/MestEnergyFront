@@ -29,6 +29,12 @@ const AREA_CONFIG = {
         chartType: "bar",
       },
       {
+        key: "generatedBySensor",
+        title: "Energía generada por sensor",
+        desc: "Energía generada por sensores de generación dentro del rango seleccionado.",
+        chartType: "bar",
+      },
+      {
         key: "energyByTariff",
         title: "Consumo por zona horaria",
         desc: "Distribución del consumo en Base / Intermedia / Punta según tarifa aplicada.",
@@ -45,6 +51,18 @@ const AREA_CONFIG = {
         title: "Costo por zona horaria",
         desc: "Costo de energía en cada franja horaria para identificar horarios más caros.",
         chartType: "pie",
+      },
+      {
+        key: "billingDetail",
+        title: "Detalle de facturación estimada por sensor",
+        desc: "Desglose de conceptos tarifarios y cargos del periodo.",
+        type: "table", // Definimos un nuevo tipo
+      },
+      {
+        key: "billingDetailSite",
+        title: "Detalle de facturación por sitio completo",
+        desc: "Cargos totales calculados para el sitio completo en el periodo.",
+        type: "table",
       },
       {
         key: "financialSummary",
@@ -212,6 +230,7 @@ async function handleRender(elements, areaKey) {
   await renderArea(state.activeArea, elements);
 }
 
+/*
 async function renderArea(areaKey, elements) {
   const renderId = state.renderToken;
   const config = AREA_CONFIG[areaKey] || AREA_CONFIG.finanzas;
@@ -272,6 +291,91 @@ async function renderArea(areaKey, elements) {
     }
   });
 }
+*/
+
+async function renderArea(areaKey, elements) {
+  const renderId = state.renderToken;
+  const config = AREA_CONFIG[areaKey] || AREA_CONFIG.finanzas;
+  
+  if (!elements.grid) return;
+  elements.grid.innerHTML = "";
+  
+  const filters = currentFilters(elements, areaKey);
+
+  // Asegurar que tenemos los nombres de dispositivos para mantenimiento y finanzas
+  if (areaKey === "mantenimiento" || areaKey === "finanzas") {
+    await ensureDeviceLabels(filters.siteId || "ALL");
+  }
+  if (renderId !== state.renderToken) return;
+
+  // Renderizar sección de comparativa (KPIs superiores)
+  await renderComparisonSection(areaKey, elements.grid, filters, renderId);
+  if (renderId !== state.renderToken) return;
+
+  // Preparar narrativa si aplica
+  const narrativeTarget = NARRATIVE_AREAS.has(areaKey)
+    ? createNarrativeCard(elements.grid, areaKey)
+    : null;
+    
+  if (narrativeTarget) {
+    filters.narrativeTarget = narrativeTarget;
+  }
+
+  // Renderizar cada tarjeta configurada
+  config.cards.forEach((card) => {
+    const cardEl = document.createElement("article");
+    cardEl.className = "report-card";
+
+    // Lógica de diseño: 
+    // - Tablas y Resúmenes ocupan ancho completo
+    // - En finanzas, por diseño, las gráficas suelen ser también anchas
+    if (card.type === "summary" || card.type === "table") {
+      cardEl.classList.add("report-card--full");
+    } else if (
+      areaKey === "finanzas" ||
+      areaKey === "direccion" ||
+      areaKey === "mantenimiento"
+    ) {
+      cardEl.classList.add("report-card--wide");
+    }
+
+    // Inserción del HTML con el nuevo condicional para 'table'
+    cardEl.innerHTML = `
+      <div class="report-card__meta">
+        <h3 class="report-card__title">${card.title}</h3>
+      </div>
+      <p class="report-card__desc">${card.desc}</p>
+      ${
+        card.type === "summary"
+          ? `<div class="summary-panel" data-summary-key="${card.key}"></div>`
+          : card.type === "table"
+          ? `<div class="report-table-container" data-table-key="${card.key}"></div>`
+          : `<div class="report-chart" data-chart-key="${card.key}"></div>`
+      }
+      <div class="report-card__footer">
+        <span class="dot"></span>
+        <span>Última actualización: rango de fechas seleccionado</span>
+      </div>
+    `;
+    
+    elements.grid.appendChild(cardEl);
+
+    // Protección contra renders obsoletos (si el usuario cambia de filtros rápido)
+    if (renderId !== state.renderToken) return;
+
+    // Carga de datos específica por área
+    if (areaKey === "direccion") {
+      loadDireccionCard(card, cardEl, filters, renderId);
+    } else if (areaKey === "mantenimiento") {
+      loadMantenimientoCard(card, cardEl, filters, renderId);
+    } else if (areaKey === "finanzas") {
+      loadFinanzasCard(card, cardEl, filters, renderId);
+    } else {
+      renderSeededCard(card, cardEl, filters, renderId);
+    }
+  });
+}
+
 
 async function renderComparisonSection(areaKey, grid, filters, renderId) {
   if (!grid || areaKey === "finanzas") return;
@@ -350,6 +454,15 @@ function loadFinanzasCard(card, cardEl, filters, renderId) {
     renderFinanzasSummary(container, filters, renderId);
     return;
   }
+  if (card.type === "table") {
+    const container = cardEl.querySelector("[data-table-key]");
+    if (card.key === "billingDetailSite") {
+      renderFinanzasSiteTable(container, filters, renderId);
+    } else {
+      renderFinanzasTable(container, filters, renderId);
+    }
+    return;
+  }
 
   const chartEl = cardEl.querySelector("[data-chart-key]");
 
@@ -359,6 +472,11 @@ function loadFinanzasCard(card, cardEl, filters, renderId) {
       break;
     case "energyBySensor":
       renderPlotCard(chartEl, () => buildEnergyBySensorPayload(filters, "bar"));
+      break;
+    case "generatedBySensor":
+      renderPlotCard(chartEl, () =>
+        buildGeneratedEnergyBySensorPayload(filters)
+      );
       break;
     case "energyByTariff":
       renderPlotCard(chartEl, () => buildEnergyByTariffPayload(filters));
@@ -383,6 +501,36 @@ async function renderFinanzasSummary(container, filters, renderId) {
     await ensureDeviceLabels(filters.siteId || "ALL");
 
     const rows = await fetchCostAggregates(filters);
+    let siteCosts = null;
+    if (filters.siteId && filters.siteId !== "ALL") {
+      siteCosts = await fetchEnergyCosts(filters);
+    } else {
+      const sites = await getSites();
+      const siteRows = Array.isArray(sites?.data)
+        ? sites.data
+        : Array.isArray(sites)
+        ? sites
+        : [];
+      if (siteRows.length) {
+        const costRows = await Promise.all(
+          siteRows.map(async (site) =>
+            fetchEnergyCosts({
+              ...filters,
+              siteId: site.site_id,
+            })
+          )
+        );
+        const total = costRows.reduce(
+          (acc, row) => acc + Number(row?.total ?? 0),
+          0
+        );
+        const energia_generada = costRows.reduce(
+          (acc, row) => acc + Number(row?.energia_generada ?? 0),
+          0
+        );
+        siteCosts = { total, energia_generada };
+      }
+    }
 
     if (renderId !== state.renderToken) return;
 
@@ -425,9 +573,27 @@ async function renderFinanzasSummary(container, filters, renderId) {
 
 
 
+    const siteTotal = siteCosts ? Number(siteCosts.total) : null;
+    const siteEnergyGen = siteCosts
+      ? Number(siteCosts.energia_generada)
+      : null;
+
     const summaryRows = [
       { label: "Consumo total", value: formatEnergy(totalEnergyWh) },
-      { label: "Costo total", value: formatCurrency(totalCost) },
+      {
+        label: "Costo total",
+        value: formatCurrency(
+          Number.isFinite(siteTotal) ? siteTotal : totalCost
+        ),
+      },
+      ...(Number.isFinite(siteEnergyGen)
+        ? [
+            {
+              label: "Energía generada",
+              value: formatEnergy(siteEnergyGen),
+            },
+          ]
+        : []),
       { label: "Sensor más costoso", value: topSensor },
       { label: "Zona más cara", value: topZone },
       { label: "Día mayor consumo", value: topDay || "—" },
@@ -437,7 +603,7 @@ async function renderFinanzasSummary(container, filters, renderId) {
 
     renderNarrative("finanzas", filters, {
       totalEnergyWh,
-      totalCost,
+      totalCost: Number.isFinite(siteTotal) ? siteTotal : totalCost,
       topSensor,
       topZone,
     });
@@ -447,6 +613,395 @@ async function renderFinanzasSummary(container, filters, renderId) {
     setMessage(container, "No se pudo calcular el resumen financiero.");
     renderNarrative("finanzas", filters, null, err);
   }
+}
+
+function calculatePFChargeBonus(kwh, kvarh) {
+  if (kwh <= 0) return 0;
+
+  // 1. Calcular el Factor de Potencia (FP)
+  // FP = kWh / sqrt(kWh² + kvarh²)
+  const denominador = Math.sqrt(Math.pow(kwh, 2) + Math.pow(kvarh, 2));
+  if (denominador === 0) return 0;
+  
+  const total_pf = kwh / denominador;
+
+  let charge_bonus = 0;
+
+  // 2. Calcular % de cargo o bonificación (Fórmulas CFE)
+  if (total_pf >= 0.9) {
+    // BONO: -0.25 * (1 - (0.9 / FP))
+    // El resultado es negativo porque resta al total
+    charge_bonus = -0.25 * (1 - (0.9 / total_pf));
+    // Límite máximo de bonificación: 2.5% (0.025) en valor absoluto
+    // Como es bono, usamos el máximo (más negativo) de -0.025
+    return Math.max(charge_bonus, -0.025);
+  } else {
+    // CARGO: (3/5) * ((0.9 / FP) - 1)
+    charge_bonus = (3 / 5) * ((0.9 / total_pf) - 1);
+    // Límite máximo de cargo: 120% (1.2)
+    return Math.min(charge_bonus, 1.2);
+  }
+}
+
+
+function fragmentPeriodByMonth(from, to) {
+  const start = new Date(from + "T00:00:00");
+  const end = new Date(to + "T00:00:00");
+  const fragments = [];
+
+  let current = new Date(start);
+  while (current <= end) {
+    const month = current.getMonth();
+    const year = current.getFullYear();
+    const firstDay = new Date(year, month, current.getDate());
+    
+    // El último día del fragmento es el fin del mes o el 'to' del usuario
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+    const fragmentEnd = lastDayOfMonth < end ? lastDayOfMonth : new Date(end);
+
+    fragments.push({
+      from: formatDateISO(firstDay),
+      to: formatDateISO(fragmentEnd),
+      month: month + 1,
+      year: year,
+      days: Math.max(1, Math.round((fragmentEnd - firstDay) / (1000 * 60 * 60 * 24)) + 1)
+    });
+
+    current = new Date(year, month + 1, 1);
+  }
+  return fragments;
+}
+
+async function fetchMonthlyTariff(siteId, month, year) {
+  if (!siteId || siteId === "ALL") return { capacidad: 0, distribucion: 0, fijo: 0 };
+
+  try {
+    // 1. Obtener la región del sitio
+    // Convertimos a Number para evitar el error de "Formato inválido de filtro numérico"
+    const siteNumeric = Number(siteId);
+
+    const clientResponse = await fetchDB({
+      table: "clientes",
+      filter_map: { 
+        site: siteNumeric // Enviamos el número directo, sin array ni string
+      },
+      select_columns: ["tarifa_region"]
+    });
+    
+    const clientRows = clientResponse?.data || clientResponse || [];
+    const regionId = clientRows[0]?.tarifa_region;
+
+    if (!regionId) {
+      console.warn(`⚠️ El sitio ${siteId} no devolvió 'tarifa_region'.`);
+      return { capacidad: 0, distribucion: 0, fijo: 0 };
+    }
+
+    // 2. Obtener precios de la tabla tarifa_region
+    const pricingResponse = await fetchDB({
+      table: "tarifa_region", 
+      filter_map: { 
+        id_region: Number(regionId), // Usamos el valor tal cual vino de la tabla clientes
+        mes: Number(month),
+        tariff_year: Number(year)
+      }
+    });
+    
+    const pricingRows = pricingResponse?.data || pricingResponse || [];
+    const d = pricingRows[0];
+
+    return {
+      capacidad: Number(d?.capacidad || 0),
+      distribucion: Number(d?.distribucion || 0),
+      fijo: Number(d?.fijo || 0)
+    };
+  } catch (e) {
+    console.error("❌ Error en fetchMonthlyTariff:", e);
+    return { capacidad: 0, distribucion: 0, fijo: 0 };
+  }
+}
+
+async function renderFinanzasTable(container, filters, renderId) {
+  if (!container) return;
+  setLoading(container);
+
+  try {
+    if (!filters.siteId || filters.siteId === "ALL") {
+      setMessage(
+        container,
+        "Selecciona un sitio para ver el detalle por sensor."
+      );
+      return;
+    }
+
+    const rows = await fetchCostAggregates(filters);
+    if (renderId !== state.renderToken) return;
+
+    const deviceIds = Array.from(
+      new Set(rows.map((r) => String(r.device_id)).filter(Boolean))
+    );
+    if (!deviceIds.length) {
+      setMessage(container, "No hay datos para mostrar.");
+      return;
+    }
+
+    await ensureDeviceLabels(filters.siteId || "ALL");
+
+    const costResults = await Promise.all(
+      deviceIds.map(async (deviceId) => {
+        const costs = await fetchEnergyCosts({
+          ...filters,
+          deviceId,
+        });
+        return {
+          deviceId,
+          name: deviceLabel(deviceId, null, filters.siteId),
+          costs,
+        };
+      })
+    );
+
+    if (renderId !== state.renderToken) return;
+    renderSensorCostTable(container, costResults);
+
+  } catch (err) {
+    console.error("Error en renderFinanzasTable:", err);
+    setMessage(container, "No se pudieron calcular los datos financieros.");
+  }
+}
+
+async function renderFinanzasSiteTable(container, filters, renderId) {
+  if (!container) return;
+  setLoading(container);
+
+  try {
+    if (!filters.siteId || filters.siteId === "ALL") {
+      const sites = await getSites();
+      const rows = Array.isArray(sites?.data)
+        ? sites.data
+        : Array.isArray(sites)
+        ? sites
+        : [];
+      if (!rows.length) {
+        setMessage(container, "No hay sitios para mostrar.");
+        return;
+      }
+
+      const siteCosts = await Promise.all(
+        rows.map(async (site) => {
+          const costs = await fetchEnergyCosts({
+            ...filters,
+            siteId: site.site_id,
+          });
+          return {
+            siteId: site.site_id,
+            siteName: site.site_name || `Sitio ${site.site_id}`,
+            costs,
+          };
+        })
+      );
+
+      if (renderId !== state.renderToken) return;
+      renderSitesCostTable(container, siteCosts);
+      return;
+    }
+
+    const costs = await fetchEnergyCosts(filters);
+    if (renderId !== state.renderToken) return;
+
+    if (!costs) {
+      setMessage(container, "No se pudieron obtener los costos del sitio.");
+      return;
+    }
+
+    const siteName = siteLabel(filters.siteId);
+    renderSiteCostTable(container, siteName, costs);
+  } catch (err) {
+    console.error("Error en renderFinanzasSiteTable:", err);
+    setMessage(container, "No se pudieron calcular los datos del sitio.");
+  }
+}
+
+function renderSensorCostTable(container, rows) {
+  const safeRows = Array.isArray(rows) ? rows.filter((r) => r?.costs) : [];
+  if (!safeRows.length) {
+    setMessage(container, "No hay datos para mostrar.");
+    return;
+  }
+
+  const formatCompact = (val) => {
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+    })
+      .format(val)
+      .replace("MXN", "")
+      .trim();
+  };
+
+  let html = `
+    <div class="report-table-wrapper" style="overflow-x: auto;">
+      <table class="report-table report-table--horizontal" style="min-width: 980px;">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding: 10px 12px;">Sensor</th>
+            <th>Cargo Fijo</th>
+            <th>Capacidad</th>
+            <th>Distribución</th>
+            <th>Base</th>
+            <th>Intermedia</th>
+            <th>Punta</th>
+            <th>FP</th>
+            <th style="background-color: #f8f9fa;">Subtotal</th>
+            <th style="background-color: #f8f9fa;">IVA (16%)</th>
+            <th style="background-color: #e9ecef;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  safeRows.forEach(({ name, costs }) => {
+    const fpValue = `${Number(costs.factor_potencia_pt ?? 0).toFixed(2)}`;
+    html += `
+      <tr>
+        <td style="text-align:left; font-weight:bold; padding: 10px 12px;">${name}</td>
+        <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_fijo ?? 0))}</td>
+        <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_capacidad ?? 0))}</td>
+        <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_distribucion ?? 0))}</td>
+        <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_base ?? 0))}</td>
+        <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_intermedio ?? 0))}</td>
+        <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_punta ?? 0))}</td>
+        <td style="padding: 10px 12px;">${fpValue}</td>
+        <td style="font-weight:bold; background-color: #f8f9fa; padding: 10px 12px;">${formatCurrency(Number(costs.subtotal ?? 0))}</td>
+        <td style="color: #666; background-color: #f8f9fa; padding: 10px 12px;">${formatCurrency(Number(costs.iva ?? 0))}</td>
+        <td class="table-total-cell" style="font-weight:bold; background-color: #e9ecef; color: #2c3e50; padding: 10px 12px;">
+          ${formatCurrency(Number(costs.total ?? 0))}
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table></div>`;
+  container.innerHTML = html;
+}
+
+function renderSiteCostTable(container, siteName, costs) {
+  const formatCompact = (val) => {
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+    })
+      .format(val)
+      .replace("MXN", "")
+      .trim();
+  };
+
+  const fpPercent = `${Number(costs.factor_potencia_pt ?? 0).toFixed(2)}`;
+
+  const html = `
+    <div class="report-table-wrapper" style="overflow-x: auto;">
+      <table class="report-table report-table--horizontal" style="min-width: 980px;">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding: 10px 12px;">Sitio</th>
+            <th>Cargo Fijo</th>
+            <th>Capacidad</th>
+            <th>Distribución</th>
+            <th>Base</th>
+            <th>Intermedia</th>
+            <th>Punta</th>
+            <th>FP</th>
+            <th style="background-color: #f8f9fa;">Subtotal</th>
+            <th style="background-color: #f8f9fa;">IVA (16%)</th>
+            <th style="background-color: #e9ecef;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="text-align:left; font-weight:bold; padding: 10px 12px;">${siteName}</td>
+            <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_fijo ?? 0))}</td>
+            <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_capacidad ?? 0))}</td>
+            <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_distribucion ?? 0))}</td>
+            <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_base ?? 0))}</td>
+            <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_intermedio ?? 0))}</td>
+            <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_punta ?? 0))}</td>
+            <td style="padding: 10px 12px;">${fpPercent}</td>
+            <td style="font-weight:bold; background-color: #f8f9fa; padding: 10px 12px;">${formatCurrency(Number(costs.subtotal ?? 0))}</td>
+            <td style="color: #666; background-color: #f8f9fa; padding: 10px 12px;">${formatCurrency(Number(costs.iva ?? 0))}</td>
+            <td class="table-total-cell" style="font-weight:bold; background-color: #e9ecef; color: #2c3e50; padding: 10px 12px;">
+              ${formatCurrency(Number(costs.total ?? 0))}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+function renderSitesCostTable(container, rows) {
+  const safeRows = Array.isArray(rows)
+    ? rows.filter((r) => r?.costs)
+    : [];
+  if (!safeRows.length) {
+    setMessage(container, "No hay datos para mostrar.");
+    return;
+  }
+
+  const formatCompact = (val) => {
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+    })
+      .format(val)
+      .replace("MXN", "")
+      .trim();
+  };
+
+  let html = `
+    <div class="report-table-wrapper" style="overflow-x: auto;">
+      <table class="report-table report-table--horizontal" style="min-width: 980px;">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding: 10px 12px;">Sitio</th>
+            <th>Cargo Fijo</th>
+            <th>Capacidad</th>
+            <th>Distribución</th>
+            <th>Base</th>
+            <th>Intermedia</th>
+            <th>Punta</th>
+            <th>FP</th>
+            <th style="background-color: #f8f9fa;">Subtotal</th>
+            <th style="background-color: #f8f9fa;">IVA (16%)</th>
+            <th style="background-color: #e9ecef;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  safeRows.forEach(({ siteName, costs }) => {
+    const fpValue = `${Number(costs.factor_potencia_pt ?? 0).toFixed(2)}`;
+    html += `
+      <tr>
+        <td style="text-align:left; font-weight:bold; padding: 10px 12px;">${siteName}</td>
+        <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_fijo ?? 0))}</td>
+        <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_capacidad ?? 0))}</td>
+        <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_distribucion ?? 0))}</td>
+        <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_base ?? 0))}</td>
+        <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_intermedio ?? 0))}</td>
+        <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_punta ?? 0))}</td>
+        <td style="padding: 10px 12px;">${fpValue}</td>
+        <td style="font-weight:bold; background-color: #f8f9fa; padding: 10px 12px;">${formatCurrency(Number(costs.subtotal ?? 0))}</td>
+        <td style="color: #666; background-color: #f8f9fa; padding: 10px 12px;">${formatCurrency(Number(costs.iva ?? 0))}</td>
+        <td class="table-total-cell" style="font-weight:bold; background-color: #e9ecef; color: #2c3e50; padding: 10px 12px;">
+          ${formatCurrency(Number(costs.total ?? 0))}
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table></div>`;
+  container.innerHTML = html;
 }
 
 
@@ -844,12 +1399,52 @@ function buildEnergyBySensorPayload(filters, chartType = "bar") {
       // backend no soporta pie → fallback
       chart_type: pieFallback ? "bar" : chartType,
 
+      //x: "device_id",
+      //y: "energy_kwh_sum",
       x: "device_id",
       y: "energy_kwh_sum",
 
       style: pieFallback
         ? { color: "device_id", orientation: "h" }
         : { color: "device_id" },
+    },
+  };
+}
+
+async function buildGeneratedEnergyBySensorPayload(filters) {
+  const genIds = await fetchGenerationSensorIds(filters);
+  if (!genIds.length) {
+    return { __emptyMessage: "No se encontraron sensores de generación." };
+  }
+
+  const filter_map = {
+    kpi_date: `[${filters.from}, ${filters.to}]`,
+    device_id: genIds.map(Number),
+  };
+
+  if (filters.siteId && filters.siteId !== "ALL") {
+    filter_map.site_id = [Number(filters.siteId)];
+  }
+
+  return {
+    table: "device_daily_kpi",
+    filter_map,
+    meta: {
+      domain: "finance",
+    },
+    aggregation: [
+      {
+        group_by: ["site_id", "device_id"],
+        aggregations: {
+          energy_wh_sum: ["sum"],
+        },
+      },
+    ],
+    chart: {
+      chart_type: "bar",
+      x: "device_id",
+      y: "energy_wh_sum_sum",
+      style: { color: "device_id" },
     },
   };
 }
@@ -1114,6 +1709,67 @@ async function fetchCostAggregates(filters) {
   }
 }
 
+async function fetchGenerationSensorIds(filters) {
+  const payload = {
+    table: "devices",
+    select_columns: ["site_id", "device_id", "device_name"],
+  };
+
+  if (filters.siteId && filters.siteId !== "ALL") {
+    payload.filter_map = { site_id: "=" + filters.siteId };
+  }
+
+  try {
+    const response = await fetchDB(payload);
+    const rows = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+
+    const normalize = (value) =>
+      String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+
+    return rows
+      .filter((row) =>
+        normalize(row.device_name).includes("generacion")
+      )
+      .map((row) => Number(row.device_id))
+      .filter((id) => Number.isFinite(id));
+  } catch (error) {
+    console.warn("reports: generation sensors unavailable", error);
+    return [];
+  }
+}
+
+async function fetchEnergyCosts(filters) {
+  if (!filters.siteId || filters.siteId === "ALL") {
+    return null;
+  }
+  const params = new URLSearchParams({
+    start_date: filters.from,
+    end_date: filters.to,
+    site_id: String(filters.siteId),
+  });
+  if (filters.deviceId) {
+    params.set("device_id", String(filters.deviceId));
+  }
+
+  try {
+    const res = await fetch(`/energy/costs?${params.toString()}`);
+    if (!res.ok) {
+      throw new Error(`Energy costs request failed (${res.status})`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.warn("reports: energy costs unavailable", error);
+    return null;
+  }
+}
+
 async function fetchDailyEnergy(filters) {
   const body = {
     table: "site_daily_kpi",
@@ -1305,6 +1961,17 @@ async function renderPlotCard(container, payloadBuilder) {
 }
 */
 
+function inferAxis(trace) {
+  const orientation = trace.orientation || "v";
+
+  return orientation === "h"
+    ? { categoryAxis: "y", valueAxis: "x" }
+    : { categoryAxis: "x", valueAxis: "y" };
+}
+
+
+/*
+
 async function renderPlotCard(container, payloadBuilder) {
   if (!container) return;
   setLoading(container);
@@ -1338,7 +2005,7 @@ async function renderPlotCard(container, payloadBuilder) {
        FIX SOLO PARA RATE BY TARIFF
        ============================ */
       
-
+/*
     const isRateEnergyChart =
       payload?.chart?.x === "rate" &&
       payload?.chart?.y === "energy_kwh_sum";
@@ -1390,7 +2057,7 @@ async function renderPlotCard(container, payloadBuilder) {
     }
 
     /* ============================ */
-
+/*
     if (plotIsEmpty(figure)) {
       setMessage(container, "No hay datos para los filtros seleccionados.");
       return;
@@ -1415,6 +2082,106 @@ async function renderPlotCard(container, payloadBuilder) {
       typeof message === "string"
         ? message
         : "No fue posible cargar la gráfica.";
+    setError(container, text, () =>
+      renderPlotCard(container, payloadBuilder)
+    );
+  }
+}
+*/
+
+async function renderPlotCard(container, payloadBuilder) {
+  if (!container) return;
+  setLoading(container);
+
+  let payload;
+  try {
+    payload = await payloadBuilder();
+  } catch (err) {
+    console.error("reports: payload error", err);
+    setMessage(container, "Error al preparar la consulta.");
+    return;
+  }
+
+  if (!payload) {
+    setMessage(container, "No hay datos para los filtros seleccionados.");
+    return;
+  }
+  if (payload.__emptyMessage) {
+    setMessage(container, payload.__emptyMessage);
+    return;
+  }
+
+  try {
+    const result = await fetchPlot(payload);
+
+    if (!result || !result.figure || !Array.isArray(result.figure.data)) {
+      throw new Error("No se recibieron datos válidos para la gráfica.");
+    }
+
+    const { figure, config, mapping } = result;
+
+    /* ============================
+       MAPPING Y NORMALIZACIÓN
+       ============================ */
+
+    const augmentedMapping = augmentDeviceMapping(mapping);
+    applyMapping(figure, augmentedMapping);
+    mapCategoricalAxisToLabels(figure);
+
+    /* ============================
+       HOVER GENÉRICO CORRECTO
+       ============================ */
+
+    figure.data.forEach((trace) => {
+      if (typeof trace.hovertemplate !== "string") return;
+
+      const orientation = trace.orientation || "v";
+
+      /*
+        El backend asume:
+          x = categoría
+          y = valor
+
+        Pero en barras horizontales Plotly invierte eso.
+        Entonces SOLO ahí corregimos.
+      */
+      if (orientation === "h") {
+        trace.hovertemplate = trace.hovertemplate
+          .replace(/%\{x([^}]*)\}/g, "%{__tmp$1}")
+          .replace(/%\{y([^}]*)\}/g, "%{x$1}")
+          .replace(/%\{__tmp([^}]*)\}/g, "%{y$1}");
+      }
+    });
+
+
+
+
+    /* ============================ */
+
+    if (plotIsEmpty(figure)) {
+      setMessage(container, "No hay datos para los filtros seleccionados.");
+      return;
+    }
+
+    let normalizedLayout = normalizeReportPlotLayout(figure.layout);
+
+    if (payload?.meta?.domain === "finance") {
+      normalizedLayout = applyFinanceLayoutOverrides(normalizedLayout);
+    }
+
+    Plotly.react(container, figure.data, normalizedLayout, {
+      ...config,
+      displaylogo: false,
+      responsive: true,
+    });
+  } catch (err) {
+    console.error("reports: plot error", err);
+    const { message } = normalisePlotError(err);
+    const text =
+      typeof message === "string"
+        ? message
+        : "No fue posible cargar la gráfica.";
+
     setError(container, text, () =>
       renderPlotCard(container, payloadBuilder)
     );

@@ -44,6 +44,7 @@ return [
     'ml' => [
         'base_url' => env('ML_API_BASE', env('PLOT_API_BASE', env('VITE_PLOT_API_BASE'))),
         'api_key' => env('ML_API_KEY', env('PLOT_API_KEY', env('VITE_PLOT_API_KEY'))),
+        'time_column' => env('ML_TIME_COLUMN', 'measurement_time'),
     ],
 
 ];

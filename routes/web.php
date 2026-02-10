@@ -176,6 +176,7 @@ Route::delete('/sites/{siteId}', [SitesController::class, 'destroyBySiteId'])->n
 
  
 Route::get('/energy', [EnergyDashboardController::class, 'index'])->name('energy.dashboard');
+Route::get('/energy/costs', [EnergyDashboardController::class, 'costs'])->name('energy.costs');
 
     Route::get('/config', [configController::class, 'index'])->name('config');
     Route::get('/config/users', [configController::class, 'manageUsers'])->name('config.users');

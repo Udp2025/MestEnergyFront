@@ -40,4 +40,22 @@ class EnergyDashboardController extends Controller
         return view('clientes.clidash', compact('latestCost', 'filters'));
     }
 
+    public function costs(Request $request)
+    {
+        $start = $request->query('start_date');
+        $end = $request->query('end_date');
+        $site_id = (int) $request->query('site_id');
+        $device_id = $request->query('device_id');
+        $device_id = $device_id !== null && $device_id !== ''
+            ? (int) $device_id
+            : null;
+
+        if (!$start || !$end || !$site_id) {
+            return response()->json(['message' => 'Parámetros inválidos.'], 400);
+        }
+
+        $valor = $this->service->getCosts($start, $end, $device_id, $site_id);
+        return response()->json($valor);
+    }
+
 }

@@ -132,24 +132,28 @@
                         <span>Pronóstico de Consumo</span>
                     </a>
                 </li>
+                {{-- Energy Flow oculto temporalmente
                 <li class="{{ request()->routeIs('energyflow') ? 'custom-active' : '' }}">
                     <i class="fas fa-bolt" aria-hidden="true"></i>
                     <a href="{{ route('energyflow', $clientQueryParams) }}">
                         <span>Energy Flow</span>
                     </a>
                 </li>
+                --}}
                 <li class="{{ request()->routeIs('clientes.clidash') ? 'custom-active' : '' }}">
                     <i class="fas fa-coins" aria-hidden="true"></i>
                     <a href="{{ route('clientes.clidash', $clientQueryParams) }}">
                         <span>Finanzas</span>
                     </a>
                 </li>
+                {{-- Triggers oculto temporalmente
                 <li class="{{ request()->routeIs('tiggers') ? 'custom-active' : '' }}">
                     <i class="fas fa-bullseye" aria-hidden="true"></i>
                     <a href="{{ route('tiggers', $clientQueryParams) }}">
                         <span>Triggers</span>
                     </a>
                 </li>
+                --}}
                 <li class="{{ request()->routeIs('manage') ? 'custom-active' : '' }}">
                     <i class="fas fa-tools" aria-hidden="true"></i>
                     <a href="{{ route('manage', $clientQueryParams) }}">

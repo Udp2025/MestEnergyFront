@@ -30,6 +30,7 @@ class MlProxyController extends PlotProxyController
         }
 
         $payload = $request->all();
+        $payload = $this->normaliseMlTimeColumn($payload);
         $this->ensureAllowedTable($payload);
         $payload = $this->applySiteConstraints($request->user(), $payload);
 
@@ -44,5 +45,28 @@ class MlProxyController extends PlotProxyController
     protected function getApiKey(): ?string
     {
         return config('services.plot.api_key');
+    }
+
+    protected function normaliseMlTimeColumn(array $payload): array
+    {
+        $configured = (string) config('services.ml.time_column', 'measurement_time');
+        $configured = $configured !== '' ? $configured : 'measurement_time';
+
+        if (array_key_exists('time_column', $payload)) {
+            $payload['time_column'] = $configured;
+        }
+
+        $filterMap = $payload['filter_map'] ?? null;
+        if (!is_array($filterMap)) {
+            return $payload;
+        }
+
+        if ($configured !== 'measurement_time' && array_key_exists('measurement_time', $filterMap)) {
+            $filterMap[$configured] = $filterMap['measurement_time'];
+            unset($filterMap['measurement_time']);
+            $payload['filter_map'] = $filterMap;
+        }
+
+        return $payload;
     }
 }
