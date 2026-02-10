@@ -195,6 +195,16 @@ class EnergyCostService
 
     private function regionCharges(int $site_id, int $month, int $year): array
     {
+        $tarifaRegion = DB::table('clientes')
+            ->where('site', $site_id)
+            ->orderByDesc('id')
+            ->value('tarifa_region');
+
+        if ($tarifaRegion === null || $tarifaRegion === '') {
+            logger()->warning("Tarifa no encontrada para site_id={$site_id} (cliente sin tarifa_region)");
+            return [0, 0, 0, 0, 0, 0];
+        }
+
         $queries = [
             "
             SELECT
@@ -205,11 +215,7 @@ class EnergyCostService
                 distribucion,
                 capacidad
             FROM tarifa_region
-            WHERE id_region = (
-                SELECT tarifa_region
-                FROM clientes
-                WHERE site = ?
-            )
+            WHERE id_region = ?
             AND mes = ?
             AND tariff_year = ?
             ORDER BY date_actualizacion DESC
@@ -224,11 +230,7 @@ class EnergyCostService
                 distribucion,
                 capacidad
             FROM tarifa_region
-            WHERE id = (
-                SELECT tarifa_region
-                FROM clientes
-                WHERE site = ?
-            )
+            WHERE id = ?
             AND mes = ?
             AND tariff_year = ?
             ORDER BY date_actualizacion DESC
@@ -240,7 +242,7 @@ class EnergyCostService
 
         foreach ($queries as $sql) {
             try {
-                $result = DB::select($sql, [$site_id, $month, $year]);
+                $result = DB::select($sql, [$tarifaRegion, $month, $year]);
 
                 if (!empty($result)) {
                     $row = $result[0];

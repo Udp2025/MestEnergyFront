@@ -165,11 +165,20 @@ export function normalisePlotError(err) {
   }
 
   if (err.isPlotError) {
-    if (err.status === 400 || err.status === 404 || err.status === 204) {
+    if (err.status === 400 || err.status === 404 || err.status === 204 || err.status === 422) {
       const payloadMessage =
         typeof err.payload === "string"
           ? err.payload
           : err.payload?.message || err.payload?.detail;
+      if (
+        typeof payloadMessage === "string" &&
+        payloadMessage.includes("None of ['measurement_time'] are in the columns")
+      ) {
+        return {
+          message: "No hay datos disponibles para el rango o sitio seleccionado.",
+          severity: "info",
+        };
+      }
       return {
         message:
           payloadMessage ||

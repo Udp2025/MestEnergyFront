@@ -2835,11 +2835,14 @@ function formatToday() {
 }
 
 function siteLabel(siteId) {
-  if (!canViewAllSites()) {
-    return "el sitio asignado";
+  if (!siteId) {
+    return canViewAllSites() ? "todos los sitios" : "el sitio asignado";
   }
-  if (!siteId) return "todos los sitios";
-  return state.sitesById[String(siteId)] || `Sitio ${siteId}`;
+
+  const name = state.sitesById[String(siteId)];
+  if (name) return name;
+
+  return canViewAllSites() ? `Sitio ${siteId}` : "el sitio asignado";
 }
 
 function deviceLabel(deviceId, deviceName, siteId) {

@@ -34,6 +34,14 @@ class MlProxyController extends PlotProxyController
         $this->ensureAllowedTable($payload);
         $payload = $this->applySiteConstraints($request->user(), $payload);
 
+        \Log::info('ml_proxy.request', [
+            'path' => $path,
+            'base_url' => $this->getBaseUrl(),
+            'api_key_present' => !empty($this->getApiKey()),
+            'api_key' => $this->getApiKey(),
+            'site_id' => $payload['filter_map']['site_id'] ?? null,
+        ]);
+
         return $this->forward($payload, $path);
     }
 
