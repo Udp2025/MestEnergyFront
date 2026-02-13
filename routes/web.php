@@ -144,6 +144,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/charts/data', [PlotProxyController::class, 'data'])->name('charts.data');
     Route::post('/ml/forecast', [MlProxyController::class, 'forecast'])->name('ml.forecast');
     Route::post('/ml/anomaly-detection', [MlProxyController::class, 'anomaly'])->name('ml.anomaly');
+
+    // En prod, el ALB/proxy puede rutear /ml/* directo al servicio Python (FastAPI),
+    // saltándose Laravel y causando 403 "Not authenticated" por header faltante.
+    // Usamos una ruta alternativa que siempre debe llegar a Laravel.
+    Route::post('/proxy/ml/forecast', [MlProxyController::class, 'forecast'])->name('ml.proxy.forecast');
+    Route::post('/proxy/ml/anomaly-detection', [MlProxyController::class, 'anomaly'])->name('ml.proxy.anomaly');
  
     Route::get('/api/postal-codes/{cp}', [PostalCodeController::class, 'lookup']);
     Route::get('/clientes', [ClientesController::class,'index'])->name('clientes.index');

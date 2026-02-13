@@ -2115,7 +2115,7 @@ function buildChartRequest(slug, filters) {
       map.measurement_time = `[${range.from} 00:00:00, ${range.to} 23:59:59]`;
       const horizon = Number(filters.horizon) > 0 ? Number(filters.horizon) : 7;
       return {
-        endpoint: "/ml/forecast",
+        endpoint: "/proxy/ml/forecast",
         payload: {
           table: "measurements",
           time_column: "measurement_time",
@@ -2142,7 +2142,7 @@ function buildChartRequest(slug, filters) {
       }
       map.measurement_time = `[${range.from}, ${range.to}]`;
       return {
-        endpoint: "/ml/anomaly-detection",
+        endpoint: "/proxy/ml/anomaly-detection",
         payload: {
           table: "measurements",
           filter_map: map,

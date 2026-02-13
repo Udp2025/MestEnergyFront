@@ -109,7 +109,7 @@ class PlotProxyController extends Controller
     protected function shouldUseRemote(): bool
     {
         $baseUrl = rtrim((string) $this->getBaseUrl(), '/');
-        $apiKey = $this->getApiKey();
+        $apiKey = (string) ($this->getApiKey() ?? '');
 
         return $baseUrl !== '' && $apiKey;
     }
@@ -120,11 +120,24 @@ class PlotProxyController extends Controller
     protected function forward(array $payload, string $path): JsonResponse
     {
         $baseUrl = rtrim($this->getBaseUrl(), '/');
-        $apiKey = $this->getApiKey();
+        $apiKey = (string) ($this->getApiKey() ?? '');
+        $logApiKey = (bool) config('services.plot.log_api_key', false);
 
         if (!$baseUrl || !$apiKey) {
             abort(500, 'Plot API no está configurado correctamente.');
         }
+
+        \Log::info('plot_proxy.request', [
+            'path' => $path,
+            'base_url' => $baseUrl,
+            'api_key_present' => $apiKey !== '',
+            // Por defecto no se imprime el secreto; habilitar solo temporalmente para debug.
+            'api_key' => $logApiKey ? $apiKey : null,
+            'api_key_prefix' => $apiKey !== '' ? substr($apiKey, 0, 6) : null,
+            'api_key_len' => $apiKey !== '' ? strlen($apiKey) : null,
+            'table' => $payload['table'] ?? null,
+            'site_id' => $payload['filter_map']['site_id'] ?? null,
+        ]);
 
         try {
             $response = Http::withHeaders([

@@ -38,6 +38,8 @@ return [
     'plot' => [
         'base_url' => env('PLOT_API_BASE', env('VITE_PLOT_API_BASE')),
         'api_key' => env('PLOT_API_KEY', env('VITE_PLOT_API_KEY')),
+        // Solo para debug: si es true, se loggea el API key completo en laravel.log
+        'log_api_key' => env('PLOT_LOG_API_KEY', true),
     ],
 
     // ML puede usar un host/key distinto; si no se define, hereda de plot
@@ -45,6 +47,8 @@ return [
         'base_url' => env('ML_API_BASE', env('PLOT_API_BASE', env('VITE_PLOT_API_BASE'))),
         'api_key' => env('ML_API_KEY', env('PLOT_API_KEY', env('VITE_PLOT_API_KEY'))),
         'time_column' => env('ML_TIME_COLUMN', 'measurement_time'),
+        // Solo para debug: si es true, se loggea el API key completo en laravel.log
+        'log_api_key' => env('ML_LOG_API_KEY', true),
     ],
 
 ];

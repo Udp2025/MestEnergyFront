@@ -33,7 +33,7 @@ const FREQ_LABEL = {
 };
 
 async function fetchForecast(body) {
-  const res = await fetch("/ml/forecast", {
+  const res = await fetch("/proxy/ml/forecast", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

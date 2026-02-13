@@ -34,10 +34,17 @@ class MlProxyController extends PlotProxyController
         $this->ensureAllowedTable($payload);
         $payload = $this->applySiteConstraints($request->user(), $payload);
 
+        $apiKey = (string) ($this->getApiKey() ?? '');
+        $logApiKey = (bool) config('services.ml.log_api_key', false);
+
         \Log::info('ml_proxy.request', [
             'path' => $path,
             'base_url' => $this->getBaseUrl(),
-            'api_key_present' => !empty($this->getApiKey()),
+            'api_key_present' => $apiKey !== '',
+            // Por defecto no se imprime el secreto; habilitar solo temporalmente para debug.
+            'api_key' => $logApiKey ? $apiKey : null,
+            'api_key_prefix' => $apiKey !== '' ? substr($apiKey, 0, 6) : null,
+            'api_key_len' => $apiKey !== '' ? strlen($apiKey) : null,
             'site_id' => $payload['filter_map']['site_id'] ?? null,
         ]);
 

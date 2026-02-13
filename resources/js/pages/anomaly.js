@@ -28,7 +28,7 @@ const DEFAULTS = {
 };
 
 async function fetchAnomalies(body) {
-  const res = await fetch("/ml/anomaly-detection", {
+  const res = await fetch("/proxy/ml/anomaly-detection", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
