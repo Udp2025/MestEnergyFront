@@ -38,7 +38,6 @@ class MlProxyController extends PlotProxyController
             'path' => $path,
             'base_url' => $this->getBaseUrl(),
             'api_key_present' => !empty($this->getApiKey()),
-            'api_key' => $this->getApiKey(),
             'site_id' => $payload['filter_map']['site_id'] ?? null,
         ]);
 
