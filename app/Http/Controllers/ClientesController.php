@@ -650,16 +650,33 @@ public function destroy(Request $request, Cliente $cliente)
 
     public function updateStatus(Request $request, Cliente $cliente)
     {
-        $estado = $request->input('estado_cliente', null);
+        $estadoInput = $request->input('estado_cliente', null);
+        if (is_null($estadoInput)) {
+            $estadoInput = $request->input('estado', null);
+        }
 
-        if (is_null($estado)) {
+        if (is_null($estadoInput)) {
             return response()->json(['success' => false, 'message' => 'Estado no proporcionado'], 400);
         }
 
-        $cliente->estado = $estado;
+        // Mantener compatibilidad: aceptar ids numéricos o etiquetas de texto.
+        if (is_numeric($estadoInput)) {
+            $estadoCliente = (int) $estadoInput;
+        } else {
+            $normalizado = mb_strtolower(trim((string) $estadoInput));
+            if ($normalizado === 'activo') {
+                $estadoCliente = 1;
+            } elseif ($normalizado === 'onboarding') {
+                $estadoCliente = 2;
+            } else {
+                $estadoCliente = 0;
+            }
+        }
+
+        $cliente->estado_cliente = $estadoCliente;
         $cliente->save();
 
-        return response()->json(['success' => true, 'estado' => $cliente->estado]);
+        return response()->json(['success' => true, 'estado_cliente' => $cliente->estado_cliente]);
     }
 
     public function confirmCapacitacion(Request $request, Cliente $cliente)

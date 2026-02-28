@@ -70,10 +70,12 @@ public function store(Request $request)
 
         DB::commit();
 
-        // recalcular contadores reales
-        $totalSites = DB::table('sites')->count();
+        // Recalcular contadores en base a clientes:
+        // Asignados = clientes con site
+        // Pendientes = clientes sin site
+        $totalClients = DB::table('clientes')->count();
         $assignedCount = DB::table('clientes')->whereNotNull('site')->where('site', '<>', '')->count();
-        $pendingCount = max(0, $totalSites - $assignedCount);
+        $pendingCount = max(0, $totalClients - $assignedCount);
 
         // action detection
         if ($previousClient === $clientId) {

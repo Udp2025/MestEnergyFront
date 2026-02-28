@@ -69,8 +69,8 @@
               @foreach($clientes as $cliente)
                 @php
                   // Determinar el estado (status) del cliente
-                  $estadoCliente = $cliente->estado ?? 'Inactivo';
-                  $isActivo = $estadoCliente === 'Activo' || $estadoCliente === 'activo' || $cliente->estado_cliente == 1;
+                  $estadoCliente = (int) ($cliente->estado_cliente ?? 0);
+                  $isActivo = $estadoCliente === 1;
                   
                   // Determinar el estado geográfico para mostrar en la columna "Ubicación"
                   $estadoGeografico = $cliente->ciudad ?? '—';
@@ -87,7 +87,7 @@
                   <td>{{ $cliente->reportes->count() }}</td>
                   <td>
                     @php
-                      $estadoLabel = $catalogoEstados[$cliente->estado_cliente] ?? ($cliente->estado ?? null);
+                      $estadoLabel = $catalogoEstados[$cliente->estado_cliente] ?? 'Inactivo';
                     @endphp
                     <span class="pill {{ \Illuminate\Support\Str::slug(strtolower($estadoLabel ?? 'sin')) }}">
                       {{ $estadoLabel ?? '—' }}
@@ -962,13 +962,14 @@ document.addEventListener('DOMContentLoaded', () => {
     toggle.addEventListener('change', function() {
       const id = this.dataset.id;
       const estado = this.checked ? 'Activo' : 'Inactivo';
+      const estadoCliente = this.checked ? 1 : 0;
       fetch(`/clientes/update-status/${id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         },
-        body: JSON.stringify({ estado })
+        body: JSON.stringify({ estado_cliente: estadoCliente, estado })
       })
       .then(r => r.json())
       .then(res => {

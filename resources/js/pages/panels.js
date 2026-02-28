@@ -1,4 +1,4 @@
-import Plotly from "plotly.js-dist-min";
+﻿import Plotly from "plotly.js-dist-min";
 import {
   fetchPlot,
   applyMapping,
@@ -513,6 +513,77 @@ function sanitisePlotFigure(figure = {}) {
   return figure;
 }
 
+function normaliseWidgetFigure(slug, figure = {}) {
+  if (!figure || typeof figure !== "object") return figure;
+
+  if (["bar_chart", "bar_today_chart", "bar_month_chart"].includes(slug)) {
+    const layout =
+      figure.layout && typeof figure.layout === "object" ? figure.layout : {};
+    layout.xaxis = {
+      ...(layout.xaxis || {}),
+      title: "Energia Suma (kWh)",
+    };
+    layout.yaxis = {
+      ...(layout.yaxis || {}),
+      title: "Sensor",
+      automargin: true,
+    };
+    figure.layout = layout;
+
+    if (Array.isArray(figure.data)) {
+      figure.data = figure.data.map((trace = {}) => {
+        if (trace.type !== "bar") return trace;
+        let hovertemplate = trace.hovertemplate;
+        if (typeof hovertemplate === "string" && hovertemplate.trim() !== "") {
+          // Mantiene todas las etiquetas del backend y corrige cruce x/y en barras horizontales.
+          const xToken = "__PLOT_X_TOKEN__";
+          hovertemplate = hovertemplate
+            .replace(/%\{x([^}]*)\}/g, `${xToken}$1}`)
+            .replace(/%\{y([^}]*)\}/g, "%{x$1}")
+            .replace(new RegExp(`${xToken}([^}]*)\\}`, "g"), "%{y$1}");
+        } else {
+          hovertemplate =
+            "Sensor: %{y}<br>Energia Suma (kWh): %{x:.2f}<extra></extra>";
+        }
+        return {
+          ...trace,
+          orientation: "h",
+          // Corrige tooltip con ejes horizontales: y=categoría(sensor), x=valor(energía).
+          hovertemplate,
+        };
+      });
+    }
+  }
+
+  if (slug === "device_energy_rank_chart") {
+    const layout = figure.layout && typeof figure.layout === "object" ? figure.layout : {};
+    layout.xaxis = {
+      ...(layout.xaxis || {}),
+      title: "Energy Wh Sum Suma (kWh)",
+    };
+    layout.yaxis = {
+      ...(layout.yaxis || {}),
+      title: "ID Sensor",
+      automargin: true,
+    };
+    figure.layout = layout;
+
+    if (Array.isArray(figure.data)) {
+      figure.data = figure.data.map((trace = {}) => {
+        if (trace.type !== "bar") return trace;
+        return {
+          ...trace,
+          orientation: "h",
+          // Evita hover inconsistente (NaN / campos cruzados) del backend en este widget.
+          hovertemplate: "ID Sensor: %{y}<br>Energy Wh Sum Suma (kWh): %{x:.2f}<extra></extra>",
+        };
+      });
+    }
+  }
+
+  return figure;
+}
+
 function sanitisePlotConfig(config = {}) {
   const base = { ...config };
   base.responsive = true;
@@ -631,7 +702,7 @@ function normaliseSummaryText(text) {
   if (normalized.length <= MAX_SUMMARY_LENGTH) {
     return normalized;
   }
-  return `${normalized.slice(0, MAX_SUMMARY_LENGTH - 1).trim()}…`;
+  return `${normalized.slice(0, MAX_SUMMARY_LENGTH - 1).trim()}...`;
 }
 
 function getWidgetSummary(widget = {}, definition = {}) {
@@ -841,7 +912,7 @@ function appendDeviceSelector(container, widget, onChange) {
   select.disabled = true;
   const loadingOption = document.createElement("option");
   loadingOption.value = "";
-  loadingOption.textContent = "Cargando dispositivos…";
+  loadingOption.textContent = "Cargando dispositivos...";
   select.appendChild(loadingOption);
   controls.appendChild(label);
   controls.appendChild(select);
@@ -1102,7 +1173,7 @@ function resetWidgetBody(container, kind) {
   container.dataset.widgetKind = kind;
 }
 
-function renderWidgetLoading(container, message = "Cargando widget…") {
+function renderWidgetLoading(container, message = "Cargando widget...") {
   if (!container) return;
   container.innerHTML = "";
   container.className = "widget-card__body";
@@ -1175,7 +1246,7 @@ function renderWidgetCard(widget, definition) {
   card.appendChild(body);
 
   if (widget.isLoading) {
-    renderWidgetLoading(body, "Agregando widget…");
+    renderWidgetLoading(body, "Agregando widget...");
     return card;
   }
 
@@ -1235,7 +1306,7 @@ function updateWidgetCard(card, widget, definition) {
   if (!body) return;
 
   if (widget.isLoading) {
-    renderWidgetLoading(body, "Agregando widget…");
+    renderWidgetLoading(body, "Agregando widget...");
     return;
   }
 
@@ -1965,9 +2036,10 @@ function renderActiveDevicesWidget(widget, container) {
 
 function renderChartWidget(widget, definition, container) {
   resetWidgetBody(container, "chart");
+  const widgetSlug = String(widget?.slug || "").trim();
 
   const siteId = resolveSiteId(widget, {
-    allowAll: !DEVICE_FILTER_WIDGETS.has(widget.slug),
+    allowAll: !DEVICE_FILTER_WIDGETS.has(widgetSlug),
   });
   const filters = {
     siteId,
@@ -1982,7 +2054,7 @@ function renderChartWidget(widget, definition, container) {
     filters.checkLast = Number(widget.data_filters.checkLast);
   }
 
-  const requestConfig = buildChartRequest(widget.slug, filters);
+  const requestConfig = buildChartRequest(widgetSlug, filters);
   if (!requestConfig) {
     container.innerHTML = `
       <div class="empty-state">
@@ -2023,7 +2095,7 @@ function renderChartWidget(widget, definition, container) {
     wrapper.appendChild(controls);
   }
 
-  if (DEVICE_FILTER_WIDGETS.has(widget.slug)) {
+  if (DEVICE_FILTER_WIDGETS.has(widgetSlug)) {
     appendDeviceSelector(wrapper, widget, () =>
       renderChartWidget(widget, definition, container)
     );
@@ -2034,7 +2106,7 @@ function renderChartWidget(widget, definition, container) {
   chartNode.id = `widget-chart-${widget.id}`;
   const loadingIndicator = document.createElement("div");
   loadingIndicator.className = "widget-card__body--loading";
-  loadingIndicator.textContent = "Cargando datos…";
+  loadingIndicator.textContent = "Cargando datos...";
   chartNode.appendChild(loadingIndicator);
 
   wrapper.appendChild(chartNode);
@@ -2045,6 +2117,504 @@ function renderChartWidget(widget, definition, container) {
     }
   };
 
+  const renderAvailabilityFallback = async () => {
+    const range = filters.dateRange || computeDateRange(3);
+    const requestBody = {
+      table: "site_hourly_kpi",
+      filter_map: {
+        hour_start: `[${range.from} 00:00:00, ${range.to} 23:59:59]`,
+      },
+      select_columns: ["site_id", "hour_start", "availability_pct"],
+    };
+    if (filters.siteId && filters.siteId !== "ALL") {
+      requestBody.filter_map.site_id = [String(filters.siteId)];
+    }
+
+    const response = await fetchDB(requestBody);
+    const rows = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+
+    const points = rows
+      .filter(
+        (row) =>
+          row?.hour_start &&
+          row?.availability_pct !== null &&
+          row?.availability_pct !== undefined
+      )
+      .map((row) => ({
+        x: row.hour_start,
+        y: Number(row.availability_pct),
+      }))
+      .sort((a, b) => new Date(a.x) - new Date(b.x));
+
+    if (!points.length) {
+      if (Plotly && typeof Plotly.purge === "function") {
+        Plotly.purge(chartNode);
+      }
+      chartNode.innerHTML = `
+        <div class="empty-state">
+          <strong>Sin datos</strong>
+          <small>No hay información disponible para el periodo seleccionado.</small>
+        </div>`;
+      return;
+    }
+
+    removeLoading();
+    return Plotly.react(
+      chartNode,
+      [
+        {
+          type: "scatter",
+          mode: "lines+markers",
+          x: points.map((point) => point.x),
+          y: points.map((point) => point.y),
+          name: "Disponibilidad",
+          hovertemplate:
+            "Hora: %{x}<br>Disponibilidad: %{y:.1f}%<extra></extra>",
+          line: { shape: "spline" },
+        },
+      ],
+      {
+        xaxis: { title: "Hora" },
+        yaxis: { title: "Disponibilidad (%)", range: [0, 100] },
+        legend: { orientation: "h" },
+      },
+      sanitisePlotConfig({})
+    );
+  };
+
+  const renderEnergyLast7Fallback = async () => {
+    const range = filters.dateRange || computeDateRange(7);
+    const requestBody = {
+      table: "site_daily_kpi",
+      filter_map: {
+        kpi_date: `[${range.from}, ${range.to}]`,
+      },
+      select_columns: ["site_id", "kpi_date", "total_energy_wh"],
+    };
+    if (filters.siteId && filters.siteId !== "ALL") {
+      requestBody.filter_map.site_id = [String(filters.siteId)];
+    }
+
+    const response = await fetchDB(requestBody);
+    const rows = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+
+    const grouped = new Map();
+    rows.forEach((row) => {
+      if (!row?.kpi_date || row?.total_energy_wh === null || row?.total_energy_wh === undefined) return;
+      const site = String(row.site_id ?? "site");
+      if (!grouped.has(site)) grouped.set(site, []);
+      grouped.get(site).push({
+        x: row.kpi_date,
+        y: Number(row.total_energy_wh),
+      });
+    });
+
+    const traces = Array.from(grouped.entries()).map(([site, points]) => {
+      points.sort((a, b) => new Date(a.x) - new Date(b.x));
+      return {
+        type: "scatter",
+        mode: "lines+markers",
+        name: site,
+        x: points.map((point) => point.x),
+        y: points.map((point) => point.y),
+        hovertemplate: "Fecha: %{x}<br>Energia (Wh): %{y:.0f}<extra></extra>",
+        line: { shape: "spline" },
+      };
+    });
+
+    if (!traces.length) {
+      if (Plotly && typeof Plotly.purge === "function") {
+        Plotly.purge(chartNode);
+      }
+      chartNode.innerHTML = `
+        <div class="empty-state">
+          <strong>Sin datos</strong>
+          <small>No hay información disponible para el periodo seleccionado.</small>
+        </div>`;
+      return;
+    }
+
+    removeLoading();
+    return Plotly.react(
+      chartNode,
+      traces,
+      {
+        xaxis: { title: "Fecha" },
+        yaxis: { title: "Energia (Wh)" },
+        legend: { orientation: "h" },
+      },
+      sanitisePlotConfig({})
+    );
+  };
+
+  const renderHeatmapMonthFallback = async () => {
+    const range = computeMonthRange();
+    const requestBody = {
+      table: "measurements",
+      filter_map: {
+        measurement_time: `[${range.from}, ${range.to}]`,
+      },
+      select_columns: ["measurement_time", "site_id", "power_w"],
+    };
+    if (filters.siteId && filters.siteId !== "ALL") {
+      requestBody.filter_map.site_id = [String(filters.siteId)];
+    }
+
+    const response = await fetchDB(requestBody);
+    const rows = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+
+    const buckets = new Map();
+    rows.forEach((row) => {
+      if (!row?.measurement_time || row?.power_w === null || row?.power_w === undefined) return;
+      const date = String(row.measurement_time).slice(0, 10);
+      const site = String(row.site_id ?? "");
+      if (!site || !date) return;
+      const key = `${site}|${date}`;
+      if (!buckets.has(key)) {
+        buckets.set(key, { site, date, sum: 0, count: 0 });
+      }
+      const bucket = buckets.get(key);
+      bucket.sum += Number(row.power_w) || 0;
+      bucket.count += 1;
+    });
+
+    const points = Array.from(buckets.values()).map((item) => ({
+      site: item.site,
+      date: item.date,
+      value: item.count > 0 ? item.sum / item.count : null,
+    }));
+
+    if (!points.length) {
+      if (Plotly && typeof Plotly.purge === "function") {
+        Plotly.purge(chartNode);
+      }
+      chartNode.innerHTML = `
+        <div class="empty-state">
+          <strong>Sin datos</strong>
+          <small>No hay información disponible para el periodo seleccionado.</small>
+        </div>`;
+      return;
+    }
+
+    const xLabels = Array.from(new Set(points.map((p) => p.date))).sort();
+    const siteIds = Array.from(new Set(points.map((p) => p.site))).sort();
+    const yLabels = siteIds.map(
+      (siteId) => state.sitesById?.[siteId]?.site_name || siteId
+    );
+
+    const matrix = siteIds.map((siteId) =>
+      xLabels.map((date) => {
+        const item = points.find((p) => p.site === siteId && p.date === date);
+        return item ? Number(item.value) : null;
+      })
+    );
+
+    removeLoading();
+    return Plotly.react(
+      chartNode,
+      [
+        {
+          type: "heatmap",
+          x: xLabels,
+          y: yLabels,
+          z: matrix,
+          coloraxis: "coloraxis",
+          hovertemplate:
+            "Fecha: %{x}<br>Sitio: %{y}<br>Potencia: %{z:.1f} W<extra></extra>",
+        },
+      ],
+      {
+        xaxis: { title: "Fecha" },
+        yaxis: { title: "Sitio", type: "category" },
+        coloraxis: {
+          colorscale: "YlGnBu",
+          colorbar: { title: "Potencia (W)" },
+        },
+      },
+      sanitisePlotConfig({})
+    );
+  };
+
+  const renderIngestionLagFallback = async () => {
+    const range = filters.dateRange || computeDateRange(14);
+    const requestBody = {
+      table: "ingestion_run_kpi",
+      filter_map: {
+        run_date: `[${range.from}, ${range.to}]`,
+      },
+      select_columns: ["run_date", "ingestion_lag_minutes", "records_loaded"],
+    };
+
+    const response = await fetchDB(requestBody);
+    const rows = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+
+    const points = rows
+      .filter(
+        (row) =>
+          row?.run_date &&
+          row?.ingestion_lag_minutes !== null &&
+          row?.ingestion_lag_minutes !== undefined
+      )
+      .map((row) => ({
+        x: row.run_date,
+        y: Number(row.ingestion_lag_minutes),
+      }))
+      .sort((a, b) => new Date(a.x) - new Date(b.x));
+
+    if (!points.length) {
+      if (Plotly && typeof Plotly.purge === "function") {
+        Plotly.purge(chartNode);
+      }
+      chartNode.innerHTML = `
+        <div class="empty-state">
+          <strong>Sin datos</strong>
+          <small>No hay información disponible para el periodo seleccionado.</small>
+        </div>`;
+      return;
+    }
+
+    removeLoading();
+    return Plotly.react(
+      chartNode,
+      [
+        {
+          type: "scatter",
+          mode: "lines+markers",
+          name: "Latencia de ingesta",
+          x: points.map((point) => point.x),
+          y: points.map((point) => point.y),
+          hovertemplate:
+            "Fecha: %{x}<br>Latencia: %{y:.1f} min<extra></extra>",
+          line: { shape: "spline" },
+        },
+      ],
+      {
+        xaxis: { title: "Fecha" },
+        yaxis: { title: "Latencia (min)" },
+        legend: { orientation: "h" },
+      },
+      sanitisePlotConfig({})
+    );
+  };
+
+  const renderPowerTimeseriesFallback = async (mode = "today") => {
+    const range =
+      mode === "month" ? computeMonthRange() : computeTodayRange();
+    const requestBody = {
+      table: "measurements",
+      filter_map: {
+        measurement_time: `[${range.from}, ${range.to}]`,
+      },
+      select_columns: ["measurement_time", "device_id", "power_w"],
+    };
+    if (filters.siteId && filters.siteId !== "ALL") {
+      requestBody.filter_map.site_id = [String(filters.siteId)];
+    }
+    if (filters.deviceId && filters.deviceId !== "ALL") {
+      requestBody.filter_map.device_id = [String(filters.deviceId)];
+    }
+
+    const response = await fetchDB(requestBody);
+    const rows = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+
+    const bucketKey = (value) => {
+      const iso = String(value || "");
+      if (iso.length < 13) return iso;
+      if (mode === "month") return iso.slice(0, 10);
+      return `${iso.slice(0, 13)}:00:00`;
+    };
+
+    const grouped = new Map();
+    rows.forEach((row) => {
+      if (!row?.measurement_time || row?.power_w === null || row?.power_w === undefined) return;
+      const deviceId = String(row.device_id ?? "");
+      const keyTime = bucketKey(row.measurement_time);
+      if (!deviceId || !keyTime) return;
+      const key = `${deviceId}|${keyTime}`;
+      if (!grouped.has(key)) {
+        grouped.set(key, { deviceId, x: keyTime, sum: 0, count: 0 });
+      }
+      const bucket = grouped.get(key);
+      bucket.sum += Number(row.power_w) || 0;
+      bucket.count += 1;
+    });
+
+    const byDevice = new Map();
+    Array.from(grouped.values()).forEach((item) => {
+      if (!byDevice.has(item.deviceId)) byDevice.set(item.deviceId, []);
+      byDevice.get(item.deviceId).push({
+        x: item.x,
+        y: item.count > 0 ? item.sum / item.count : null,
+      });
+    });
+
+    const traces = Array.from(byDevice.entries()).map(([deviceId, points]) => {
+      points.sort((a, b) => new Date(a.x) - new Date(b.x));
+      return {
+        type: "scatter",
+        mode: "lines+markers",
+        name: deviceId,
+        x: points.map((point) => point.x),
+        y: points.map((point) => point.y),
+        hovertemplate:
+          "Fecha: %{x}<br>Potencia promedio: %{y:.1f} W<extra></extra>",
+        line: { shape: "spline" },
+      };
+    });
+
+    if (!traces.length) {
+      if (Plotly && typeof Plotly.purge === "function") {
+        Plotly.purge(chartNode);
+      }
+      chartNode.innerHTML = `
+        <div class="empty-state">
+          <strong>Sin datos</strong>
+          <small>No hay información disponible para el periodo seleccionado.</small>
+        </div>`;
+      return;
+    }
+
+    removeLoading();
+    return Plotly.react(
+      chartNode,
+      traces,
+      {
+        xaxis: { title: "Fecha / hora" },
+        yaxis: { title: "Potencia promedio (W)" },
+        legend: { orientation: "h" },
+      },
+      sanitisePlotConfig({})
+    );
+  };
+
+  if (widgetSlug === "availability_trend_chart") {
+    renderAvailabilityFallback().catch((err) => {
+      removeLoading();
+      if (!container.isConnected) return;
+      console.error("panels.js: availability fallback failed", err);
+      const { message } = normalisePlotError(err);
+      if (Plotly && typeof Plotly.purge === "function") {
+        Plotly.purge(chartNode);
+      }
+      chartNode.innerHTML = `
+        <div class="empty-state">
+          <strong>No se pudo cargar el gráfico</strong>
+          <small>${message}</small>
+        </div>`;
+    });
+    return;
+  }
+
+  if (widgetSlug === "energy_last7_chart") {
+    renderEnergyLast7Fallback().catch((err) => {
+      removeLoading();
+      if (!container.isConnected) return;
+      console.error("panels.js: energy_last7 fallback failed", err);
+      const { message } = normalisePlotError(err);
+      if (Plotly && typeof Plotly.purge === "function") {
+        Plotly.purge(chartNode);
+      }
+      chartNode.innerHTML = `
+        <div class="empty-state">
+          <strong>No se pudo cargar el gráfico</strong>
+          <small>${message}</small>
+        </div>`;
+    });
+    return;
+  }
+
+  if (widgetSlug === "heatmap_month_chart") {
+    renderHeatmapMonthFallback().catch((err) => {
+      removeLoading();
+      if (!container.isConnected) return;
+      console.error("panels.js: heatmap month fallback failed", err);
+      const { message } = normalisePlotError(err);
+      if (Plotly && typeof Plotly.purge === "function") {
+        Plotly.purge(chartNode);
+      }
+      chartNode.innerHTML = `
+        <div class="empty-state">
+          <strong>No se pudo cargar el gráfico</strong>
+          <small>${message}</small>
+        </div>`;
+    });
+    return;
+  }
+
+  if (widgetSlug === "ingestion_lag_chart") {
+    renderIngestionLagFallback().catch((err) => {
+      removeLoading();
+      if (!container.isConnected) return;
+      console.error("panels.js: ingestion lag fallback failed", err);
+      const { message } = normalisePlotError(err);
+      if (Plotly && typeof Plotly.purge === "function") {
+        Plotly.purge(chartNode);
+      }
+      chartNode.innerHTML = `
+        <div class="empty-state">
+          <strong>No se pudo cargar el gráfico</strong>
+          <small>${message}</small>
+        </div>`;
+    });
+    return;
+  }
+
+  if (widgetSlug === "timeseries_today_chart") {
+    renderPowerTimeseriesFallback("today").catch((err) => {
+      removeLoading();
+      if (!container.isConnected) return;
+      console.error("panels.js: timeseries today fallback failed", err);
+      const { message } = normalisePlotError(err);
+      if (Plotly && typeof Plotly.purge === "function") {
+        Plotly.purge(chartNode);
+      }
+      chartNode.innerHTML = `
+        <div class="empty-state">
+          <strong>No se pudo cargar el gráfico</strong>
+          <small>${message}</small>
+        </div>`;
+    });
+    return;
+  }
+
+  if (widgetSlug === "timeseries_month_chart") {
+    renderPowerTimeseriesFallback("month").catch((err) => {
+      removeLoading();
+      if (!container.isConnected) return;
+      console.error("panels.js: timeseries month fallback failed", err);
+      const { message } = normalisePlotError(err);
+      if (Plotly && typeof Plotly.purge === "function") {
+        Plotly.purge(chartNode);
+      }
+      chartNode.innerHTML = `
+        <div class="empty-state">
+          <strong>No se pudo cargar el gráfico</strong>
+          <small>${message}</small>
+        </div>`;
+    });
+    return;
+  }
+
   fetchChart(requestConfig)
     .then(({ figure, config, mapping }) => {
       if (!container.isConnected) {
@@ -2052,15 +2622,18 @@ function renderChartWidget(widget, definition, container) {
         return;
       }
       applyMapping(figure, mapping);
-      const cleanedFigure = sanitisePlotFigure(figure);
+      const cleanedFigure = normaliseWidgetFigure(
+        widgetSlug,
+        sanitisePlotFigure(figure)
+      );
       if (plotIsEmpty(cleanedFigure)) {
         removeLoading();
         if (Plotly && typeof Plotly.purge === "function") {
           Plotly.purge(chartNode);
         }
-        chartNode.innerHTML = `
-          <div class="empty-state">
-            <strong>Sin datos</strong>
+      chartNode.innerHTML = `
+        <div class="empty-state">
+          <strong>Sin datos</strong>
             <small>No hay información disponible para el periodo seleccionado.</small>
           </div>`;
         return;
@@ -2075,8 +2648,8 @@ function renderChartWidget(widget, definition, container) {
       );
     })
     .catch((err) => {
-      removeLoading();
       if (!container.isConnected) return;
+      removeLoading();
       console.error("panels.js: chart fetch failed", err);
       const { message } = normalisePlotError(err);
       if (Plotly && typeof Plotly.purge === "function") {
@@ -2633,7 +3206,7 @@ function buildChartRequest(slug, filters) {
     case "availability_trend_chart": {
       const range = filters.dateRange || computeDateRange(3);
       const map = {
-        hour_start: `[${range.from} 00:00:00, ${range.to} 23:59:59]`,
+        hour_start_local: `[${range.from} 00:00:00, ${range.to} 23:59:59]`,
       };
       if (filter_map.site_id) {
         map.site_id = filter_map.site_id;
@@ -2643,17 +3216,15 @@ function buildChartRequest(slug, filters) {
         filter_map: map,
         aggregation: [
           {
-            group_by: ["site_id"],
+            group_by: ["site_id", "hour_start_local"],
             aggregations: {
               availability_pct: ["avg"],
             },
-            time_window: "H",
-            time_column: "hour_start",
           },
         ],
         chart: {
           chart_type: "line",
-          x: "hour_start",
+          x: "hour_start_local",
           y: "availability_pct_avg",
           style: { color: "site_id" },
         },
@@ -2680,9 +3251,11 @@ function buildChartRequest(slug, filters) {
         ],
         chart: {
           chart_type: "bar",
+          // Nota: el servicio remoto de graficos hace el "swap" para barras horizontales.
+          // Por eso aqui mantenemos (x=categoria, y=valor) y solo indicamos orientation="h".
           x: "device_id",
           y: "energy_wh_sum_sum",
-          style: { color: "site_id" },
+          style: { orientation: "h", color: "site_id" },
         },
       };
     }
@@ -2889,7 +3462,7 @@ async function saveDashboard() {
   if (!saveBtn) return;
   saveBtn.disabled = true;
   const originalLabel = saveBtn.textContent;
-  saveBtn.textContent = "Guardando…";
+  saveBtn.textContent = "Guardando...";
   try {
     if (!widgetsApiEnabled) {
       renderDashboard();
@@ -3009,3 +3582,5 @@ function computeMonthRange() {
     to: `${formatDateISO(end)} 23:59:59`,
   };
 }
+
+

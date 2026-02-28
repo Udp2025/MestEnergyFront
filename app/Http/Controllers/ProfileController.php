@@ -32,8 +32,13 @@ class ProfileController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $user = $request->user();
-        $incomingRole = $request->input('role', $user->role ?? 'operaciones');
-        if ($incomingRole === 'normal') {
+        $isAdmin = ($user->role ?? null) === 'admin';
+        $currentRole = ($user->role ?? null) === 'normal' ? 'operaciones' : ($user->role ?? 'operaciones');
+        $incomingRole = $request->input('role', $currentRole);
+
+        if (!$isAdmin) {
+            $incomingRole = $currentRole;
+        } elseif ($incomingRole === 'normal') {
             $incomingRole = 'operaciones';
         }
 

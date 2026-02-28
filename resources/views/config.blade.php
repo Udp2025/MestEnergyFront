@@ -89,11 +89,17 @@
                     </div>
                     <div class="config-field">
                         <label for="role">Rol</label>
-                        <select id="role" name="role" required>
-                            <option value="operaciones" {{ old('role', $roleValue) === 'operaciones' ? 'selected' : '' }}>Operaciones</option>
-                            <option value="admin" {{ old('role', $roleValue) === 'admin' ? 'selected' : '' }}>Admin</option>
-                        </select>
-                        <small>Solo se permiten los roles admin u operaciones.</small>
+                        @if($isAdmin)
+                            <select id="role" name="role" required>
+                                <option value="operaciones" {{ old('role', $roleValue) === 'operaciones' ? 'selected' : '' }}>Operaciones</option>
+                                <option value="admin" {{ old('role', $roleValue) === 'admin' ? 'selected' : '' }}>Admin</option>
+                            </select>
+                            <small>Solo se permiten los roles admin u operaciones.</small>
+                        @else
+                            <input id="role" type="text" value="{{ ucfirst($roleValue) }}" readonly>
+                            <input type="hidden" name="role" value="{{ $roleValue }}">
+                            <small>Solo un administrador puede cambiar tu rol.</small>
+                        @endif
                         @error('role')
                             <span class="field-error">{{ $message }}</span>
                         @enderror

@@ -24,9 +24,14 @@
   <div>
     @php
       $totalSites = $sites->count();
-      // $assignedBySite: array site_id => client_id (o null)
-      $assignedCount = collect($assignedBySite ?? [])->filter(function($v){ return !empty($v) && $v !== null; })->count();
-      $pendingCount = $totalSites - $assignedCount;
+      // KPI por clientes:
+      // Asignados = clientes con site
+      // Pendientes = clientes sin site
+      $totalClients = $clients->count();
+      $assignedCount = $clients->filter(function($c){
+        return !is_null($c->site) && $c->site !== '';
+      })->count();
+      $pendingCount = max(0, $totalClients - $assignedCount);
     @endphp
 
     <div class="metrics">
@@ -123,7 +128,7 @@
         <svg width="180" height="180" viewBox="0 0 42 42" class="donut-svg">
           <circle cx="21" cy="21" r="15.9155" fill="transparent" stroke="rgba(0,0,0,0.06)" stroke-width="8"></circle>
           @php
-            $pct = $totalSites ? round(($assignedCount / $totalSites) * 100) : 0;
+            $pct = $totalClients ? round(($assignedCount / $totalClients) * 100) : 0;
             $dashA = $pct . ' ' . (100 - $pct);
             $offset = 25;
           @endphp

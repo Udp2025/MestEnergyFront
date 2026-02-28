@@ -498,9 +498,18 @@ async function renderFinanzasSummary(container, filters, renderId) {
   setLoading(container);
 
   try {
+    console.log("reports:finanzas-debug filters", {
+      from: filters?.from,
+      to: filters?.to,
+      siteId: filters?.siteId,
+      area: filters?.area,
+    });
     await ensureDeviceLabels(filters.siteId || "ALL");
 
-    const rows = await fetchCostAggregates(filters);
+    const [rows, totals] = await Promise.all([
+      fetchCostAggregates(filters),
+      fetchCostTotals(filters),
+    ]);
     let siteCosts = null;
     if (filters.siteId && filters.siteId !== "ALL") {
       siteCosts = await fetchEnergyCosts(filters);
@@ -534,7 +543,7 @@ async function renderFinanzasSummary(container, filters, renderId) {
 
     if (renderId !== state.renderToken) return;
 
-    let totalEnergyWh = 0;
+    let totalEnergyKwh = 0;
     let totalCost = 0;
     let costsByZone = {
       Base: 0,
@@ -553,7 +562,7 @@ async function renderFinanzasSummary(container, filters, renderId) {
 
       const sensorCost = costBase + costInter + costPeak;
 
-      totalEnergyWh += energy;
+      totalEnergyKwh += energy;
       totalCost += sensorCost;
 
       costsByZone.Base += costBase;
@@ -569,7 +578,8 @@ async function renderFinanzasSummary(container, filters, renderId) {
     const topZone = Object.entries(costsByZone).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
 
     const daily = await fetchDailyEnergy(filters);
-    const topDay = daily[0]?.kpi_date || "—";
+    const topDayRaw = daily[0]?.timestamp;
+    const topDay = topDayRaw ? String(topDayRaw).slice(0, 10) : "—";
 
 
 
@@ -577,9 +587,13 @@ async function renderFinanzasSummary(container, filters, renderId) {
     const siteEnergyGen = siteCosts
       ? Number(siteCosts.energia_generada)
       : null;
+    const totalEnergyFromAgg = Number(totals?.energy_kwh_sum);
+    if (Number.isFinite(totalEnergyFromAgg)) {
+      totalEnergyKwh = totalEnergyFromAgg;
+    }
 
     const summaryRows = [
-      { label: "Consumo total", value: formatEnergy(totalEnergyWh) },
+      { label: "Consumo total", value: formatEnergy(totalEnergyKwh) },
       {
         label: "Costo total",
         value: formatCurrency(
@@ -602,7 +616,7 @@ async function renderFinanzasSummary(container, filters, renderId) {
     renderSummaryRows(container, summaryRows);
 
     renderNarrative("finanzas", filters, {
-      totalEnergyWh,
+      totalEnergyWh: totalEnergyKwh,
       totalCost: Number.isFinite(siteTotal) ? siteTotal : totalCost,
       topSensor,
       topZone,
@@ -715,7 +729,7 @@ async function fetchMonthlyTariff(siteId, month, year) {
       fijo: Number(d?.fijo || 0)
     };
   } catch (e) {
-    console.error("❌ Error en fetchMonthlyTariff:", e);
+    console.error("Error en fetchMonthlyTariff:", e);
     return { capacidad: 0, distribucion: 0, fijo: 0 };
   }
 }
@@ -1183,8 +1197,8 @@ function buildBaseSiteMap(filters, column = "kpi_date") {
   const map = {};
   if (column === "kpi_date") {
     map.kpi_date = `[${filters.from}, ${filters.to}]`;
-  } else if (column === "hour_start") {
-    map.hour_start = `[${filters.from} 00:00:00, ${filters.to} 23:59:59]`;
+  } else if (column === "hour_start_local") {
+    map.hour_start_local = `[${filters.from} 00:00:00, ${filters.to} 23:59:59]`;
   }
   if (filters.siteId && filters.siteId !== "ALL") {
     map.site_id = [String(filters.siteId)];
@@ -1202,7 +1216,7 @@ function buildCostAggFilter(filters) {
   };
 
   if (filters.siteId && filters.siteId !== "ALL") {
-    map.site_id = [String(filters.siteId)];
+    map.site_id = "=" + Number(filters.siteId);
   }
 
   return map;
@@ -1223,7 +1237,6 @@ function buildEnergyByDayPayload(filters) {
     meta: {
       domain: "finance",
     },
-
 
     chart: {
       chart_type: "line",
@@ -1248,10 +1261,6 @@ function buildEnergyByDayPayload(filters) {
 
 function buildCostByTariffPayload(filters, chartType = "bar") {
   const filter_map = buildCostAggFilter(filters);
-
-  if (filters.siteId && filters.siteId !== "ALL") {
-    filter_map.site_id = [String(filters.siteId)];
-  }
 
   return {
     table: "cost_agg",
@@ -1292,10 +1301,6 @@ function buildCostByTariffPayload(filters, chartType = "bar") {
 function buildEnergyByTariffPayload(filters, chartType = "bar") {
   const filter_map = buildCostAggFilter(filters);
 
-  if (filters.siteId && filters.siteId !== "ALL") {
-    filter_map.site_id = [String(filters.siteId)];
-  }
-
   return {
     table: "cost_agg",
     filter_map,
@@ -1330,10 +1335,6 @@ function buildEnergyByTariffPayload(filters, chartType = "bar") {
 
 function buildCostBySensorPayload(filters) {
   const filter_map = buildCostAggFilter(filters);
-
-  if (filters.siteId && filters.siteId !== "ALL") {
-    filter_map.site_id = [String(filters.siteId)];
-  }
 
   return {
     table: "cost_agg",
@@ -1374,10 +1375,6 @@ function buildCostBySensorPayload(filters) {
 function buildEnergyBySensorPayload(filters, chartType = "bar") {
   const filter_map = buildCostAggFilter(filters);
   const pieFallback = chartType === "pie";
-
-  if (filters.siteId && filters.siteId !== "ALL") {
-    filter_map.site_id = [String(filters.siteId)];
-  }
 
   return {
     table: "cost_agg",
@@ -1483,6 +1480,9 @@ function buildEnergyBySitePayload(filters, chartType = "bar") {
   return {
     table: "site_daily_kpi",
     filter_map,
+    meta: {
+      scaleToKilo: true,
+    },
     aggregation: [
       {
         group_by: ["site_id"],
@@ -1502,13 +1502,16 @@ function buildEnergyBySitePayload(filters, chartType = "bar") {
 }
 
 function buildHourlyEnergyPayload(filters) {
-  const filter_map = buildBaseSiteMap(filters, "hour_start");
+  const filter_map = buildBaseSiteMap(filters, "hour_start_local");
   return {
     table: "site_hourly_kpi",
     filter_map,
+    meta: {
+      scaleToKilo: true,
+    },
     aggregation: [
       {
-        group_by: ["site_id", "hour_start"],
+        group_by: ["site_id", "hour_start_local"],
         aggregations: {
           energy_wh_sum: ["avg"],
         },
@@ -1516,7 +1519,7 @@ function buildHourlyEnergyPayload(filters) {
     ],
     chart: {
       chart_type: "bar",
-      x: "hour_start",
+      x: "hour_start_local",
       y: "energy_wh_sum_avg",
       style: { color: "site_id" },
     },
@@ -1550,6 +1553,10 @@ function buildDeviceEnergyTrendPayload(filters) {
   return {
     table: "device_daily_kpi",
     filter_map,
+    meta: {
+      cardKey: "healthTrend",
+      scaleToKilo: true,
+    },
     aggregation: [
       {
         group_by: ["site_id", "device_id", "kpi_date"],
@@ -1573,6 +1580,9 @@ function buildDeviceEnergyRankPayload(filters, chartType = "bar") {
   return {
     table: "device_daily_kpi",
     filter_map,
+    meta: {
+      scaleToKilo: true,
+    },
     aggregation: [
       {
         group_by: ["site_id", "device_id"],
@@ -1598,6 +1608,9 @@ function buildDevicePowerPayload(filters) {
   return {
     table: "device_daily_kpi",
     filter_map,
+    meta: {
+      scaleToKilo: true,
+    },
     aggregation: [
       {
         group_by: ["site_id", "device_id"],
@@ -1635,11 +1648,15 @@ async function fetchSiteAggregates(filters) {
   };
   try {
     const response = await fetchDB(body);
-    return Array.isArray(response?.data)
+    const rows = Array.isArray(response?.data)
       ? response.data
       : Array.isArray(response)
       ? response
       : [];
+    return rows.map((row) => ({
+      ...row,
+      total_energy_wh_sum: Number(row?.total_energy_wh_sum || 0) / 1000,
+    }));
   } catch (error) {
     console.warn("reports: site aggregates unavailable", error);
     return [];
@@ -1662,11 +1679,16 @@ async function fetchDeviceAggregates(filters) {
   };
   try {
     const response = await fetchDB(body);
-    return Array.isArray(response?.data)
+    const rows = Array.isArray(response?.data)
       ? response.data
       : Array.isArray(response)
       ? response
       : [];
+    return rows.map((row) => ({
+      ...row,
+      energy_wh_sum_sum: Number(row?.energy_wh_sum_sum || 0) / 1000,
+      power_w_avg_avg: Number(row?.power_w_avg_avg || 0) / 1000,
+    }));
   } catch (error) {
     console.warn("reports: device aggregates unavailable", error);
     return [];
@@ -1676,9 +1698,7 @@ async function fetchDeviceAggregates(filters) {
 async function fetchCostAggregates(filters) {
   const body = {
     table: "cost_agg",
-    filter_map: {
-      timestamp: `[${filters.from} 00:00:00, ${filters.to} 23:59:59]`,
-    },
+    filter_map: buildCostAggFilter(filters),
     aggregation: [
       {
         group_by: ["site_id", "device_id"],
@@ -1691,21 +1711,67 @@ async function fetchCostAggregates(filters) {
       },
     ],
   };
-
-  if (filters.siteId && filters.siteId !== "ALL") {
-    body.filter_map.site_id = [String(filters.siteId)];
-  }
+  console.log("reports:finanzas-debug fetchCostAggregates request", body);
 
   try {
     const response = await fetchDB(body);
-    return Array.isArray(response?.data)
+    const rows = Array.isArray(response?.data)
       ? response.data
       : Array.isArray(response)
       ? response
       : [];
+    console.log("reports:finanzas-debug fetchCostAggregates response", {
+      rowCount: rows.length,
+      sample: rows.slice(0, 5),
+    });
+    return rows;
   } catch (error) {
     console.warn("reports: cost aggregates unavailable", error);
+    console.warn("reports:finanzas-debug fetchCostAggregates error", error);
     return [];
+  }
+}
+
+async function fetchCostTotals(filters) {
+  const body = {
+    table: "cost_agg",
+    filter_map: buildCostAggFilter(filters),
+    aggregation: [
+      {
+        group_by: ["site_id"],
+        aggregations: {
+          energy_kwh: ["sum"],
+          cost: ["sum"],
+        },
+      },
+    ],
+  };
+  console.log("reports:finanzas-debug fetchCostTotals request", body);
+
+  try {
+    const response = await fetchDB(body);
+    const rows = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+    if (!rows.length) return null;
+    return rows.reduce(
+      (acc, row) => ({
+        energy_kwh_sum: acc.energy_kwh_sum + Number(row?.energy_kwh_sum || 0),
+        cost_sum: acc.cost_sum + Number(row?.cost_sum || 0),
+      }),
+      { energy_kwh_sum: 0, cost_sum: 0 }
+    );
+    console.log("reports:finanzas-debug fetchCostTotals response", {
+      rawRows: rows,
+      reduced: totals,
+    });
+    return totals;
+  } catch (error) {
+    console.warn("reports: cost totals unavailable", error);
+    console.warn("reports:finanzas-debug fetchCostTotals error", error);
+    return null;
   }
 }
 
@@ -1772,23 +1838,17 @@ async function fetchEnergyCosts(filters) {
 
 async function fetchDailyEnergy(filters) {
   const body = {
-    table: "site_daily_kpi",
-    filter_map: {
-      kpi_date: `[${filters.from}, ${filters.to}]`,
-    },
+    table: "cost_agg",
+    filter_map: buildCostAggFilter(filters),
     aggregation: [
       {
-        group_by: ["kpi_date"],
+        group_by: ["timestamp"],
         aggregations: {
-          total_energy_wh: ["sum"],
+          energy_kwh: ["sum"],
         },
       },
     ],
   };
-
-  if (filters.siteId && filters.siteId !== "ALL") {
-    body.filter_map.site_id = [String(filters.siteId)];
-  }
 
   try {
     const response = await fetchDB(body);
@@ -1799,8 +1859,7 @@ async function fetchDailyEnergy(filters) {
       : [];
 
     return rows.sort(
-      (a, b) =>
-        (b.total_energy_wh_sum || 0) - (a.total_energy_wh_sum || 0)
+      (a, b) => (b.energy_kwh_sum || 0) - (a.energy_kwh_sum || 0)
     );
   } catch (error) {
     console.warn("reports: daily energy unavailable", error);
@@ -1830,6 +1889,22 @@ async function renderPlotCard(container, payloadBuilder) {
     const augmentedMapping = augmentDeviceMapping(mapping);
     applyMapping(figure, augmentedMapping);
     mapCategoricalAxisToLabels(figure);
+    maybeScaleFigureValuesToKilo(figure, payload);
+    if (payload?.meta?.cardKey === "healthTrend") {
+      await remapHealthTrendLegend(figure);
+    }
+    maybeScaleFigureValuesToKilo(figure, payload);
+    if (payload?.meta?.cardKey === "healthTrend") {
+      await remapHealthTrendLegend(figure);
+    }
+    maybeScaleFigureValuesToKilo(figure, payload);
+    if (payload?.meta?.cardKey === "healthTrend") {
+      await remapHealthTrendLegend(figure);
+    }
+    maybeScaleFigureValuesToKilo(figure, payload);
+    if (payload?.meta?.cardKey === "healthTrend") {
+      await remapHealthTrendLegend(figure);
+    }
     if (plotIsEmpty(figure)) {
       setMessage(container, "No hay datos para los filtros seleccionados.");
       return;
@@ -2000,6 +2075,10 @@ async function renderPlotCard(container, payloadBuilder) {
     const augmentedMapping = augmentDeviceMapping(mapping);
     applyMapping(figure, augmentedMapping);
     mapCategoricalAxisToLabels(figure);
+    maybeScaleFigureValuesToKilo(figure, payload);
+    if (payload?.meta?.cardKey === "healthTrend") {
+      await remapHealthTrendLegend(figure);
+    }
 
     /* ============================
        FIX SOLO PARA RATE BY TARIFF
@@ -2127,6 +2206,10 @@ async function renderPlotCard(container, payloadBuilder) {
     const augmentedMapping = augmentDeviceMapping(mapping);
     applyMapping(figure, augmentedMapping);
     mapCategoricalAxisToLabels(figure);
+    maybeScaleFigureValuesToKilo(figure, payload);
+    if (payload?.meta?.cardKey === "healthTrend") {
+      await remapHealthTrendLegend(figure);
+    }
 
     /* ============================
        HOVER GENÉRICO CORRECTO
@@ -2176,6 +2259,13 @@ async function renderPlotCard(container, payloadBuilder) {
     });
   } catch (err) {
     console.error("reports: plot error", err);
+    const renderedFromData = await tryRenderPlotFromDataFallback(
+      container,
+      payload,
+      err
+    );
+    if (renderedFromData) return;
+
     const { message } = normalisePlotError(err);
     const text =
       typeof message === "string"
@@ -2189,6 +2279,178 @@ async function renderPlotCard(container, payloadBuilder) {
 }
 
 
+function shouldScaleToKilo(payload) {
+  const yField = String(payload?.chart?.y || "").toLowerCase();
+  if (!yField) return false;
+
+  const forceScale = Boolean(payload?.meta?.scaleToKilo);
+  if (!forceScale) return false;
+
+  return (
+    yField.includes("energy_wh") ||
+    yField.includes("total_energy_wh") ||
+    yField.includes("power_w")
+  );
+}
+
+function maybeScaleFigureValuesToKilo(figure, payload) {
+  if (!figure || !Array.isArray(figure.data)) return;
+  if (!shouldScaleToKilo(payload)) return;
+
+  figure.data.forEach((trace) => {
+    const orientation = trace?.orientation || "v";
+    if (orientation === "h") {
+      if (Array.isArray(trace.x)) {
+        trace.x = trace.x.map((v) => Number(v ?? 0) / 1000);
+      }
+      return;
+    }
+    if (Array.isArray(trace.y)) {
+      trace.y = trace.y.map((v) => Number(v ?? 0) / 1000);
+    }
+  });
+}
+
+async function tryRenderPlotFromDataFallback(container, payload, originalError) {
+  if (!container || !payload?.table || !payload?.chart) return false;
+  try {
+    const dataPayload = {
+      table: payload.table,
+      filter_map: payload.filter_map,
+      aggregation: payload.aggregation,
+      select_columns: payload.select_columns,
+      sort: payload.sort,
+    };
+    const response = await fetchDB(dataPayload);
+    const rows = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+    if (!rows.length) return false;
+
+    if (payload?.chart?.style?.color === "device_id") {
+      await ensureDeviceMetaForIds(rows.map((row) => row?.device_id));
+    }
+
+    const figure = buildFallbackFigureFromRows(rows, payload.chart);
+    if (!figure || plotIsEmpty(figure)) return false;
+    maybeScaleFigureValuesToKilo(figure, payload);
+
+    let normalizedLayout = normalizeReportPlotLayout(figure.layout || {});
+    if (payload?.meta?.domain === "finance") {
+      normalizedLayout = applyFinanceLayoutOverrides(normalizedLayout);
+    }
+
+    Plotly.react(container, figure.data, normalizedLayout, {
+      displaylogo: false,
+      responsive: true,
+    });
+    console.warn("reports: plot rendered via /charts/data fallback", {
+      table: payload.table,
+      chart: payload.chart?.chart_type,
+      cause: originalError?.message,
+    });
+    return true;
+  } catch (fallbackError) {
+    console.warn("reports: fallback via /charts/data failed", fallbackError);
+    return false;
+  }
+}
+
+function buildFallbackFigureFromRows(rows, chart = {}) {
+  const chartType = chart?.chart_type || "line";
+  const xKey = chart?.x;
+  const yKey = chart?.y;
+  const colorKey = chart?.style?.color;
+  if (!xKey || !yKey) return null;
+
+  const grouped = groupRowsForFallback(rows, colorKey);
+
+  if (chartType === "pie") {
+    return {
+      data: [
+        {
+          type: "pie",
+          labels: rows.map((row) => row?.[xKey]),
+          values: rows.map((row) => Number(row?.[yKey] ?? 0)),
+          hole: 0.35,
+        },
+      ],
+      layout: {},
+    };
+  }
+
+  const orientation = chart?.style?.orientation === "h" ? "h" : "v";
+  const data = grouped.map(({ label, items }) => {
+    const x = items.map((row) => row?.[xKey]);
+    const y = items.map((row) => Number(row?.[yKey] ?? 0));
+
+    if (chartType === "line") {
+      return {
+        type: "scatter",
+        mode: "lines+markers",
+        name: label,
+        x,
+        y,
+      };
+    }
+
+    if (chartType === "scatter") {
+      return {
+        type: "scatter",
+        mode: "markers",
+        name: label,
+        x,
+        y,
+      };
+    }
+
+    if (orientation === "h") {
+      return {
+        type: "bar",
+        orientation: "h",
+        name: label,
+        x: y,
+        y: x,
+      };
+    }
+
+    return {
+      type: "bar",
+      name: label,
+      x,
+      y,
+    };
+  });
+
+  return { data, layout: {} };
+}
+
+function groupRowsForFallback(rows, colorKey) {
+  if (!colorKey) return [{ label: "", items: rows }];
+  const groups = new Map();
+  rows.forEach((row) => {
+    const rawKey = String(row?.[colorKey] ?? "Serie");
+    const key = fallbackSeriesLabel(colorKey, rawKey, row);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  });
+  return Array.from(groups.entries()).map(([label, items]) => ({
+    label,
+    items,
+  }));
+}
+
+function fallbackSeriesLabel(colorKey, rawKey, row) {
+  if (colorKey === "device_id" && /^\d+$/.test(rawKey)) {
+    return deviceLabel(rawKey, row?.device_name, row?.site_id);
+  }
+  if (colorKey === "site_id" && /^\d+$/.test(rawKey)) {
+    return siteLabel(rawKey);
+  }
+  return rawKey;
+}
 /* ------------------------------------------------------------------ */
 /*  Seeded fallback utilities (Finanzas)                              */
 /* ------------------------------------------------------------------ */
@@ -2995,6 +3257,35 @@ function mapCategoricalAxisToLabels(figure) {
   });
 }
 
+async function remapHealthTrendLegend(figure) {
+  if (!figure || !Array.isArray(figure.data)) return;
+
+  const candidateIds = Array.from(
+    new Set(
+      figure.data
+        .map((trace) => String(trace?.name ?? "").trim())
+        .filter((name) => /^\d+$/.test(name))
+    )
+  );
+
+  if (candidateIds.length) {
+    await ensureDeviceMetaForIds(candidateIds);
+  }
+
+  figure.data.forEach((trace) => {
+    const raw = String(trace?.name ?? "").trim();
+    if (!/^\d+$/.test(raw)) return;
+
+    const meta = state.deviceMetaById[raw];
+    const baseName = meta?.name || state.devicesById[raw];
+    if (!baseName) return;
+
+    trace.name = shouldAppendAcronym()
+      ? appendSiteAcronymOnce(baseName, meta?.siteName)
+      : baseName;
+  });
+}
+
 function createNarrativeCard(grid, areaKey) {
   const card = document.createElement("article");
   card.className = "report-card report-card--wide";
@@ -3231,3 +3522,5 @@ function buildExportNode(shell, area) {
   exportRoot.style.background = "#ffffff";
   return exportRoot;
 }
+
+
