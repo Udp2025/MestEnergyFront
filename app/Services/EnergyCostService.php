@@ -60,6 +60,10 @@ class EnergyCostService
 
             $real_charge_bonus = $this->get_power_factor([$reg], (float)($vista_generada ?? 0), $device_id);
 
+            $charge = $real_charge_bonus['charge'] ?? 0;
+            $pf = $real_charge_bonus['pf'] ?? 0;
+
+
             [
                 $power_factor_component,
                 $subtotal,
@@ -72,7 +76,7 @@ class EnergyCostService
                 (float)$costo_base,
                 (float)$costo_intermedio,
                 (float)$costo_punta,
-                (float)$real_charge_bonus
+                (float)$charge
             );
 
             $acum['cargo_fijo']       += (float)$fijo;
@@ -93,7 +97,8 @@ class EnergyCostService
             //avg
             //Agregar detalle del power factor
             $acum['kw_max']           += (float)$kw_Max;
-            $acum['kw_punta']           += (float)$kw_Max;
+            $acum['kw_punta']           += (float)$kw_punta;//corregir
+            $acum['pf']               += (float)$pf;
             $acum_count++;
         }
 
@@ -141,6 +146,7 @@ class EnergyCostService
             'kwh_punta' => round($acum['kwh_punta'],2),
             'kw_max' => round($acum_count > 0 ? ($acum['kw_max'] / $acum_count) : 0, 2),
             'kw_punta' => round($acum_count > 0 ? ($acum['kw_punta'] / $acum_count) : 0, 2),
+            'pf' => round($acum_count > 0 ? ($acum['pf'] / $acum_count) : 0, 2),
 
         ];
     }
@@ -286,6 +292,7 @@ class EnergyCostService
             'kwh_punta'          => 0,
             'kw_max'             => 0,
             'kw_punta'           => 0,
+            'pf'                 => 0,
         ];
     }
 
@@ -443,78 +450,68 @@ class EnergyCostService
         //$energia_generada = 0;
 
         if (!empty($sensores_generacion) && $device_id === null) {
+            $inicioRango = $dt_inicio->format('Y-m-d');
+            $finRango = $dt_fin->format('Y-m-d');
 
-            // Identificamos si es Mes completo
-            $inicioMes = (clone $dt_inicio)->modify('first day of this month')->format('Y-m-d');
-            $finMes    = (clone $dt_inicio)->modify('last day of this month')->format('Y-m-d');
-
-            $esMesCompleto =
-                $dt_inicio->format('Y-m-d') === $inicioMes &&
-                $dt_fin->format('Y-m-d') === $finMes;
-
-            Log::info('Generacion: chequeo mes completo', [
+            Log::info('Generacion: aplica a sitio completo', [
                 'dt_inicio' => $dt_inicio->format('Y-m-d H:i:s'),
                 'dt_fin' => $dt_fin->format('Y-m-d H:i:s'),
-                'inicioMes' => $inicioMes,
-                'finMes' => $finMes,
-                'esMesCompleto' => $esMesCompleto,
+                'inicio_rango' => $inicioRango,
+                'fin_rango' => $finRango,
                 'sensores_generacion_count' => count($sensores_generacion),
                 'device_id' => $device_id,
             ]);
 
-            if ($esMesCompleto) {
+            $energia_generada = $this->get_energy_generation(
+                $inicioRango,
+                $finRango,
+                $site_id,
+                $sensores_generacion
+            );
 
-                $energia_generada = $this->get_energy_generation(
-                    $inicioMes,
-                    $finMes,
-                    $site_id,
-                    $sensores_generacion
-                );
+            // Si existe energía acumulada del mes anterior, debe entrar aunque el rango consultado no sea mes completo.
+            $prev = (clone $dt_inicio)->modify('first day of previous month');
+            $energia_acumulada = $this->get_energy_accumulated(
+                $site_id,
+                (int)$prev->format('m'),
+                (int)$prev->format('Y')
+            );
 
-                //Obtener el mes anterior
-                $prev = (clone $dt_inicio)->modify('first day of previous month');
-                $energia_acumulada = $this->get_energy_accumulated(
-                    $site_id,
-                    (int)$prev->format('m'),
-                    (int)$prev->format('Y')
-                );
+            // device_daily_kpi.energy_wh_sum está en Wh; para el cálculo usamos kWh.
+            $energia_generada = $energia_generada / 1000;
+            $energia_generada += $energia_acumulada;
+            $vista_generada = $energia_generada;
 
-                // pasar a kWh 
-                $energia_generada = $energia_generada / 1000;
-                $energia_generada = $energia_generada + $energia_acumulada;
+            Log::info('Generacion: resultado', [
+                'energia_generada_kwh' => $energia_generada,
+                'energia_acumulada_kwh' => $energia_acumulada,
+                'vista_generada' => $vista_generada,
+            ]);
 
-                $vista_generada = $energia_generada;
-                Log::info('Generacion: resultado', [
-                    'energia_generada_kwh' => $energia_generada,
-                    'energia_acumulada_kwh' => $energia_acumulada,
-                    'vista_generada' => $vista_generada,
-                ]);
+            // === Descuento por prioridad ===
+            $restante = $energia_generada;
 
-                // === Descuento por prioridad ===
-                $restante = $energia_generada;
+            // intermedio
+            $d = min($energy_intermedio, $restante);
+            $energy_intermedio -= $d;
+            $restante -= $d;
 
-                // intermedio
-                $d = min($energy_intermedio, $restante);
-                $energy_intermedio -= $d;
+            // punta
+            if ($restante > 0) {
+                $d = min($energy_punta, $restante);
+                $energy_punta -= $d;
                 $restante -= $d;
-
-                // punta
-                if ($restante > 0) {
-                    $d = min($energy_punta, $restante);
-                    $energy_punta -= $d;
-                    $restante -= $d;
-                }
-
-                // base
-                if ($restante > 0) {
-                    $d = min($energy_base, $restante);
-                    $energy_base -= $d;
-                    $restante -= $d;
-                }
-
-                // nuevo q_periodo
-                $q_periodo = $energy_base + $energy_intermedio + $energy_punta;
             }
+
+            // base
+            if ($restante > 0) {
+                $d = min($energy_base, $restante);
+                $energy_base -= $d;
+                $restante -= $d;
+            }
+
+            // nuevo q_periodo
+            $q_periodo = $energy_base + $energy_intermedio + $energy_punta;
         }
 
         // ==========================================================
@@ -555,27 +552,35 @@ class EnergyCostService
         $costo_capacidad = min($max_power_peak, $demanda) * $capacidad;
         $costo_distribucion = min($max_power, $demanda) * $distribucion;
 
+        $costo_base = $variable_base * $energy_base;
+        $costo_intermedio = $variable_intermedia * $energy_intermedio;
+        $costo_punta = $variable_punta * $energy_punta;
+
         if (!$esMesCompleto) {
-            //Para cargo fijo
+            // Para cargo fijo y cargos prorrateables del periodo consultado
             $fijo = ($fijo / $dias_mes) * $dias;
 
             $factor_prorrateo = $dias / $dias_mes;
             $costo_capacidad    *= $factor_prorrateo;
             $costo_distribucion *= $factor_prorrateo;
+            $costo_base         *= $factor_prorrateo;
+            $costo_intermedio   *= $factor_prorrateo;
+            $costo_punta        *= $factor_prorrateo;
         }
-
-        $costo_base = $variable_base * $energy_base;
-        $costo_intermedio = $variable_intermedia * $energy_intermedio;
-        $costo_punta = $variable_punta * $energy_punta;
 
 
         return [$fijo, $costo_capacidad, $costo_distribucion, $costo_base, $costo_intermedio, $costo_punta, $vista_base, $vista_intermedio, $vista_punta, $vista_generada];
     }
 
 
-    private function get_power_factor($registros, float $kwh_gen = 0.0, $device_id = null): float
+    private function get_power_factor($registros, float $kwh_gen = 0.0, $device_id = null): array
     {
-        if (empty($registros)) return 0.0;
+        if (empty($registros)) {
+            return [
+                'charge' => 0.0,
+                'pf' => 0.0,
+            ];
+        }
 
         $kwh_old = 0.0;
         $kvarh_old = 0.0;
@@ -592,7 +597,12 @@ class EnergyCostService
             }
         }
 
-        if ($kwh_old <= 0) return 0.0;
+        if ($kwh_old <= 0) {
+            return [
+                'charge' => 0.0,
+                'pf' => 0.0,
+            ];
+        }
 
         // ==============================
         // Ajuste por generación (solo si device_id es null, si no hay device, es sitio completo)
@@ -605,15 +615,25 @@ class EnergyCostService
             $kwh_used = $kwh_new;
 
             // Escalar kvarh proporcionalmente para conservar el PF (tan(phi) constante)
-            $kvarh_used = ($kwh_old > 0) ? ($kvarh_old * ($kwh_new / $kwh_old)) : 0.0;
+            //$kvarh_used = ($kwh_old > 0) ? ($kvarh_old * ($kwh_new / $kwh_old)) : 0.0;
 
             // Si todo quedó en 0, no hay PF que cobrar
-            if ($kwh_used <= 0) return 0.0;
+            if ($kwh_used <= 0) {
+                return [
+                    'charge' => 0.0,
+                    'pf' => 0.0,
+                ];
+            }
         }
 
         // PF promedio del periodo
         $den = sqrt(($kwh_used ** 2) + ($kvarh_used ** 2));
-        if ($den <= 0) return 0.0;
+        if ($den <= 0) {
+            return [
+                'charge' => 0.0,
+                'pf' => 0.0,
+            ];
+        }
 
         $pf = $kwh_used / $den;
 
@@ -632,7 +652,10 @@ class EnergyCostService
         }
 
         // Checar el redondeo, no recuerdo cuantos decimales eran 
-        return (float)$charge;
+        return [
+            'charge' => (float)$charge,
+            'pf' => (float)$pf,
+        ];
     }
 
 
@@ -664,13 +687,15 @@ class EnergyCostService
         $total_punta = $registros['costo_punta'] ?? $registros['total_punta'] ?? 0;
         $cargo_fijo = $registros['cargo_fijo'] ?? 0;
 
-        if ($subtotal == 0) return [0,0,0,0,0,0,0];
+        if ($subtotal == 0) {
+            return [0,0,0,0,0,0,0];
+        }
 
         $pct = function($valor, $subtotal) {
             return number_format(($valor / $subtotal) * 100, 2, '.', '');
         };
 
-        return [
+        $result = [
             $pct($cargo_fijo, $subtotal),
             $pct($capacidad, $subtotal),
             $pct($distribucion, $subtotal),
@@ -679,5 +704,7 @@ class EnergyCostService
             $pct($total_punta, $subtotal),
             $pct($power_factor_component, $subtotal),
         ];
+
+        return $result;
     }
 }

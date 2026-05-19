@@ -26,13 +26,15 @@ if (!isset($latestCost)) {
         'consumo_intermedio_pt' => 0,
         'consumo_punta_pt' => 0,
         'factor_potencia_pt' => 0,
+        'factor_potencia' => 0,
         'fecha_inicio' => null,
         'kwh_base' => 0,
         'kwh_intermedio' => 0,
         'kwh_punta' => 0,
         'energia_generada' => 0,
         'kw_max' => 0,
-        'kw_punta' => 0
+        'kw_punta' => 0,
+        'pf' => 0,
     ];
 }
 
@@ -53,6 +55,8 @@ $kwhPunta = $latestCost->kwh_punta ?? 0;
 $energiaGenerada = $latestCost->energia_generada ?? 0;
 $kwMax = $latestCost->kw_max ?? 0;
 $kwPunta = $latestCost->kw_punta ?? 0;
+$factorPotenciaPct = ($latestCost->pf ?? 0) * 100;
+$pfBarWidth = max(0, min(100, $factorPotenciaPct));
 
 $costDetails = [
     ['label'=>'Cargo Fijo (Suministro)','pct'=>$latestCost->cargo_fijo_pt ?? 0,'value'=>$latestCost->cargo_fijo ?? 0],
@@ -63,7 +67,7 @@ $costDetails = [
     ['label'=>'Punta','pct'=>$latestCost->consumo_punta_pt ?? 0,'value'=>$latestCost->cargo_punta ?? 0],
 ];
 
-$factorPotencia = $latestCost->factor_potencia_pt ?? $latestCost->factor_potencia ?? 0;
+$factorPotencia = $latestCost->factor_potencia ?? 0;
 
 $barLabels = ['Cargo Fijo','Capacidad','Distribución','Base','Intermedia','Punta'];
 $barData = [
@@ -83,6 +87,28 @@ $doughnutData = [
     $latestCost->cargo_distribucion ?? 0,
     $latestCost->cargo_intermedio ?? 0,
     $latestCost->cargo_punta ?? 0
+];
+
+$barLabels = ['Cargo Fijo','Capacidad','Distribución','Base','Intermedia','Punta','Factor Potencia'];
+$barData = [
+    $latestCost->cargo_fijo_pt ?? 0,
+    $latestCost->consumo_capa_pt ?? 0,
+    $latestCost->consumo_dist_pt ?? 0,
+    $latestCost->consumo_base_pt ?? 0,
+    $latestCost->consumo_intermedio_pt ?? 0,
+    $latestCost->consumo_punta_pt ?? 0,
+    $latestCost->factor_potencia_pt ?? 0
+];
+
+$doughnutLabels = ['Base','Capacidad','Cargo Fijo','Distribución','Intermedia','Punta','Factor Potencia'];
+$doughnutData = [
+    $latestCost->cargo_base ?? 0,
+    $latestCost->cargo_capacidad ?? 0,
+    $latestCost->cargo_fijo ?? 0,
+    $latestCost->cargo_distribucion ?? 0,
+    $latestCost->cargo_intermedio ?? 0,
+    $latestCost->cargo_punta ?? 0,
+    $factorPotencia
 ];
 
 // Top drivers (mismo enfoque)
@@ -247,6 +273,15 @@ $topDrivers = array_slice($costValues,0,3);
                     </div>
                 </div>
                 @endforeach
+                <div class="cost-row pf-indicator">
+                    <div class="cost-meta">
+                        <div class="cost-label">Porcentaje de Factor de potencia</div>
+                        <div class="cost-value">{{ number_format($factorPotenciaPct,2,'.',',') }}</div>
+                    </div>
+                    <div class="cost-bar pf-meter">
+                        <div class="bar-fill" style="width: {{ number_format($pfBarWidth,2,'.','') }}%"></div>
+                    </div>
+                </div>
                 <div class="cost-row factor">
                     <div class="cost-meta">
                         <div class="cost-label">Factor de Potencia aplicado</div>
@@ -357,7 +392,7 @@ new Chart(barCtx, {
         datasets: [{
             label: '%',
             data: @json($barData),
-            backgroundColor: Array(6).fill('rgba(163,89,26,0.95)'),
+            backgroundColor: Array(7).fill('rgba(163,89,26,0.95)'),
             borderRadius: 8,
             maxBarThickness: 36
         }]
@@ -409,7 +444,7 @@ new Chart(donutCtx, {
         datasets: [{
             data: @json($doughnutData),
             backgroundColor: [
-                '#cfe7df','#e7cbbf','#aee1cf','#d1b9a2','#a3591a','#c7d6d0'
+                '#cfe7df','#e7cbbf','#aee1cf','#d1b9a2','#a3591a','#c7d6d0','#8f531a'
             ],
             hoverOffset: 6
         }]

@@ -517,6 +517,32 @@ function normaliseWidgetFigure(slug, figure = {}) {
   if (!figure || typeof figure !== "object") return figure;
 
   if (["bar_chart", "bar_today_chart", "bar_month_chart"].includes(slug)) {
+    const normaliseDailyDateStrings = (value) => {
+      if (Array.isArray(value)) {
+        return value.map(normaliseDailyDateStrings);
+      }
+
+      if (value && typeof value === "object") {
+        return Object.fromEntries(
+          Object.entries(value).map(([key, inner]) => [key, normaliseDailyDateStrings(inner)])
+        );
+      }
+
+      if (typeof value !== "string") {
+        return value;
+      }
+
+      const match = value.match(
+        /^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/
+      );
+      if (!match) {
+        return value;
+      }
+
+      const [, datePart] = match;
+      return datePart;
+    };
+
     const layout =
       figure.layout && typeof figure.layout === "object" ? figure.layout : {};
     layout.xaxis = {
@@ -548,6 +574,9 @@ function normaliseWidgetFigure(slug, figure = {}) {
         return {
           ...trace,
           orientation: "h",
+          customdata: normaliseDailyDateStrings(trace.customdata),
+          text: normaliseDailyDateStrings(trace.text),
+          hovertext: normaliseDailyDateStrings(trace.hovertext),
           // Corrige tooltip con ejes horizontales: y=categoría(sensor), x=valor(energía).
           hovertemplate,
         };
@@ -1653,32 +1682,70 @@ function renderSiteEnergyWidget(widget, container) {
   const siteId = filters.siteId || state.defaultSiteId || currentUserSiteId();
   const today = formatDateISO(new Date());
 
-  const requestBody = {
-    table: "site_daily_kpi",
-    filter_map: {
-      kpi_date: [today],
-    },
-    select_columns: [
-      "site_id",
-      "total_energy_wh",
-      "peak_power_w",
-      "load_factor",
-      "avg_power_factor",
-      "pf_compliance_pct",
-      "data_freshness_minutes",
-    ],
+  const normalizeText = (value) =>
+    String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+  const deviceRequestBody = {
+    table: "devices",
+    select_columns: ["site_id", "device_id", "device_name"],
   };
   if (siteId && siteId !== "ALL") {
-    requestBody.filter_map.site_id = [String(siteId)];
+    deviceRequestBody.filter_map = { site_id: "=" + String(siteId) };
   }
 
-  fetchDB(requestBody)
+  fetchDB(deviceRequestBody)
+    .then((deviceResponse) => {
+      const devices = Array.isArray(deviceResponse?.data)
+        ? deviceResponse.data
+        : Array.isArray(deviceResponse)
+        ? deviceResponse
+        : [];
+
+      const generationDeviceIds = devices
+        .filter((row) => normalizeText(row?.device_name).includes("generacion"))
+        .map((row) => String(row?.device_id ?? ""))
+        .filter(Boolean);
+
+      if (!generationDeviceIds.length) {
+        metric.firstChild.textContent = formatEnergy(0);
+        metric.setAttribute("aria-label", "Energía generada hoy 0 Wh");
+        return null;
+      }
+
+      const energyRequestBody = {
+        table: "device_daily_kpi",
+        filter_map: {
+          kpi_date: [today],
+          device_id: generationDeviceIds,
+        },
+        aggregation: [
+          {
+            group_by: ["site_id"],
+            aggregations: {
+              energy_wh_sum: ["sum"],
+            },
+          },
+        ],
+      };
+
+      if (siteId && siteId !== "ALL") {
+        energyRequestBody.filter_map.site_id = [String(siteId)];
+      }
+
+      return fetchDB(energyRequestBody);
+    })
     .then((response) => {
+      if (!response) return;
+
       const rows = Array.isArray(response?.data)
         ? response.data
         : Array.isArray(response)
         ? response
         : [];
+
       let record = null;
       if (siteId && siteId !== "ALL") {
         record = rows.find((row) => String(row.site_id) === String(siteId));
@@ -1686,16 +1753,12 @@ function renderSiteEnergyWidget(widget, container) {
       if (!record && rows.length) {
         record = rows[0];
       }
-      const energy = record?.total_energy_wh ?? record?.energy_wh_sum ?? null;
-      if (energy === null || energy === undefined) {
-        metric.firstChild.textContent = "-";
-        helper.textContent = "Energía no disponible";
-        return;
-      }
+
+      const energy = record?.energy_wh_sum_sum ?? 0;
       metric.firstChild.textContent = formatEnergy(energy);
       metric.setAttribute(
         "aria-label",
-        `Energía total ${metric.firstChild.textContent}`
+        `Energía generada hoy ${metric.firstChild.textContent}`
       );
     })
     .catch((err) => {
@@ -2188,49 +2251,127 @@ function renderChartWidget(widget, definition, container) {
 
   const renderEnergyLast7Fallback = async () => {
     const range = filters.dateRange || computeDateRange(7);
-    const requestBody = {
-      table: "site_daily_kpi",
-      filter_map: {
-        kpi_date: `[${range.from}, ${range.to}]`,
-      },
-      select_columns: ["site_id", "kpi_date", "total_energy_wh"],
+    const normalizeText = (value) =>
+      String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+
+    const buildDateAxis = (from, to) => {
+      const dates = [];
+      const cursor = new Date(`${from}T00:00:00`);
+      const end = new Date(`${to}T00:00:00`);
+      while (cursor <= end) {
+        dates.push(cursor.toISOString().slice(0, 10));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      return dates;
     };
+
+    const groupEnergyByDate = (rows) => {
+      const totals = new Map();
+      rows.forEach((row) => {
+        if (!row?.kpi_date) return;
+        const date = String(row.kpi_date).slice(0, 10);
+        const value = Number(row.energy_wh_sum);
+        if (!date || !Number.isFinite(value)) return;
+        totals.set(date, (totals.get(date) || 0) + value);
+      });
+      return totals;
+    };
+
+    const fetchRows = async (deviceIds) => {
+      if (!deviceIds.length) return [];
+      const requestBody = {
+        table: "device_daily_kpi",
+        filter_map: {
+          kpi_date: `[${range.from}, ${range.to}]`,
+          device_id: deviceIds.map((id) => String(id)),
+        },
+        select_columns: ["kpi_date", "energy_wh_sum"],
+      };
+
+      if (filters.siteId && filters.siteId !== "ALL") {
+        requestBody.filter_map.site_id = [String(filters.siteId)];
+      }
+
+      const response = await fetchDB(requestBody);
+      return Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+        ? response
+        : [];
+    };
+
+    const deviceRequest = {
+      table: "devices",
+      select_columns: ["device_id", "device_name"],
+    };
+
     if (filters.siteId && filters.siteId !== "ALL") {
-      requestBody.filter_map.site_id = [String(filters.siteId)];
+      deviceRequest.filter_map = { site_id: "=" + String(filters.siteId) };
     }
 
-    const response = await fetchDB(requestBody);
-    const rows = Array.isArray(response?.data)
-      ? response.data
-      : Array.isArray(response)
-      ? response
+    const deviceResponse = await fetchDB(deviceRequest);
+    const devices = Array.isArray(deviceResponse?.data)
+      ? deviceResponse.data
+      : Array.isArray(deviceResponse)
+      ? deviceResponse
       : [];
 
-    const grouped = new Map();
-    rows.forEach((row) => {
-      if (!row?.kpi_date || row?.total_energy_wh === null || row?.total_energy_wh === undefined) return;
-      const site = String(row.site_id ?? "site");
-      if (!grouped.has(site)) grouped.set(site, []);
-      grouped.get(site).push({
-        x: row.kpi_date,
-        y: Number(row.total_energy_wh),
-      });
-    });
+    const generationDeviceIds = devices
+      .filter((row) => normalizeText(row?.device_name).includes("generacion"))
+      .map((row) => Number(row?.device_id))
+      .filter((id) => Number.isFinite(id));
 
-    const traces = Array.from(grouped.entries()).map(([site, points]) => {
-      points.sort((a, b) => new Date(a.x) - new Date(b.x));
-      return {
+    const consumptionDeviceIds = devices
+      .filter((row) => !normalizeText(row?.device_name).includes("generacion"))
+      .map((row) => Number(row?.device_id))
+      .filter((id) => Number.isFinite(id));
+
+    const [consumptionRows, generationRows] = await Promise.all([
+      fetchRows(consumptionDeviceIds),
+      fetchRows(generationDeviceIds),
+    ]);
+
+    const dates = buildDateAxis(range.from, range.to);
+    const consumptionByDate = groupEnergyByDate(consumptionRows);
+    const generationByDate = groupEnergyByDate(generationRows);
+
+    const traces = [
+      {
         type: "scatter",
         mode: "lines+markers",
-        name: site,
-        x: points.map((point) => point.x),
-        y: points.map((point) => point.y),
-        hovertemplate: "Fecha: %{x}<br>Energia (Wh): %{y:.0f}<extra></extra>",
-        line: { shape: "spline" },
-      };
-    });
+        name: "Consumo",
+        x: dates,
+        y: dates.map((date) => consumptionByDate.get(date) || 0),
+        hovertemplate: "Fecha: %{x}<br>Consumo: %{y:.2f} kWh<extra></extra>",
+        line: { shape: "spline", color: "#ff8a73", width: 3 },
+        marker: { color: "#ff8a73", size: 7 },
+        fill: "tozeroy",
+        fillcolor: "rgba(255, 138, 115, 0.12)",
+        showlegend: true,
+      },
+      {
+        type: "scatter",
+        mode: "lines+markers",
+        name: "Generación",
+        x: dates,
+        y: dates.map((date) => generationByDate.get(date) || 0),
+        hovertemplate: "Fecha: %{x}<br>Generación: %{y:.2f} kWh<extra></extra>",
+        line: { shape: "spline", color: "#3bc6e3", width: 3 },
+        marker: { color: "#3bc6e3", size: 7 },
+        fill: "tozeroy",
+        fillcolor: "rgba(59, 198, 227, 0.12)",
+        showlegend: true,
+      },
+    ];
 
-    if (!traces.length) {
+    const hasData = traces.some((trace) =>
+      Array.isArray(trace.y) && trace.y.some((value) => Number(value) !== 0)
+    );
+
+    if (!hasData) {
       if (Plotly && typeof Plotly.purge === "function") {
         Plotly.purge(chartNode);
       }
@@ -2248,8 +2389,16 @@ function renderChartWidget(widget, definition, container) {
       traces,
       {
         xaxis: { title: "Fecha" },
-        yaxis: { title: "Energia (Wh)" },
-        legend: { orientation: "h" },
+        yaxis: { title: "Energía (kWh)" },
+        hovermode: "x unified",
+        legend: {
+          orientation: "h",
+          x: 0.5,
+          xanchor: "center",
+          y: -0.18,
+          yanchor: "top",
+        },
+        margin: { t: 24, r: 24, b: 72, l: 72 },
       },
       sanitisePlotConfig({})
     );

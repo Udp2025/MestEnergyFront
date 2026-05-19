@@ -37,6 +37,12 @@ const formatEnergy = (value) => {
   return `${Number(value).toFixed(0)} Wh`;
 };
 
+const normalizeText = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
 document.addEventListener("DOMContentLoaded", () => {
   const root = document.querySelector("[data-fixed-dashboard]");
   if (!root) return;
@@ -81,30 +87,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function buildChartPayload() {
-    if (mode === "agg") {
-      return {
-        table: "measurements",
-        filter_map: {
-          measurement_time: todayRange(),
-          ...(siteId ? { site_id: "=" + siteId } : {}),
-        },
-        aggregation: [
-          {
-            group_by: ["site_id"],
-            aggregations: { energy_wh: ["sum"] },
-            time_window: "H",
-            time_column: "measurement_time",
-          },
-        ],
-        chart: {
-          chart_type: "line",
-          x: "measurement_time",
-          y: "energy_wh_sum",
-          style: { color: "site_id" },
-        },
-      };
-    }
-
     return {
       table: "measurements",
       filter_map: {
@@ -128,6 +110,198 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
+  function mapRows(response) {
+    return Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+      ? response
+      : [];
+  }
+
+  function groupEnergyByTimestamp(rows, generationIds) {
+    const grouped = new Map();
+
+    rows.forEach((row) => {
+      const timestamp = row?.measurement_time;
+      const deviceId = Number(row?.device_id);
+      const value = Number(row?.energy_wh_sum);
+
+      if (!timestamp || !Number.isFinite(value)) return;
+
+      if (!grouped.has(timestamp)) {
+        grouped.set(timestamp, {
+          consumption: 0,
+          generation: 0,
+        });
+      }
+
+      const bucket = grouped.get(timestamp);
+      if (generationIds.has(deviceId)) {
+        bucket.generation += value;
+      } else {
+        bucket.consumption += value;
+      }
+    });
+
+    return grouped;
+  }
+
+  function buildAggregatedFigure(grouped) {
+    const timestamps = Array.from(grouped.keys()).sort(
+      (a, b) => new Date(a) - new Date(b)
+    );
+
+    return {
+      data: [
+        {
+          type: "scatter",
+          mode: "lines+markers",
+          name: "Consumo",
+          x: timestamps,
+          y: timestamps.map((timestamp) => grouped.get(timestamp)?.consumption ?? 0),
+          hovertemplate: "Fecha: %{x}<br>Consumo: %{y:.0f} Wh<extra></extra>",
+          line: { shape: "spline", color: "#ff8a73", width: 3 },
+          marker: { color: "#ff8a73", size: 6 },
+          fill: "tozeroy",
+          fillcolor: "rgba(255, 138, 115, 0.12)",
+          showlegend: true,
+        },
+        {
+          type: "scatter",
+          mode: "lines+markers",
+          name: "Generación",
+          x: timestamps,
+          y: timestamps.map((timestamp) => grouped.get(timestamp)?.generation ?? 0),
+          hovertemplate: "Fecha: %{x}<br>Generación: %{y:.0f} Wh<extra></extra>",
+          line: { shape: "spline", color: "#3bc6e3", width: 3 },
+          marker: { color: "#3bc6e3", size: 6 },
+          fill: "tozeroy",
+          fillcolor: "rgba(59, 198, 227, 0.12)",
+          showlegend: true,
+        },
+      ],
+      layout: {},
+    };
+  }
+
+  function buildDeviceFigure(rows, deviceNameById) {
+    const grouped = new Map();
+
+    rows.forEach((row) => {
+      const timestamp = row?.measurement_time;
+      const deviceKey = String(row?.device_id ?? "");
+      const value = Number(row?.energy_wh_sum);
+
+      if (!timestamp || !deviceKey || !Number.isFinite(value)) return;
+
+      if (!grouped.has(deviceKey)) {
+        grouped.set(deviceKey, []);
+      }
+
+      grouped.get(deviceKey).push({
+        x: timestamp,
+        y: value,
+      });
+    });
+
+    return {
+      data: Array.from(grouped.entries()).map(([deviceKey, points]) => {
+        points.sort((a, b) => new Date(a.x) - new Date(b.x));
+        const label = deviceNameById.get(deviceKey) || deviceKey;
+
+        return {
+          type: "scatter",
+          mode: "lines+markers",
+          name: label,
+          x: points.map((point) => point.x),
+          y: points.map((point) => point.y),
+          hovertemplate: "%{y:.0f} Wh<br>%{x}<extra>" + label + "</extra>",
+          line: { shape: "spline" },
+          showlegend: true,
+        };
+      }),
+      layout: {},
+    };
+  }
+
+  async function renderAggregatedChart() {
+    const [devicesResponse, measurementsResponse] = await Promise.all([
+      fetchDB({
+        table: "devices",
+        filter_map: {
+          ...(siteId ? { site_id: "=" + siteId } : {}),
+        },
+        select_columns: ["device_id", "device_name"],
+      }),
+      fetchDB({
+        table: "measurements",
+        filter_map: {
+          measurement_time: todayRange(),
+          ...(siteId ? { site_id: "=" + siteId } : {}),
+        },
+        aggregation: [
+          {
+            group_by: ["site_id", "device_id"],
+            aggregations: { energy_wh: ["sum"] },
+            time_window: "H",
+            time_column: "measurement_time",
+          },
+        ],
+      }),
+    ]);
+
+    const deviceRows = mapRows(devicesResponse);
+    const measurementRows = mapRows(measurementsResponse);
+
+    const generationIds = new Set(
+      deviceRows
+        .filter((row) => normalizeText(row?.device_name).includes("generacion"))
+        .map((row) => Number(row?.device_id))
+        .filter((id) => Number.isFinite(id))
+    );
+
+    const grouped = groupEnergyByTimestamp(measurementRows, generationIds);
+    return buildAggregatedFigure(grouped);
+  }
+
+  async function renderDeviceChart() {
+    const [devicesResponse, measurementsResponse] = await Promise.all([
+      fetchDB({
+        table: "devices",
+        filter_map: {
+          ...(siteId ? { site_id: "=" + siteId } : {}),
+        },
+        select_columns: ["device_id", "device_name"],
+      }),
+      fetchDB({
+        table: "measurements",
+        filter_map: {
+          measurement_time: todayRange(),
+          ...(siteId ? { site_id: "=" + siteId } : {}),
+        },
+        aggregation: [
+          {
+            group_by: ["site_id", "device_id"],
+            aggregations: { energy_wh: ["sum"] },
+            time_window: "H",
+            time_column: "measurement_time",
+          },
+        ],
+      }),
+    ]);
+
+    const deviceRows = mapRows(devicesResponse);
+    const measurementRows = mapRows(measurementsResponse);
+    const deviceNameById = new Map(
+      deviceRows.map((row) => [
+        String(row?.device_id ?? ""),
+        row?.device_name || String(row?.device_id ?? ""),
+      ])
+    );
+
+    return buildDeviceFigure(measurementRows, deviceNameById);
+  }
+
   async function renderChart() {
     if (!chartEl) return;
     if (!siteId && isSuperAdmin) {
@@ -137,10 +311,14 @@ document.addEventListener("DOMContentLoaded", () => {
     chartEl.style.height = "480px";
     try {
       setStatus("Cargando serie…", "info");
-      const { figure, config, mapping } = await fetchPlot(buildChartPayload());
-      const fig = figure && figure.data ? figure : { data: [], layout: {} };
-      const cfg = config || {};
-      applyMapping(fig, mapping);
+      let fig = { data: [], layout: {} };
+      let cfg = {};
+
+      if (mode === "agg") {
+        fig = await renderAggregatedChart();
+      } else {
+        fig = await renderDeviceChart();
+      }
       tuneLayout(fig);
       if (plotIsEmpty(fig)) {
         setStatus("Sin datos para hoy.", "info");
@@ -298,6 +476,19 @@ document.addEventListener("DOMContentLoaded", () => {
       title: "",
       automargin: true,
     };
+    if (mode === "agg") {
+      figure.layout.hovermode = "x unified";
+      figure.layout.legend = {
+        ...(figure.layout.legend || {}),
+        orientation: "h",
+        x: 0.5,
+        xanchor: "center",
+        y: -0.2,
+        yanchor: "top",
+      };
+      return;
+    }
+
     figure.layout.legend = {
       ...(figure.layout.legend || {}),
       orientation: "h",

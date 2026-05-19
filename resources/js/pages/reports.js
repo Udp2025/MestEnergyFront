@@ -750,9 +750,13 @@ async function renderFinanzasTable(container, filters, renderId) {
     const rows = await fetchCostAggregates(filters);
     if (renderId !== state.renderToken) return;
 
+    const generationSensorIds = new Set(
+      (await fetchGenerationSensorIds(filters)).map((id) => String(id))
+    );
+
     const deviceIds = Array.from(
       new Set(rows.map((r) => String(r.device_id)).filter(Boolean))
-    );
+    ).filter((deviceId) => !generationSensorIds.has(String(deviceId)));
     if (!deviceIds.length) {
       setMessage(container, "No hay datos para mostrar.");
       return;
@@ -864,7 +868,7 @@ function renderSensorCostTable(container, rows) {
             <th>Base</th>
             <th>Intermedia</th>
             <th>Punta</th>
-            <th>FP</th>
+            <th>FP aplicado</th>
             <th style="background-color: #f8f9fa;">Subtotal</th>
             <th style="background-color: #f8f9fa;">IVA (16%)</th>
             <th style="background-color: #e9ecef;">Total</th>
@@ -874,7 +878,7 @@ function renderSensorCostTable(container, rows) {
   `;
 
   safeRows.forEach(({ name, costs }) => {
-    const fpValue = `${Number(costs.factor_potencia_pt ?? 0).toFixed(2)}`;
+    const fpValue = formatAppliedPowerFactor(costs);
     html += `
       <tr>
         <td style="text-align:left; font-weight:bold; padding: 10px 12px;">${name}</td>
@@ -884,7 +888,7 @@ function renderSensorCostTable(container, rows) {
         <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_base ?? 0))}</td>
         <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_intermedio ?? 0))}</td>
         <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_punta ?? 0))}</td>
-        <td style="padding: 10px 12px;">${fpValue}</td>
+        <td class="report-table__fp" style="padding: 10px 12px;">${fpValue}</td>
         <td style="font-weight:bold; background-color: #f8f9fa; padding: 10px 12px;">${formatCurrency(Number(costs.subtotal ?? 0))}</td>
         <td style="color: #666; background-color: #f8f9fa; padding: 10px 12px;">${formatCurrency(Number(costs.iva ?? 0))}</td>
         <td class="table-total-cell" style="font-weight:bold; background-color: #e9ecef; color: #2c3e50; padding: 10px 12px;">
@@ -908,8 +912,7 @@ function renderSiteCostTable(container, siteName, costs) {
       .replace("MXN", "")
       .trim();
   };
-
-  const fpPercent = `${Number(costs.factor_potencia_pt ?? 0).toFixed(2)}`;
+  const fpValue = formatAppliedPowerFactor(costs);
 
   const html = `
     <div class="report-table-wrapper" style="overflow-x: auto;">
@@ -923,7 +926,7 @@ function renderSiteCostTable(container, siteName, costs) {
             <th>Base</th>
             <th>Intermedia</th>
             <th>Punta</th>
-            <th>FP</th>
+            <th>FP aplicado</th>
             <th style="background-color: #f8f9fa;">Subtotal</th>
             <th style="background-color: #f8f9fa;">IVA (16%)</th>
             <th style="background-color: #e9ecef;">Total</th>
@@ -938,7 +941,7 @@ function renderSiteCostTable(container, siteName, costs) {
             <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_base ?? 0))}</td>
             <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_intermedio ?? 0))}</td>
             <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_punta ?? 0))}</td>
-            <td style="padding: 10px 12px;">${fpPercent}</td>
+            <td class="report-table__fp" style="padding: 10px 12px;">${fpValue}</td>
             <td style="font-weight:bold; background-color: #f8f9fa; padding: 10px 12px;">${formatCurrency(Number(costs.subtotal ?? 0))}</td>
             <td style="color: #666; background-color: #f8f9fa; padding: 10px 12px;">${formatCurrency(Number(costs.iva ?? 0))}</td>
             <td class="table-total-cell" style="font-weight:bold; background-color: #e9ecef; color: #2c3e50; padding: 10px 12px;">
@@ -971,10 +974,9 @@ function renderSitesCostTable(container, rows) {
       .replace("MXN", "")
       .trim();
   };
-
   let html = `
     <div class="report-table-wrapper" style="overflow-x: auto;">
-      <table class="report-table report-table--horizontal" style="min-width: 980px;">
+      <table class="report-table report-table--horizontal" style="min-width: 1120px;">
         <thead>
           <tr>
             <th style="text-align:left; padding: 10px 12px;">Sitio</th>
@@ -984,7 +986,7 @@ function renderSitesCostTable(container, rows) {
             <th>Base</th>
             <th>Intermedia</th>
             <th>Punta</th>
-            <th>FP</th>
+            <th>FP aplicado</th>
             <th style="background-color: #f8f9fa;">Subtotal</th>
             <th style="background-color: #f8f9fa;">IVA (16%)</th>
             <th style="background-color: #e9ecef;">Total</th>
@@ -994,7 +996,7 @@ function renderSitesCostTable(container, rows) {
   `;
 
   safeRows.forEach(({ siteName, costs }) => {
-    const fpValue = `${Number(costs.factor_potencia_pt ?? 0).toFixed(2)}`;
+    const fpValue = formatAppliedPowerFactor(costs);
     html += `
       <tr>
         <td style="text-align:left; font-weight:bold; padding: 10px 12px;">${siteName}</td>
@@ -1004,7 +1006,7 @@ function renderSitesCostTable(container, rows) {
         <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_base ?? 0))}</td>
         <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_intermedio ?? 0))}</td>
         <td style="padding: 10px 12px;">${formatCompact(Number(costs.cargo_punta ?? 0))}</td>
-        <td style="padding: 10px 12px;">${fpValue}</td>
+            <td class="report-table__fp" style="padding: 10px 12px;">${fpValue}</td>
         <td style="font-weight:bold; background-color: #f8f9fa; padding: 10px 12px;">${formatCurrency(Number(costs.subtotal ?? 0))}</td>
         <td style="color: #666; background-color: #f8f9fa; padding: 10px 12px;">${formatCurrency(Number(costs.iva ?? 0))}</td>
         <td class="table-total-cell" style="font-weight:bold; background-color: #e9ecef; color: #2c3e50; padding: 10px 12px;">
@@ -3012,6 +3014,10 @@ function formatCurrency(value) {
   return `$${Number(value ?? 0).toLocaleString("es-MX")} MXN`;
 }
 
+function formatAppliedPowerFactor(costs) {
+  return formatCurrency(Number(costs?.factor_potencia ?? 0));
+}
+
 function formatPercent(value) {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
   const normalized = value > 1 ? value : value * 100;
@@ -3478,6 +3484,7 @@ function buildExportNode(shell, area) {
     <p class="report-export__meta">Periodo: ${rangeText} · Sitio: ${siteText}</p>
   `;
   exportRoot.appendChild(header);
+  //Cambiar U ENERGY POR MEST ENERGY
 
   // Content
   const body = document.createElement("div");
@@ -3522,5 +3529,4 @@ function buildExportNode(shell, area) {
   exportRoot.style.background = "#ffffff";
   return exportRoot;
 }
-
 

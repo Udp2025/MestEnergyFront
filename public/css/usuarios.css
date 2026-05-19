@@ -70,6 +70,19 @@ body { background: var(--bg); }
 .cost-value{ font-weight:700; font-size:0.95rem; color:var(--text); }
 .cost-bar { height:9px; background:#f2efe9; border-radius:8px; overflow:hidden; margin-top:6px; }
 .bar-fill { height:100%; background: linear-gradient(90deg, rgba(163,89,26,0.95), rgba(127,75,26,0.85)); border-radius:8px; box-shadow: 0 2px 6px rgba(163,89,26,0.06) }
+.pf-indicator{
+  margin-top: 0.1rem;
+  padding: 0.55rem 0.65rem;
+  background: #faf6f1;
+  border-radius: 10px;
+}
+.pf-meter{
+  height: 10px;
+  margin-top: 2px;
+}
+.pf-indicator .cost-value{
+  color: var(--accent);
+}
 
 /* factor y resumen */
 .factor .cost-value { color: var(--green); font-weight:800; }
@@ -104,7 +117,7 @@ body { background: var(--bg); }
 .legend-item{ display:flex; align-items:center; gap:0.45rem; }
 .swatch{ width:12px; height:12px; border-radius:3px; display:inline-block; }
 .sw-0{ background:#cfe7df } .sw-1{ background:#e7cbbf } .sw-2{ background:#aee1cf }
-.sw-3{ background:#d1b9a2 } .sw-4{ background:#a3591a } .sw-5{ background:#c7d6d0 }
+.sw-3{ background:#d1b9a2 } .sw-4{ background:#a3591a } .sw-5{ background:#c7d6d0 } .sw-6{ background:#8f531a }
 
 /* drivers */
 .drivers-card { padding: 1rem; display:flex; flex-direction:column; gap:0.6rem; }
